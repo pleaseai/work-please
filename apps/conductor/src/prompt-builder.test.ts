@@ -107,4 +107,9 @@ describe('buildContinuationPrompt', () => {
     expect(prompt).toContain('20')
     expect(prompt).toContain('Continuation guidance')
   })
+
+  it('formats as continuation turn #N of M (Section 17.4)', () => {
+    const prompt = buildContinuationPrompt(2, 3)
+    expect(prompt).toContain('continuation turn #2 of 3')
+  })
 })
