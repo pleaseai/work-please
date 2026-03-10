@@ -305,4 +305,16 @@ describe('removeWorkspace', () => {
     await removeWorkspace(config, 'MT-BRF')
     expect(existsSync(wsPath)).toBe(false)
   })
+
+  it('ignores before_remove hook failure with large output and still removes workspace (Section 17.2)', async () => {
+    const wsPath = join(tmpRoot, 'MT-BRL')
+    mkdirSync(wsPath)
+    // Produce >2048 bytes of output before exiting with non-zero status
+    const config = makeConfig(tmpRoot, {
+      hooks: { before_remove: 'i=0; while [ $i -lt 3000 ]; do printf a; i=$((i+1)); done; exit 17' },
+    })
+
+    await removeWorkspace(config, 'MT-BRL')
+    expect(existsSync(wsPath)).toBe(false)
+  })
 })
