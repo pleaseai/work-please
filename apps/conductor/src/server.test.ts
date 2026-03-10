@@ -102,6 +102,40 @@ describe('HttpServer', () => {
     expect(typeof body.generated_at).toBe('string')
   })
 
+  test('GET /api/v1/state includes agent_totals and rate_limits fields (Section 13.5)', async () => {
+    const orchestrator = makeOrchestratorStub({
+      agent_totals: { input_tokens: 100, output_tokens: 50, total_tokens: 150, seconds_running: 30 },
+      agent_rate_limits: { requests_per_minute: 60 },
+    })
+    server.stop()
+    server = new HttpServer(orchestrator as never, 0)
+    const port = server.start()
+    baseUrl = `http://127.0.0.1:${port}`
+
+    const res = await fetch(`${baseUrl}/api/v1/state`)
+    const body = await res.json() as Record<string, unknown>
+    const totals = body.agent_totals as Record<string, unknown>
+    expect(totals.total_tokens).toBe(150)
+    expect(totals.seconds_running).toBe(30)
+    expect((body.rate_limits as Record<string, unknown>).requests_per_minute).toBe(60)
+  })
+
+  test('GET /api/v1/state includes retrying entries', async () => {
+    const retry_attempts = new Map([['issue-2', makeRetryEntry()]])
+    const orchestrator = makeOrchestratorStub({ retry_attempts })
+    server.stop()
+    server = new HttpServer(orchestrator as never, 0)
+    const port = server.start()
+    baseUrl = `http://127.0.0.1:${port}`
+
+    const res = await fetch(`${baseUrl}/api/v1/state`)
+    const body = await res.json() as { counts: Record<string, number>, retrying: Array<Record<string, unknown>> }
+    expect(body.counts.retrying).toBe(1)
+    expect(body.retrying).toHaveLength(1)
+    expect(body.retrying[0].issue_identifier).toBe('TEST-2')
+    expect(body.retrying[0].attempt).toBe(2)
+  })
+
   test('GET /api/v1/state includes running entry', async () => {
     const running = new Map([['issue-1', makeRunningEntry()]])
     const orchestrator = makeOrchestratorStub({ running })
