@@ -46,6 +46,26 @@ describe('extractUsage - nested payload shapes (Section 17.5)', () => {
     const result = extractUsage({})
     expect(result).toEqual({})
   })
+
+  it('extracts usage from params.tokenUsage.total (thread/tokenUsage/updated shape)', () => {
+    const payload = {
+      params: { tokenUsage: { total: { input_tokens: 8, output_tokens: 3, total_tokens: 11 } } },
+    }
+    const result = extractUsage(payload)
+    expect(result.usage?.input_tokens).toBe(8)
+    expect(result.usage?.output_tokens).toBe(3)
+    expect(result.usage?.total_tokens).toBe(11)
+  })
+
+  it('accepts prompt_tokens/completion_tokens as aliases for input/output tokens', () => {
+    const payload = {
+      params: { usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } },
+    }
+    const result = extractUsage(payload)
+    expect(result.usage?.input_tokens).toBe(10)
+    expect(result.usage?.output_tokens).toBe(5)
+    expect(result.usage?.total_tokens).toBe(15)
+  })
 })
 
 describe('extractRateLimits - nested payload shapes (Section 17.5)', () => {

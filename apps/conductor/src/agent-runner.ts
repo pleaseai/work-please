@@ -528,13 +528,18 @@ export function extractRateLimits(payload: JsonRpcMessage): { rate_limits?: unkn
 
 export function extractUsage(payload: JsonRpcMessage): { usage?: AgentMessage['usage'] } {
   const params = payload.params as Record<string, unknown> | undefined
-  const usageRaw = (params?.usage ?? params?.total_token_usage) as Record<string, unknown> | undefined
+  const tokenUsage = params?.tokenUsage as Record<string, unknown> | undefined
+  const usageRaw = (
+    params?.usage
+    ?? params?.total_token_usage
+    ?? tokenUsage?.total
+  ) as Record<string, unknown> | undefined
   if (!usageRaw)
     return {}
   return {
     usage: {
-      input_tokens: Number(usageRaw.input_tokens ?? usageRaw.inputTokens ?? 0),
-      output_tokens: Number(usageRaw.output_tokens ?? usageRaw.outputTokens ?? 0),
+      input_tokens: Number(usageRaw.input_tokens ?? usageRaw.inputTokens ?? usageRaw.prompt_tokens ?? 0),
+      output_tokens: Number(usageRaw.output_tokens ?? usageRaw.outputTokens ?? usageRaw.completion_tokens ?? 0),
       total_tokens: Number(usageRaw.total_tokens ?? usageRaw.totalTokens ?? 0),
     },
   }
