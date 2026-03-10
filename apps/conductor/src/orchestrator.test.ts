@@ -253,6 +253,47 @@ describe('blocker rules', () => {
   })
 })
 
+describe('dispatch eligibility - already running/claimed', () => {
+  // Mirror the dispatchEligible check logic for issues already being processed
+  function isDispatchEligible(
+    issue: Issue,
+    running: Map<string, unknown>,
+    claimed: Set<string>,
+    activeStates: string[],
+  ): boolean {
+    const normalized = normalizeState(issue.state)
+    const isActive = activeStates.some(s => normalizeState(s) === normalized)
+    if (!isActive)
+      return false
+    if (running.has(issue.id))
+      return false
+    if (claimed.has(issue.id))
+      return false
+    return true
+  }
+
+  it('issue already in running is not dispatch-eligible', () => {
+    const issue = makeIssue({ id: 'i1', state: 'In Progress' })
+    const running = new Map([['i1', {}]])
+    const claimed = new Set<string>()
+    expect(isDispatchEligible(issue, running, claimed, ['In Progress'])).toBe(false)
+  })
+
+  it('issue already in claimed is not dispatch-eligible', () => {
+    const issue = makeIssue({ id: 'i2', state: 'In Progress' })
+    const running = new Map<string, unknown>()
+    const claimed = new Set(['i2'])
+    expect(isDispatchEligible(issue, running, claimed, ['In Progress'])).toBe(false)
+  })
+
+  it('eligible issue not in running or claimed is dispatched', () => {
+    const issue = makeIssue({ id: 'i3', state: 'In Progress' })
+    const running = new Map<string, unknown>()
+    const claimed = new Set<string>()
+    expect(isDispatchEligible(issue, running, claimed, ['In Progress'])).toBe(true)
+  })
+})
+
 describe('per-state concurrency counting', () => {
   function makeRunningEntry(state: string): Pick<RunningEntry, 'issue'> {
     return { issue: makeIssue({ state }) }
