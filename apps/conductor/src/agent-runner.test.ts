@@ -410,6 +410,137 @@ describe('AppServerClient - startup_failed event (Section 10.4)', () => {
     expect(startupFailed).toBeDefined()
   })
 
+  it('enforces turn_timeout_ms when agent never sends turn/completed (Section 17.5)', async () => {
+    const scriptPath = join(tmpRoot, 'fake-agent-noturn.sh')
+    writeFileSync(scriptPath, [
+      '#!/usr/bin/env bash',
+      'while IFS= read -r line; do',
+      '  id=$(printf \'%s\' "$line" | grep -o \'"id":[0-9]*\' | grep -o \'[0-9]*\' | head -1)',
+      '  case "$id" in',
+      '    1) printf \'%s\\n\' \'{"id":1,"result":{"capabilities":{}}}\';;',
+      '    2) printf \'%s\\n\' \'{"id":2,"result":{"thread":{"id":"t-1"}}}\';;',
+      '    3) printf \'%s\\n\' \'{"id":3,"result":{"turn":{"id":"turn-timeout"}}}\';;',
+      // turn/completed is never sent — agent silently hangs
+      '  esac',
+      'done',
+    ].join('\n'), { mode: 0o755 })
+
+    const wsPath = join(tmpRoot, 'ws-noturn')
+    mkdirSync(wsPath)
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: scriptPath, read_timeout_ms: 2000, turn_timeout_ms: 500 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath)
+    const session = await client.startSession()
+    expect(session instanceof Error).toBe(false)
+    if (session instanceof Error)
+      return
+
+    const messages: AgentMessage[] = []
+    const result = await client.runTurn(
+      session,
+      'hello',
+      {
+        id: 'i6',
+        identifier: 'MT-6',
+        title: 'Turn Timeout Test',
+        description: null,
+        priority: null,
+        state: 'In Progress',
+        branch_name: null,
+        url: null,
+        labels: [],
+        blocked_by: [],
+        created_at: null,
+        updated_at: null,
+      },
+      msg => messages.push(msg),
+    )
+    client.stopSession()
+
+    expect(result instanceof Error).toBe(true)
+    if (!(result instanceof Error))
+      return
+    expect(result.message).toContain('turn_timeout')
+    const sessionStarted = messages.find(m => m.event === 'session_started')
+    expect(sessionStarted).toBeDefined()
+  })
+
+  it('rejects unsupported dynamic tool calls without stalling (Section 17.5)', async () => {
+    const scriptPath = join(tmpRoot, 'fake-agent-unsupported-tool.sh')
+    writeFileSync(scriptPath, [
+      '#!/usr/bin/env bash',
+      'while IFS= read -r line; do',
+      '  id=$(printf \'%s\' "$line" | grep -o \'"id":[0-9]*\' | grep -o \'[0-9]*\' | head -1)',
+      '  idStr=$(printf \'%s\' "$line" | grep -o \'"id":"[^"]*"\' | head -1)',
+      // Check if we received the rejection response for tool-call-99
+      '  if printf \'%s\' "$line" | grep -q "unsupported_tool_call"; then',
+      '    printf \'%s\\n\' \'{"method":"turn/completed","params":{}}\'',
+      '    break',
+      '  fi',
+      '  case "$id" in',
+      '    1) printf \'%s\\n\' \'{"id":1,"result":{"capabilities":{}}}\';;',
+      '    2) printf \'%s\\n\' \'{"id":2,"result":{"thread":{"id":"t-1"}}}\';;',
+      '    3) printf \'%s\\n\' \'{"id":3,"result":{"turn":{"id":"turn-tool"}}}\'',
+      '       printf \'%s\\n\' \'{"id":"tool-99","method":"item/tool/call","params":{"name":"unknown_tool","arguments":{}}}\';;',
+      '  esac',
+      'done',
+    ].join('\n'), { mode: 0o755 })
+
+    const wsPath = join(tmpRoot, 'ws-unsupported-tool')
+    mkdirSync(wsPath)
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: scriptPath, read_timeout_ms: 2000, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath)
+    const session = await client.startSession()
+    expect(session instanceof Error).toBe(false)
+    if (session instanceof Error)
+      return
+
+    const messages: AgentMessage[] = []
+    const result = await client.runTurn(
+      session,
+      'hello',
+      {
+        id: 'i7',
+        identifier: 'MT-7',
+        title: 'Unsupported Tool Test',
+        description: null,
+        priority: null,
+        state: 'In Progress',
+        branch_name: null,
+        url: null,
+        labels: [],
+        blocked_by: [],
+        created_at: null,
+        updated_at: null,
+      },
+      msg => messages.push(msg),
+    )
+    client.stopSession()
+
+    expect(result instanceof Error).toBe(false)
+    const unsupportedToolCall = messages.find(m => m.event === 'unsupported_tool_call')
+    expect(unsupportedToolCall).toBeDefined()
+    const turnCompleted = messages.find(m => m.event === 'turn_completed')
+    expect(turnCompleted).toBeDefined()
+  })
+
   it('emits turn_input_required and returns Error when agent requests user input (Section 17.5)', async () => {
     const scriptPath = join(tmpRoot, 'fake-agent-input.sh')
     writeFileSync(scriptPath, [
