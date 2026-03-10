@@ -434,6 +434,52 @@ describe('asana blockers normalization', () => {
   })
 })
 
+describe('tracker malformed payload errors (Section 17.3)', () => {
+  test('asana: returns asana_unknown_payload when sections response is not an array', async () => {
+    const config = makeAsanaConfig()
+    const adapter = createAsanaAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => ({
+      ok: true,
+      json: async () => ({ data: 'not-an-array' }), // malformed
+    })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['Todo'])
+      expect(Array.isArray(result)).toBe(false)
+      if (Array.isArray(result))
+        return
+      expect((result as { code: string }).code).toBe('asana_unknown_payload')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('github_projects: returns github_projects_unknown_payload when nodes is not an array', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => ({
+      ok: true,
+      json: async () => ({ data: { nodes: 'not-an-array' } }), // malformed
+    })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssueStatesByIds(['PVTI_abc'])
+      expect(Array.isArray(result)).toBe(false)
+      if (Array.isArray(result))
+        return
+      expect((result as { code: string }).code).toBe('github_projects_unknown_payload')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
 describe('tracker transport and malformed payload errors (Section 17.3)', () => {
   test('asana: returns asana_api_request error when fetch throws', async () => {
     const config = makeAsanaConfig()
