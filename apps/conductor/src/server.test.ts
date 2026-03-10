@@ -114,7 +114,7 @@ describe('HttpServer', () => {
 
     const res = await fetch(`${baseUrl}/api/v1/state`)
     const body = await res.json() as Record<string, unknown>
-    const totals = body.agent_totals as Record<string, unknown>
+    const totals = body.codex_totals as Record<string, unknown>
     expect(totals.total_tokens).toBe(150)
     expect(totals.seconds_running).toBe(30)
     expect((body.rate_limits as Record<string, unknown>).requests_per_minute).toBe(60)

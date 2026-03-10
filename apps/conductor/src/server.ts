@@ -86,7 +86,7 @@ function stateResponse(orchestrator: Orchestrator): Response {
     },
     running,
     retrying,
-    agent_totals: {
+    codex_totals: {
       input_tokens: state.agent_totals.input_tokens,
       output_tokens: state.agent_totals.output_tokens,
       total_tokens: state.agent_totals.total_tokens,
@@ -124,7 +124,7 @@ function issueResponse(orchestrator: Orchestrator, identifier: string): Response
     },
     running: running ? runningIssuePayload(running) : null,
     retry: retry ? retryIssuePayload(retry) : null,
-    logs: { agent_session_logs: [] },
+    logs: { codex_session_logs: [] },
     recent_events: running ? recentEventsPayload(running) : [],
     last_error: retry?.error ?? null,
     tracked: {},
