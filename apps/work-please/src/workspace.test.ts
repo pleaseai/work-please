@@ -76,7 +76,7 @@ describe('createWorkspace', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'conductor-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-test-'))
   })
 
   afterEach(() => {
@@ -191,7 +191,7 @@ describe('runBeforeRunHook', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'conductor-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-test-'))
   })
 
   afterEach(() => {
@@ -237,7 +237,7 @@ describe('runAfterRunHook', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'conductor-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-test-'))
   })
 
   afterEach(() => {
@@ -261,7 +261,7 @@ describe('removeWorkspace', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'conductor-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-test-'))
   })
 
   afterEach(() => {

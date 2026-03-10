@@ -19,7 +19,7 @@ export async function runCli(argv: string[]): Promise<void> {
     orchestrator = new Orchestrator(resolvedPath)
   }
   catch (err) {
-    console.error(`Error: failed to initialize conductor: ${err}`)
+    console.error(`Error: failed to initialize work-please: ${err}`)
     process.exit(1)
   }
 
@@ -27,7 +27,7 @@ export async function runCli(argv: string[]): Promise<void> {
 
   // Graceful shutdown
   const shutdown = () => {
-    console.warn('[conductor] shutting down...')
+    console.warn('[work-please] shutting down...')
     httpServer?.stop()
     orchestrator.stop()
     process.exit(0)
@@ -36,13 +36,13 @@ export async function runCli(argv: string[]): Promise<void> {
   process.on('SIGINT', shutdown)
   process.on('SIGTERM', shutdown)
 
-  console.warn(`[conductor] starting with workflow: ${resolvedPath}`)
+  console.warn(`[work-please] starting with workflow: ${resolvedPath}`)
   try {
     await orchestrator.start()
-    console.warn('[conductor] running')
+    console.warn('[work-please] running')
   }
   catch (err) {
-    console.error(`[conductor] startup failed: ${err}`)
+    console.error(`[work-please] startup failed: ${err}`)
     process.exit(1)
   }
 
@@ -52,7 +52,7 @@ export async function runCli(argv: string[]): Promise<void> {
   if (serverPort !== null) {
     httpServer = new HttpServer(orchestrator, serverPort)
     const boundPort = httpServer.start()
-    console.warn(`[conductor] http server listening on 127.0.0.1:${boundPort}`)
+    console.warn(`[work-please] http server listening on 127.0.0.1:${boundPort}`)
   }
 }
 

@@ -37,12 +37,12 @@ bunx <cmd>         # not: npx <cmd> / pnpm dlx <cmd>
 bun install
 
 # Development (watch mode)
-bun run dev                    # from apps/conductor, or:
+bun run dev                    # from apps/work-please, or:
 turbo run dev                  # from root
 
 # Build
 bun run build                  # root: builds all packages via turbo
-# apps/conductor builds with: bun build ./src/index.ts --outdir ./dist --target bun
+# apps/work-please builds with: bun build ./src/index.ts --outdir ./dist --target bun
 
 # Lint
 bun run lint                   # check
@@ -52,18 +52,18 @@ bun run lint:fix               # auto-fix
 bun run check                  # tsc --noEmit (runs after build due to turbo deps)
 
 # Test
-bun test                       # from apps/conductor (single package)
+bun test                       # from apps/work-please (single package)
 bun run test                   # from root (all packages via turbo)
 ```
 
 ## Architecture
 
-Conductor is a TypeScript monorepo (Bun + Turbo) implementing the [Symphony spec](vendor/symphony/SPEC.md) for Claude
+Work Please is a TypeScript monorepo (Bun + Turbo) implementing the [Symphony spec](vendor/symphony/SPEC.md) for Claude
 Code + Asana/GitHub Projects v2. The reference implementation in Elixir/OTP lives in `vendor/symphony/elixir/`.
 
 **Workspaces:**
 
-- `apps/conductor` — main service entry point (`@conductor/app`)
+- `apps/work-please` — main service entry point (`@pleaseai/work`)
 - `packages/*` — shared libraries (none yet scaffolded)
 - `vendor/symphony/` — upstream Symphony reference (read-only, excluded from ESLint/TS)
 
@@ -80,7 +80,7 @@ Code + Asana/GitHub Projects v2. The reference implementation in Elixir/OTP live
 | Status Surface       | Optional HTTP dashboard + structured `key=value` logs          |
 
 **WORKFLOW.md** is a user-created file in a _target repository_ (not this repo). It contains YAML front matter (tracker
-config, hooks, agent limits) and a Liquid prompt template body. Conductor reads it at runtime.
+config, hooks, agent limits) and a Liquid prompt template body. Work Please reads it at runtime.
 
 ## Code Style
 

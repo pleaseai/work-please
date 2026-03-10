@@ -17,7 +17,7 @@ export interface ToolResult {
 
 const ASANA_API_SPEC: ToolSpec = {
   name: 'asana_api',
-  description: 'Execute a raw REST API call against Asana using Conductor\'s configured auth.',
+  description: 'Execute a raw REST API call against Asana using Work Please\'s configured auth.',
   inputSchema: {
     type: 'object',
     additionalProperties: false,
@@ -36,7 +36,7 @@ const ASANA_API_SPEC: ToolSpec = {
 
 const GITHUB_GRAPHQL_SPEC: ToolSpec = {
   name: 'github_graphql',
-  description: 'Execute a raw GraphQL query or mutation against GitHub using Conductor\'s configured auth.',
+  description: 'Execute a raw GraphQL query or mutation against GitHub using Work Please\'s configured auth.',
   inputSchema: {
     type: 'object',
     additionalProperties: false,

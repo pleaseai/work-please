@@ -140,7 +140,7 @@ describe('AppServerClient - startup_failed event (Section 10.4)', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'conductor-runner-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-runner-test-'))
   })
 
   afterEach(() => {
@@ -944,7 +944,7 @@ describe('AppServerClient - startup_failed event (Section 10.4)', () => {
     expect(initMsg?.method).toBe('initialize')
     const initParams = initMsg?.params as Record<string, unknown>
     expect((initParams?.capabilities as Record<string, unknown>)?.experimentalApi).toBe(true)
-    expect((initParams?.clientInfo as Record<string, unknown>)?.name).toBe('conductor')
+    expect((initParams?.clientInfo as Record<string, unknown>)?.name).toBe('work-please')
 
     // Verify thread/start uses workspace cwd
     const threadStart = payloads.find(p => p.method === 'thread/start')

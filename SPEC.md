@@ -1,4 +1,4 @@
-# Conductor Service Specification
+# Work Please Service Specification
 
 Status: Draft v1 (language-agnostic)
 
@@ -6,7 +6,7 @@ Purpose: Define a service that orchestrates coding agents to get project work do
 
 ## 1. Problem Statement
 
-Conductor is a long-running automation service that continuously reads work from an issue tracker
+Work Please is a long-running automation service that continuously reads work from an issue tracker
 (Asana or GitHub Projects v2), creates an isolated workspace for each issue, and runs a
 coding agent session for that issue inside the workspace.
 
@@ -26,7 +26,7 @@ require stricter approvals or sandboxing.
 
 Important boundary:
 
-- Conductor is a scheduler/runner and tracker reader.
+- Work Please is a scheduler/runner and tracker reader.
 - Ticket writes (state transitions, comments, PR links) are typically performed by the coding agent
   using tools available in the workflow/runtime environment.
 - A successful run may end at a workflow-defined handoff state (for example `Human Review`), not
@@ -103,7 +103,7 @@ Important boundary:
 
 ### 3.2 Abstraction Levels
 
-Conductor is easiest to port when kept in these layers:
+Work Please is easiest to port when kept in these layers:
 
 1. `Policy Layer` (repo-defined)
    - `WORKFLOW.md` prompt body.
@@ -402,7 +402,7 @@ Fields:
 Fields:
 
 - `root` (path string or `$VAR`)
-  - Default: `<system-temp>/conductor_workspaces`
+  - Default: `<system-temp>/work-please_workspaces`
   - `~` and strings containing path separators are expanded.
   - Bare strings without path separators are preserved as-is (relative roots are allowed but
     discouraged).
@@ -599,7 +599,7 @@ When `tracker.kind=github_projects`:
 - `tracker.active_statuses`: list/string, default `Todo, In Progress`
 - `tracker.terminal_statuses`: list/string, default `Done, Cancelled`
 - `polling.interval_ms`: integer, default `30000`
-- `workspace.root`: path, default `<system-temp>/conductor_workspaces`
+- `workspace.root`: path, default `<system-temp>/work-please_workspaces`
 - `hooks.after_create`: shell script or null
 - `hooks.before_run`: shell script or null
 - `hooks.after_run`: shell script or null
@@ -969,7 +969,7 @@ Illustrative startup transcript (equivalent payload shapes are acceptable if the
 semantics):
 
 ```json
-{"id":1,"method":"initialize","params":{"clientInfo":{"name":"conductor","version":"1.0"},"capabilities":{}}}
+{"id":1,"method":"initialize","params":{"clientInfo":{"name":"work-please","version":"1.0"},"capabilities":{}}}
 {"method":"initialized","params":{}}
 {"id":2,"method":"thread/start","params":{"approvalPolicy":"<implementation-defined>","sandbox":"<implementation-defined>","cwd":"/abs/workspace"}}
 {"id":3,"method":"turn/start","params":{"threadId":"<thread-id>","input":[{"type":"text","text":"<rendered prompt-or-continuation-guidance>"}],"cwd":"/abs/workspace","title":"ABC-123: Example","approvalPolicy":"<implementation-defined>","sandboxPolicy":{"type":"<implementation-defined>"}}}
@@ -1099,7 +1099,7 @@ Optional client-side tool extension:
 
 `asana_api` extension contract:
 
-- Purpose: execute a raw REST API call against Asana using Conductor's configured tracker auth for
+- Purpose: execute a raw REST API call against Asana using Work Please's configured tracker auth for
   the current session.
 - Availability: only meaningful when `tracker.kind == "asana"` and valid Asana auth is configured.
 - Preferred input shape:
@@ -1118,7 +1118,7 @@ Optional client-side tool extension:
 - `path` must be a non-empty string beginning with `/`.
 - `params` is optional and, when present, must be a JSON object.
 - Execute one API request per tool call.
-- Reuse the configured Asana endpoint and auth from the active Conductor workflow/runtime config; do
+- Reuse the configured Asana endpoint and auth from the active Work Please workflow/runtime config; do
   not require the coding agent to read raw tokens from disk.
 - Tool result semantics:
   - transport success + non-error HTTP status -> `success=true`
@@ -1129,7 +1129,7 @@ Optional client-side tool extension:
 
 `github_graphql` extension contract:
 
-- Purpose: execute a raw GraphQL query or mutation against GitHub using Conductor's configured
+- Purpose: execute a raw GraphQL query or mutation against GitHub using Work Please's configured
   tracker auth for the current session.
 - Availability: only meaningful when `tracker.kind == "github_projects"` and valid GitHub auth is
   configured.
@@ -1151,7 +1151,7 @@ Optional client-side tool extension:
 - Execute one GraphQL operation per tool call.
 - If the provided document contains multiple operations, reject the tool call as invalid input.
 - `operationName` selection is intentionally out of scope for this extension.
-- Reuse the configured GitHub endpoint and auth from the active Conductor workflow/runtime config;
+- Reuse the configured GitHub endpoint and auth from the active Work Please workflow/runtime config;
   do not require the coding agent to read raw tokens from disk.
 - Tool result semantics:
   - transport success + no top-level GraphQL `errors` -> `success=true`
@@ -1366,7 +1366,7 @@ Orchestrator behavior on tracker errors:
 
 ### 11.4 Tracker Writes (Important Boundary)
 
-Conductor does not require first-class tracker write APIs in the orchestrator.
+Work Please does not require first-class tracker write APIs in the orchestrator.
 
 - Ticket mutations (state transitions, comments, PR metadata) are typically handled by the coding
   agent using tools defined by the workflow prompt.
@@ -1607,7 +1607,7 @@ Minimum endpoints:
       "issue_id": "abc123",
       "status": "running",
       "workspace": {
-        "path": "/tmp/conductor_workspaces/MT-649"
+        "path": "/tmp/work-please_workspaces/MT-649"
       },
       "attempts": {
         "restart_count": 1,
@@ -1632,7 +1632,7 @@ Minimum endpoints:
         "agent_session_logs": [
           {
             "label": "latest",
-            "path": "/var/log/conductor/agent/MT-649/latest.log",
+            "path": "/var/log/work-please/agent/MT-649/latest.log",
             "url": null
           }
         ]
@@ -2264,9 +2264,9 @@ Use the same validation profiles as Section 17:
 - Optional HTTP server honors CLI `--port` over `server.port`, uses a safe default bind host, and
   exposes the baseline endpoints/error semantics in Section 13.7 if shipped.
 - Optional `asana_api` client-side tool extension exposes Asana REST API access through the
-  app-server session using configured Conductor auth (only when `tracker.kind=asana`).
+  app-server session using configured Work Please auth (only when `tracker.kind=asana`).
 - Optional `github_graphql` client-side tool extension exposes GitHub GraphQL access through the
-  app-server session using configured Conductor auth (only when `tracker.kind=github_projects`).
+  app-server session using configured Work Please auth (only when `tracker.kind=github_projects`).
 - TODO: Persist retry queue and session metadata across process restarts.
 - TODO: Make observability settings configurable in workflow front matter without prescribing UI
   implementation details.

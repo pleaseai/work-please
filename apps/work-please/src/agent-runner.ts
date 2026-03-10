@@ -417,7 +417,7 @@ export class AppServerClient {
   private async sendInitialize(): Promise<null | Error> {
     const result = await this.sendRequest(1, 'initialize', {
       capabilities: { experimentalApi: true },
-      clientInfo: { name: 'conductor', version: '1.0' },
+      clientInfo: { name: 'work-please', version: '1.0' },
     })
     if (result instanceof Error)
       return result

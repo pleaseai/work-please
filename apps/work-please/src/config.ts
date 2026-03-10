@@ -7,7 +7,7 @@ const ENV_VAR_RE = /^\$([A-Z_]\w*)$/i
 
 const DEFAULTS = {
   POLL_INTERVAL_MS: 30_000,
-  WORKSPACE_ROOT: join(tmpdir(), 'conductor_workspaces'),
+  WORKSPACE_ROOT: join(tmpdir(), 'work-please_workspaces'),
   HOOK_TIMEOUT_MS: 60_000,
   MAX_CONCURRENT_AGENTS: 10,
   AGENT_MAX_TURNS: 20,

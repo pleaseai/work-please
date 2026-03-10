@@ -512,7 +512,7 @@ Prompt text.`
   }
 
   it('detects workflow file change and updates config without restart', async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), 'conductor-test-'))
+    const tmpDir = mkdtempSync(join(tmpdir(), 'work-please-test-'))
     const wsRoot = join(tmpDir, 'workspaces')
     mkdirSync(wsRoot)
     const wfPath = join(tmpDir, 'WORKFLOW.md')
@@ -551,7 +551,7 @@ Prompt text.`
   })
 
   it('keeps last known good config when reloaded file has invalid YAML', async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), 'conductor-test-'))
+    const tmpDir = mkdtempSync(join(tmpdir(), 'work-please-test-'))
     const wfPath = join(tmpDir, 'WORKFLOW.md')
 
     writeFileSync(wfPath, makeWorkflowContent(30_000))

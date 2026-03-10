@@ -1,13 +1,13 @@
-# Conductor
+# Work Please
 
-Conductor turns issue tracker tasks into isolated, autonomous implementation runs — managing work
+Work Please turns issue tracker tasks into isolated, autonomous implementation runs — managing work
 instead of supervising coding agents.
 
-> **Warning**: Conductor is an engineering preview for use in trusted environments.
+> **Warning**: Work Please is an engineering preview for use in trusted environments.
 
 ## Overview
 
-Conductor is a long-running TypeScript service that:
+Work Please is a long-running TypeScript service that:
 
 1. Polls an issue tracker (Asana or GitHub Projects v2) for tasks in configured active states.
 2. Creates an isolated workspace directory for each eligible issue.
@@ -21,7 +21,7 @@ For full technical details, see [SPEC.md](SPEC.md).
 
 ## Key Differences from Symphony
 
-| | Symphony (reference) | Conductor |
+| | Symphony (reference) | Work Please |
 |---|---|---|
 | Issue Tracker | Linear | Asana & GitHub Projects v2 |
 | Coding Agent | Codex (app-server mode) | Claude Code CLI |
@@ -90,8 +90,8 @@ See [SPEC.md](SPEC.md) for the full specification.
 ### Install
 
 ```bash
-git clone https://github.com/chatbot-pf/conductor.git
-cd conductor
+git clone https://github.com/chatbot-pf/work-please.git
+cd work-please
 bun install
 bun run build
 ```
@@ -118,7 +118,7 @@ polling:
   interval_ms: 30000
 
 workspace:
-  root: ~/conductor_workspaces
+  root: ~/work-please_workspaces
 
 hooks:
   after_create: |
@@ -177,7 +177,7 @@ polling:
   interval_ms: 30000
 
 workspace:
-  root: ~/conductor_workspaces
+  root: ~/work-please_workspaces
 
 hooks:
   after_create: |
@@ -225,19 +225,19 @@ export ASANA_ACCESS_TOKEN=your_token_here
 # or
 export GITHUB_TOKEN=ghp_your_token_here
 
-# Run Conductor against a WORKFLOW.md in the current directory
-bunx conductor
+# Run Work Please against a WORKFLOW.md in the current directory
+bunx work-please
 
 # Or specify a WORKFLOW.md path
-bunx conductor --workflow /path/to/WORKFLOW.md
+bunx work-please --workflow /path/to/WORKFLOW.md
 
 # Enable the optional HTTP dashboard on port 3000
-bunx conductor --port 3000
+bunx work-please --port 3000
 ```
 
 ## WORKFLOW.md Configuration
 
-`WORKFLOW.md` is the single source of truth for Conductor's runtime behavior. It combines a YAML
+`WORKFLOW.md` is the single source of truth for Work Please's runtime behavior. It combines a YAML
 front matter configuration block with a Markdown prompt template body.
 
 ### Full Front Matter Schema
@@ -272,7 +272,7 @@ polling:
   interval_ms: 30000                  # Optional: poll cadence in ms, default 30000
 
 workspace:
-  root: ~/conductor_workspaces        # Optional: default <tmpdir>/conductor_workspaces
+  root: ~/work-please_workspaces        # Optional: default <tmpdir>/work-please_workspaces
 
 hooks:
   after_create: |                     # Optional: run once when workspace is first created
@@ -348,21 +348,21 @@ Retry attempt: {{ attempt }}
 
 ```bash
 # Basic usage
-conductor
+work-please
 
 # Specify WORKFLOW.md path
-conductor --workflow ./WORKFLOW.md
+work-please --workflow ./WORKFLOW.md
 
 # Enable HTTP dashboard
-conductor --port 3000
+work-please --port 3000
 
 # Show help
-conductor --help
+work-please --help
 ```
 
 ## Trust and Safety
 
-Conductor runs Claude Code autonomously. Understand the trust implications before deploying.
+Work Please runs Claude Code autonomously. Understand the trust implications before deploying.
 
 ### Permission Modes
 
@@ -392,5 +392,5 @@ Start with `default` or `acceptEdits` unless you are running in a fully isolated
 
 Apache License 2.0. See [LICENSE](vendor/symphony/LICENSE) for details.
 
-Conductor is a TypeScript implementation based on the
+Work Please is a TypeScript implementation based on the
 [Symphony specification](vendor/symphony/SPEC.md) by OpenAI (Apache 2.0).

@@ -89,7 +89,7 @@ describe('HttpServer', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toContain('text/html')
     const body = await res.text()
-    expect(body).toContain('<title>Conductor</title>')
+    expect(body).toContain('<title>Work Please</title>')
   })
 
   test('GET /api/v1/state returns empty state', async () => {
