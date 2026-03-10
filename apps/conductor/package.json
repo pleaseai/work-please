@@ -1,0 +1,14 @@
+{
+  "name": "@conductor/app",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "dev": "bun run --watch src/index.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check": "tsc --noEmit",
+    "test": "bun test"
+  }
+}
