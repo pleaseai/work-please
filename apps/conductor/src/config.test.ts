@@ -1,6 +1,7 @@
 import type { WorkflowDefinition } from './types'
+import process from 'node:process'
 import { describe, expect, it } from 'bun:test'
-import { buildConfig, getActiveStates, getTerminalStates, normalizeState, validateConfig } from './config'
+import { buildConfig, getActiveStates, getTerminalStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 
 function makeWorkflow(config: Record<string, unknown>): WorkflowDefinition {
   return { config, prompt_template: '' }
@@ -186,5 +187,52 @@ describe('normalizeState', () => {
   it('lowercases and trims state names', () => {
     expect(normalizeState('  In Progress  ')).toBe('in progress')
     expect(normalizeState('DONE')).toBe('done')
+  })
+})
+
+describe('path expansion', () => {
+  it('expands ~ to HOME directory', () => {
+    const home = process.env.HOME ?? '/home/user'
+    const config = buildConfig(makeWorkflow({ workspace: { root: '~/workspaces' } }))
+    expect(config.workspace.root).toBe(`${home}/workspaces`)
+  })
+
+  it('preserves absolute paths unchanged', () => {
+    const config = buildConfig(makeWorkflow({ workspace: { root: '/tmp/myworkspaces' } }))
+    expect(config.workspace.root).toBe('/tmp/myworkspaces')
+  })
+})
+
+describe('per-state concurrency limits', () => {
+  it('normalizes state keys to lowercase', () => {
+    const config = buildConfig(makeWorkflow({
+      agent: { max_concurrent_agents_by_state: { 'In Progress': 2, 'TODO': 1 } },
+    }))
+    expect(config.agent.max_concurrent_agents_by_state['in progress']).toBe(2)
+    expect(config.agent.max_concurrent_agents_by_state.todo).toBe(1)
+  })
+
+  it('ignores non-positive values', () => {
+    const config = buildConfig(makeWorkflow({
+      agent: { max_concurrent_agents_by_state: { done: 0, active: -1, running: 3 } },
+    }))
+    expect(config.agent.max_concurrent_agents_by_state.done).toBeUndefined()
+    expect(config.agent.max_concurrent_agents_by_state.active).toBeUndefined()
+    expect(config.agent.max_concurrent_agents_by_state.running).toBe(3)
+  })
+
+  it('maxConcurrentForState falls back to global limit for unknown states', () => {
+    const config = buildConfig(makeWorkflow({ agent: { max_concurrent_agents: 5 } }))
+    expect(maxConcurrentForState(config, 'unknown state')).toBe(5)
+  })
+
+  it('maxConcurrentForState returns per-state limit when configured', () => {
+    const config = buildConfig(makeWorkflow({
+      agent: {
+        max_concurrent_agents: 10,
+        max_concurrent_agents_by_state: { 'in progress': 2 },
+      },
+    }))
+    expect(maxConcurrentForState(config, 'In Progress')).toBe(2)
   })
 })

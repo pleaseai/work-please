@@ -286,6 +286,7 @@ export class AppServerClient {
         agent_app_server_pid: this.getProcessPid(),
         payload,
         ...extractUsage(payload),
+        ...extractRateLimits(payload),
       })
       return
     }
@@ -297,6 +298,7 @@ export class AppServerClient {
       agent_app_server_pid: this.getProcessPid(),
       payload,
       ...extractUsage(payload),
+      ...extractRateLimits(payload),
     })
   }
 
@@ -471,6 +473,20 @@ export class AppServerClient {
   private getProcessPid(): string | null {
     return this.proc?.pid ? String(this.proc.pid) : null
   }
+}
+
+function extractRateLimits(payload: JsonRpcMessage): { rate_limits?: unknown } {
+  const params = payload.params as Record<string, unknown> | undefined
+  const candidates = [
+    params?.rate_limits,
+    (params?.msg as Record<string, unknown> | undefined)?.rate_limits,
+    payload.rate_limits,
+  ]
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === 'object')
+      return { rate_limits: candidate }
+  }
+  return {}
 }
 
 function extractUsage(payload: JsonRpcMessage): { usage?: AgentMessage['usage'] } {

@@ -328,6 +328,11 @@ export class Orchestrator {
       running.last_agent_message = String(msg.event)
     }
 
+    // Track latest rate limit payload
+    if (msg.rate_limits) {
+      this.state.agent_rate_limits = msg.rate_limits
+    }
+
     // Update token counts
     if (msg.usage) {
       const { input_tokens = 0, output_tokens = 0, total_tokens = 0 } = msg.usage

@@ -168,6 +168,7 @@ export interface AgentMessage {
     output_tokens?: number
     total_tokens?: number
   }
+  rate_limits?: unknown
   session_id?: string
   thread_id?: string
   turn_id?: string
