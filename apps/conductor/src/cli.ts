@@ -2,13 +2,11 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import { Orchestrator } from './orchestrator'
+import { HttpServer } from './server'
 import { WORKFLOW_FILE_NAME } from './workflow'
 
 export async function runCli(argv: string[]): Promise<void> {
-  // Parse args: conductor [workflow-path]
-  const args = argv.slice(2)
-  const workflowPath = args[0] ?? WORKFLOW_FILE_NAME
-
+  const { workflowPath, portOverride } = parseArgs(argv.slice(2))
   const resolvedPath = resolve(workflowPath)
 
   if (!existsSync(resolvedPath)) {
@@ -25,9 +23,12 @@ export async function runCli(argv: string[]): Promise<void> {
     process.exit(1)
   }
 
+  let httpServer: HttpServer | null = null
+
   // Graceful shutdown
   const shutdown = () => {
     console.warn('[conductor] shutting down...')
+    httpServer?.stop()
     orchestrator.stop()
     process.exit(0)
   }
@@ -43,5 +44,41 @@ export async function runCli(argv: string[]): Promise<void> {
   catch (err) {
     console.error(`[conductor] startup failed: ${err}`)
     process.exit(1)
+  }
+
+  // Start optional HTTP server (CLI --port overrides config server.port)
+  const config = orchestrator.getConfig()
+  const serverPort = portOverride ?? config.server.port
+  if (serverPort !== null) {
+    httpServer = new HttpServer(orchestrator, serverPort)
+    const boundPort = httpServer.start()
+    console.warn(`[conductor] http server listening on 127.0.0.1:${boundPort}`)
+  }
+}
+
+function parseArgs(args: string[]): { workflowPath: string, portOverride: number | null } {
+  let portOverride: number | null = null
+  const positional: string[] = []
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--port' && i + 1 < args.length) {
+      const n = Number.parseInt(args[i + 1], 10)
+      if (!Number.isNaN(n) && n >= 0)
+        portOverride = n
+      i++
+    }
+    else if (args[i].startsWith('--port=')) {
+      const n = Number.parseInt(args[i].slice(7), 10)
+      if (!Number.isNaN(n) && n >= 0)
+        portOverride = n
+    }
+    else {
+      positional.push(args[i])
+    }
+  }
+
+  return {
+    workflowPath: positional[0] ?? WORKFLOW_FILE_NAME,
+    portOverride,
   }
 }
