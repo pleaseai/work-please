@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'bun:test'
-import { parseWorkflow } from './workflow'
+import { loadWorkflow, parseWorkflow } from './workflow'
+
+describe('loadWorkflow', () => {
+  it('returns missing_workflow_file for nonexistent path (Section 17.1)', () => {
+    const result = loadWorkflow('/nonexistent/path/WORKFLOW.md')
+    expect('code' in result).toBe(true)
+    if (!('code' in result))
+      return
+    expect(result.code).toBe('missing_workflow_file')
+  })
+})
 
 describe('parseWorkflow', () => {
   it('parses file with YAML front matter and prompt body', () => {
