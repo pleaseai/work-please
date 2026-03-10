@@ -195,6 +195,15 @@ describe('runBeforeRunHook', () => {
     expect(err).not.toBeNull()
     expect(err?.message).toContain('status 1')
   })
+
+  it('returns Error when before_run hook times out (hooks.timeout_ms)', async () => {
+    const config = makeConfig(tmpRoot, {
+      hooks: { before_run: 'sleep 10', timeout_ms: 200 },
+    })
+    const err = await runBeforeRunHook(config, tmpRoot)
+    expect(err).not.toBeNull()
+    expect(err?.message).toContain('hook timeout')
+  })
 })
 
 describe('runAfterRunHook', () => {
