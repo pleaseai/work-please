@@ -434,6 +434,50 @@ describe('asana blockers normalization', () => {
   })
 })
 
+describe('tracker transport and malformed payload errors (Section 17.3)', () => {
+  test('asana: returns asana_api_request error when fetch throws', async () => {
+    const config = makeAsanaConfig()
+    const adapter = createAsanaAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      throw new Error('network failure')
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssueStatesByIds(['task-1'])
+      expect(Array.isArray(result)).toBe(false)
+      if (Array.isArray(result))
+        return
+      expect((result as { code: string }).code).toBe('asana_api_request')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('github_projects: returns github_projects_api_request error when fetch throws', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      throw new Error('network failure')
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssueStatesByIds(['PVTI_abc'])
+      expect(Array.isArray(result)).toBe(false)
+      if (Array.isArray(result))
+        return
+      expect((result as { code: string }).code).toBe('github_projects_api_request')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
 describe('asana label normalization', () => {
   test('normalizes tags to lowercase', async () => {
     const config = makeAsanaConfig()

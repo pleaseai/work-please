@@ -134,6 +134,9 @@ describe('HttpServer', () => {
     expect(body.retrying).toHaveLength(1)
     expect(body.retrying[0].issue_identifier).toBe('TEST-2')
     expect(body.retrying[0].attempt).toBe(2)
+    // Section 17.4: retry queue entries include attempt, due time, identifier, and error
+    expect(typeof body.retrying[0].due_at).toBe('string')
+    expect(body.retrying[0].error).toBe('turn_failed')
   })
 
   test('GET /api/v1/state includes running entry', async () => {
