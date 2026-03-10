@@ -7,6 +7,8 @@ import { buildConfig } from './config'
 import {
   createWorkspace,
   removeWorkspace,
+  runAfterRunHook,
+  runBeforeRunHook,
   sanitizeIdentifier,
   validateWorkspacePath,
   workspacePath,
@@ -155,6 +157,67 @@ describe('createWorkspace', () => {
 
     await createWorkspace(config, 'EXISTING-1')
     expect(existsSync(flagFile)).toBe(false)
+  })
+})
+
+describe('runBeforeRunHook', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'conductor-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('returns null when no before_run hook configured', async () => {
+    const config = makeConfig(tmpRoot)
+    const err = await runBeforeRunHook(config, tmpRoot)
+    expect(err).toBeNull()
+  })
+
+  it('runs before_run hook and returns null on success', async () => {
+    const flagFile = join(tmpRoot, 'before-run-ran')
+    const config = makeConfig(tmpRoot, {
+      hooks: { before_run: `touch ${flagFile}` },
+    })
+    const err = await runBeforeRunHook(config, tmpRoot)
+    expect(err).toBeNull()
+    expect(existsSync(flagFile)).toBe(true)
+  })
+
+  it('returns Error when before_run hook exits nonzero', async () => {
+    const config = makeConfig(tmpRoot, {
+      hooks: { before_run: 'exit 1' },
+    })
+    const err = await runBeforeRunHook(config, tmpRoot)
+    expect(err).not.toBeNull()
+    expect(err?.message).toContain('status 1')
+  })
+})
+
+describe('runAfterRunHook', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'conductor-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('does nothing when no after_run hook configured', async () => {
+    const config = makeConfig(tmpRoot)
+    await expect(runAfterRunHook(config, tmpRoot)).resolves.toBeUndefined()
+  })
+
+  it('runs after_run hook and logs (does not throw) on failure', async () => {
+    const config = makeConfig(tmpRoot, {
+      hooks: { after_run: 'exit 2' },
+    })
+    await expect(runAfterRunHook(config, tmpRoot)).resolves.toBeUndefined()
   })
 })
 
