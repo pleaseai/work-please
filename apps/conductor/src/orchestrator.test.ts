@@ -275,6 +275,23 @@ describe('blocker rules', () => {
     })
     expect(hasNonTerminalBlockers(issue, ['Done', 'Cancelled'])).toBe(false)
   })
+
+  it('dispatch revalidation skips stale todo issue once a non-terminal blocker appears (Section 17.4)', () => {
+    // Mirror the onRetryTimer blocker revalidation logic:
+    // Fresh candidate data may show new blockers — skip dispatch if Todo issue is now blocked
+    function shouldSkipDueToBlocker(issue: Issue, terminalStates: string[]): boolean {
+      return normalizeState(issue.state) === 'todo' && hasNonTerminalBlockers(issue, terminalStates)
+    }
+
+    const staleIssue = makeIssue({ state: 'Todo', blocked_by: [] })
+    const refreshedIssue = makeIssue({
+      state: 'Todo',
+      blocked_by: [{ id: 'blocker-1', identifier: 'MT-900', state: 'In Progress' }],
+    })
+
+    expect(shouldSkipDueToBlocker(staleIssue, ['Done', 'Cancelled'])).toBe(false)
+    expect(shouldSkipDueToBlocker(refreshedIssue, ['Done', 'Cancelled'])).toBe(true)
+  })
 })
 
 describe('dispatch eligibility - already running/claimed', () => {

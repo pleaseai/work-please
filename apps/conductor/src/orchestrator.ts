@@ -436,6 +436,14 @@ export class Orchestrator {
       return
     }
 
+    // Dispatch revalidation: re-check blocker eligibility with fresh candidate data
+    const terminalStates = getTerminalStates(this.config)
+    if (normalizeState(issue.state) === 'todo' && hasNonTerminalBlockers(issue, terminalStates)) {
+      this.state.claimed.delete(issueId)
+      console.warn(`[orchestrator] dispatch revalidation: skipping blocked issue issue_id=${issueId}`)
+      return
+    }
+
     if (this.availableSlots() === 0) {
       this.scheduleRetry(issueId, issue.identifier, retryEntry.attempt + 1, 'no available orchestrator slots', 'failure')
       return
