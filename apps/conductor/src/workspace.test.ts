@@ -1,5 +1,5 @@
 import type { ServiceConfig } from './types'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
@@ -136,6 +136,21 @@ describe('createWorkspace', () => {
     expect(existsSync(join(wsPath, 'tmp'))).toBe(false)
     expect(existsSync(join(wsPath, '.elixir_ls'))).toBe(false)
     expect(existsSync(join(wsPath, 'keep.txt'))).toBe(true)
+  })
+
+  it('rejects symlink escape under the configured root (Section 17.2)', async () => {
+    // Create a symlink at the workspace path that points outside the root
+    const symlinkPath = join(tmpRoot, 'SYMLINK-1')
+    symlinkSync('/tmp', symlinkPath)
+
+    const config = makeConfig(tmpRoot)
+    const result = await createWorkspace(config, 'SYMLINK-1')
+    expect(result instanceof Error).toBe(true)
+    if (result instanceof Error) {
+      expect(result.message).toContain('workspace_symlink_escape')
+    }
+
+    rmSync(symlinkPath)
   })
 
   it('runs after_create hook only when workspace is newly created', async () => {
