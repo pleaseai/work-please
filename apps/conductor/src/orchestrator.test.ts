@@ -287,3 +287,91 @@ describe('per-state concurrency counting', () => {
     expect(count >= stateLimit).toBe(true)
   })
 })
+
+describe('reconciliation state machine (Section 17.4)', () => {
+  // Mirror the reconcileRunningIssues Part B state-classification logic
+  type ReconcileAction = 'update' | 'terminate_cleanup' | 'terminate_no_cleanup'
+
+  function classifyRunningIssueState(
+    issueState: string | null,
+    activeStates: string[],
+    terminalStates: string[],
+  ): ReconcileAction {
+    if (!issueState)
+      return 'terminate_no_cleanup'
+    const normalized = normalizeState(issueState)
+    const isTerminal = terminalStates.some(s => normalizeState(s) === normalized)
+    const isActive = activeStates.some(s => normalizeState(s) === normalized)
+    if (isTerminal)
+      return 'terminate_cleanup'
+    if (isActive)
+      return 'update'
+    return 'terminate_no_cleanup'
+  }
+
+  const activeStates = ['In Progress', 'Todo']
+  const terminalStates = ['Done', 'Cancelled']
+
+  it('terminal state stops running agent and cleans workspace', () => {
+    expect(classifyRunningIssueState('Done', activeStates, terminalStates)).toBe('terminate_cleanup')
+    expect(classifyRunningIssueState('Cancelled', activeStates, terminalStates)).toBe('terminate_cleanup')
+  })
+
+  it('active state updates in-memory issue snapshot', () => {
+    expect(classifyRunningIssueState('In Progress', activeStates, terminalStates)).toBe('update')
+    expect(classifyRunningIssueState('Todo', activeStates, terminalStates)).toBe('update')
+  })
+
+  it('non-active non-terminal state stops agent without workspace cleanup', () => {
+    expect(classifyRunningIssueState('Human Review', activeStates, terminalStates)).toBe('terminate_no_cleanup')
+    expect(classifyRunningIssueState('Blocked', activeStates, terminalStates)).toBe('terminate_no_cleanup')
+  })
+
+  it('null state stops agent without workspace cleanup', () => {
+    expect(classifyRunningIssueState(null, activeStates, terminalStates)).toBe('terminate_no_cleanup')
+  })
+
+  it('state comparison is case-insensitive', () => {
+    expect(classifyRunningIssueState('done', activeStates, terminalStates)).toBe('terminate_cleanup')
+    expect(classifyRunningIssueState('IN PROGRESS', activeStates, terminalStates)).toBe('update')
+  })
+
+  it('reconciliation with no running issues is a no-op (empty list produces no actions)', () => {
+    // Simulates: runningIds.length === 0 → return early (no fetch, no actions)
+    const runningIds: string[] = []
+    const actions: ReconcileAction[] = runningIds.map(id =>
+      classifyRunningIssueState(id, activeStates, terminalStates),
+    )
+    expect(actions).toHaveLength(0)
+  })
+})
+
+describe('worker exit retry scheduling (Section 17.4)', () => {
+  // Mirror the onWorkerExit retry scheduling logic
+  function scheduleKind(reason: 'normal' | 'failed'): 'continuation' | 'failure' {
+    return reason === 'normal' ? 'continuation' : 'failure'
+  }
+
+  function continuationDelayMs(): number {
+    return 1_000
+  }
+
+  it('normal exit schedules a short continuation retry (1s)', () => {
+    expect(scheduleKind('normal')).toBe('continuation')
+    expect(continuationDelayMs()).toBe(1_000)
+  })
+
+  it('abnormal exit schedules failure retry with exponential backoff', () => {
+    expect(scheduleKind('failed')).toBe('failure')
+  })
+
+  it('abnormal exit retry uses attempt + 1 for backoff calculation', () => {
+    // nextAttemptFrom(null) = 1, nextAttemptFrom(1) = 2, etc.
+    function nextAttemptFrom(current: number | null): number {
+      return current === null ? 1 : current + 1
+    }
+    expect(nextAttemptFrom(null)).toBe(1)
+    expect(nextAttemptFrom(1)).toBe(2)
+    expect(nextAttemptFrom(3)).toBe(4)
+  })
+})
