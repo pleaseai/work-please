@@ -245,4 +245,28 @@ describe('removeWorkspace', () => {
     const config = makeConfig(tmpRoot)
     expect(await removeWorkspace(config, 'NONEXISTENT')).toBeUndefined()
   })
+
+  it('runs before_remove hook before removing workspace', async () => {
+    const wsPath = join(tmpRoot, 'MT-BR')
+    mkdirSync(wsPath)
+    const flagFile = join(tmpRoot, 'before-remove-ran')
+    const config = makeConfig(tmpRoot, {
+      hooks: { before_remove: `touch ${flagFile}` },
+    })
+
+    await removeWorkspace(config, 'MT-BR')
+    expect(existsSync(wsPath)).toBe(false)
+    expect(existsSync(flagFile)).toBe(true)
+  })
+
+  it('ignores before_remove hook failure and still removes workspace', async () => {
+    const wsPath = join(tmpRoot, 'MT-BRF')
+    mkdirSync(wsPath)
+    const config = makeConfig(tmpRoot, {
+      hooks: { before_remove: 'exit 1' },
+    })
+
+    await removeWorkspace(config, 'MT-BRF')
+    expect(existsSync(wsPath)).toBe(false)
+  })
 })
