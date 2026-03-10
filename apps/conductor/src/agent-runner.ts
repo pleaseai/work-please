@@ -64,9 +64,30 @@ export class AppServerClient {
   ): Promise<SessionResult | Error> {
     this.messageHandler = onMessage
 
-    const turnResult = await this.startTurn(session.threadId, prompt, issue)
-    if (turnResult instanceof Error)
+    let turnResult: string | Error
+    try {
+      turnResult = await this.startTurn(session.threadId, prompt, issue)
+    }
+    catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      onMessage({
+        event: 'startup_failed',
+        timestamp: new Date(),
+        agent_app_server_pid: this.getProcessPid(),
+        payload: { reason: error.message },
+      })
+      return error
+    }
+
+    if (turnResult instanceof Error) {
+      onMessage({
+        event: 'startup_failed',
+        timestamp: new Date(),
+        agent_app_server_pid: this.getProcessPid(),
+        payload: { reason: turnResult.message },
+      })
       return turnResult
+    }
 
     const turn_id = turnResult
     const session_id = `${session.threadId}-${turn_id}`
