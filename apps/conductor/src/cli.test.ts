@@ -69,4 +69,19 @@ describe('CLI startup - nonexistent workflow path (Section 17.7)', () => {
       .join('')
     expect(output).toContain('workflow file not found')
   })
+
+  it('exits nonzero when default WORKFLOW.md is missing from cwd (Section 17.7)', () => {
+    const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+    // Run without explicit path from a directory that has no WORKFLOW.md (the src/ dir itself)
+    const indexPath = resolve(appDir, 'src/index.ts')
+    const result = spawnSync('bun', ['run', indexPath], {
+      cwd: resolve(appDir, 'src'),
+      timeout: 5000,
+    })
+    expect(result.status).not.toBe(0)
+    const output = [result.stderr, result.stdout]
+      .map(b => (b && b.length > 0 ? b.toString() : ''))
+      .join('')
+    expect(output).toContain('workflow file not found')
+  })
 })
