@@ -540,7 +540,7 @@ export function extractUsage(payload: JsonRpcMessage): { usage?: AgentMessage['u
   }
 }
 
-function isInputRequired(method: string, payload: JsonRpcMessage): boolean {
+export function isInputRequired(method: string, payload: JsonRpcMessage): boolean {
   const INPUT_METHODS = [
     'turn/input_required',
     'turn/needs_input',

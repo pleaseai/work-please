@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { AppServerClient, extractRateLimits, extractUsage } from './agent-runner'
+import { AppServerClient, extractRateLimits, extractUsage, isInputRequired } from './agent-runner'
 import { buildConfig } from './config'
 
 describe('extractUsage - nested payload shapes (Section 17.5)', () => {
@@ -78,6 +78,41 @@ describe('extractRateLimits - nested payload shapes (Section 17.5)', () => {
   it('ignores non-object rate_limits values', () => {
     const result = extractRateLimits({ params: { rate_limits: 'invalid' } })
     expect(result).toEqual({})
+  })
+})
+
+describe('isInputRequired - compatible payload variants (Section 17.5)', () => {
+  it('returns true for turn/input_required method', () => {
+    expect(isInputRequired('turn/input_required', {})).toBe(true)
+  })
+
+  it('returns true for turn/needs_input method', () => {
+    expect(isInputRequired('turn/needs_input', {})).toBe(true)
+  })
+
+  it('returns true for turn/need_input method', () => {
+    expect(isInputRequired('turn/need_input', {})).toBe(true)
+  })
+
+  it('returns true for turn/approval_required method', () => {
+    expect(isInputRequired('turn/approval_required', {})).toBe(true)
+  })
+
+  it('returns true when payload has requiresInput=true', () => {
+    expect(isInputRequired('notification', { requiresInput: true })).toBe(true)
+  })
+
+  it('returns true when params has input_required=true', () => {
+    expect(isInputRequired('notification', { params: { input_required: true } })).toBe(true)
+  })
+
+  it('returns true when params has inputRequired=true', () => {
+    expect(isInputRequired('other', { params: { inputRequired: true } })).toBe(true)
+  })
+
+  it('returns false for unrelated methods and payloads', () => {
+    expect(isInputRequired('turn/completed', {})).toBe(false)
+    expect(isInputRequired('notification', { params: {} })).toBe(false)
   })
 })
 
