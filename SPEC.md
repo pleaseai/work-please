@@ -1,16 +1,14 @@
 # Conductor Service Specification
 
-Status: Draft v1 (TypeScript implementation)
+Status: Draft v1 (language-agnostic)
 
-Purpose: Define a service that orchestrates Claude Code agents to get project work done from GitHub Issues.
-
-Reference: Adapted from [Symphony SPEC.md](vendor/symphony/SPEC.md) (Apache 2.0).
+Purpose: Define a service that orchestrates coding agents to get project work done.
 
 ## 1. Problem Statement
 
-Conductor is a long-running automation service that continuously reads work from GitHub Issues,
-creates an isolated workspace for each issue, and runs a Claude Code agent session for that issue
-inside the workspace.
+Conductor is a long-running automation service that continuously reads work from an issue tracker
+(Asana or GitHub Projects v2), creates an isolated workspace for each issue, and runs a
+coding agent session for that issue inside the workspace.
 
 The service solves four operational problems:
 
@@ -31,14 +29,14 @@ Important boundary:
 - Conductor is a scheduler/runner and tracker reader.
 - Ticket writes (state transitions, comments, PR links) are typically performed by the coding agent
   using tools available in the workflow/runtime environment.
-- A successful run may end at a workflow-defined handoff state (for example `In Review`), not
-  necessarily `Closed`.
+- A successful run may end at a workflow-defined handoff state (for example `Human Review`), not
+  necessarily `Done`.
 
 ## 2. Goals and Non-Goals
 
 ### 2.1 Goals
 
-- Poll GitHub Issues on a fixed cadence and dispatch work with bounded concurrency.
+- Poll the issue tracker on a fixed cadence and dispatch work with bounded concurrency.
 - Maintain a single authoritative orchestrator state for dispatch, retries, and reconciliation.
 - Create deterministic per-issue workspaces and preserve them across runs.
 - Stop active runs when issue state changes make them ineligible.
@@ -52,9 +50,9 @@ Important boundary:
 - Rich web UI or multi-tenant control plane.
 - Prescribing a specific dashboard or terminal UI implementation.
 - General-purpose workflow engine or distributed job scheduler.
-- Built-in business logic for how to edit issues, PRs, or comments. (That logic lives in the
+- Built-in business logic for how to edit tickets, PRs, or comments. (That logic lives in the
   workflow prompt and agent tooling.)
-- Mandating strong sandbox controls beyond what Claude Code and the host OS provide.
+- Mandating strong sandbox controls beyond what the coding agent and host OS provide.
 - Mandating a single default approval, sandbox, or operator-confirmation posture for all
   implementations.
 
@@ -72,11 +70,11 @@ Important boundary:
    - Applies defaults and environment variable indirection.
    - Performs validation used by the orchestrator before dispatch.
 
-3. `GitHub Client`
-   - Fetches candidate issues in active label/state combinations.
-   - Fetches current labels for specific issue numbers (reconciliation).
-   - Fetches terminal-label issues during startup cleanup.
-   - Normalizes GitHub API payloads into a stable issue model.
+3. `Issue Tracker Client`
+   - Fetches candidate issues in active states.
+   - Fetches current states for specific issue IDs (reconciliation).
+   - Fetches terminal-state issues during startup cleanup.
+   - Normalizes tracker payloads into a stable issue model.
 
 4. `Orchestrator`
    - Owns the poll tick.
@@ -85,7 +83,7 @@ Important boundary:
    - Tracks session metrics and retry queue state.
 
 5. `Workspace Manager`
-   - Maps issue numbers to workspace paths.
+   - Maps issue identifiers to workspace paths.
    - Ensures per-issue workspace directories exist.
    - Runs workspace lifecycle hooks.
    - Cleans workspaces for terminal issues.
@@ -93,7 +91,7 @@ Important boundary:
 6. `Agent Runner`
    - Creates workspace.
    - Builds prompt from issue + workflow template.
-   - Launches Claude Code CLI process.
+   - Launches the coding agent app-server client.
    - Streams agent updates back to the orchestrator.
 
 7. `Status Surface` (optional)
@@ -105,11 +103,11 @@ Important boundary:
 
 ### 3.2 Abstraction Levels
 
-Conductor is easiest to port and extend when kept in these layers:
+Conductor is easiest to port when kept in these layers:
 
 1. `Policy Layer` (repo-defined)
    - `WORKFLOW.md` prompt body.
-   - Team-specific rules for issue handling, validation, and handoff.
+   - Team-specific rules for ticket handling, validation, and handoff.
 
 2. `Configuration Layer` (typed getters)
    - Parses front matter into typed runtime settings.
@@ -119,9 +117,9 @@ Conductor is easiest to port and extend when kept in these layers:
    - Polling loop, issue eligibility, concurrency, retries, reconciliation.
 
 4. `Execution Layer` (workspace + agent subprocess)
-   - Filesystem lifecycle, workspace preparation, Claude Code CLI protocol.
+   - Filesystem lifecycle, workspace preparation, coding-agent protocol.
 
-5. `Integration Layer` (GitHub adapter)
+5. `Integration Layer` (tracker adapters: Asana, GitHub Projects v2)
    - API calls and normalization for tracker data.
 
 6. `Observability Layer` (logs + optional status surface)
@@ -129,11 +127,12 @@ Conductor is easiest to port and extend when kept in these layers:
 
 ### 3.3 External Dependencies
 
-- GitHub API (REST and/or GraphQL) for `tracker.kind: github`.
+- Issue tracker API (Asana REST API for `tracker.kind: asana`; GitHub GraphQL API for
+  `tracker.kind: github_projects`).
 - Local filesystem for workspaces and logs.
 - Optional workspace population tooling (for example Git CLI, if used).
-- Claude Code CLI executable that supports JSON streaming output over stdio.
-- Host environment authentication for GitHub and Claude Code.
+- Coding-agent executable that supports JSON-RPC-like app-server mode over stdio.
+- Host environment authentication for the issue tracker and coding agent.
 
 ## 4. Core Domain Model
 
@@ -146,27 +145,27 @@ Normalized issue record used by orchestration, prompt rendering, and observabili
 Fields:
 
 - `id` (string)
-  - Stable GitHub node ID.
-- `number` (integer)
-  - GitHub issue number (human-readable, unique per repository).
+  - Stable tracker-internal ID.
+  - Asana: task GID. GitHub Projects v2: project item node ID.
 - `identifier` (string)
-  - Human-readable label derived from repo context (example: `#123` or `owner/repo#123`).
+  - Human-readable ticket key.
+  - Asana: task GID or short name. GitHub Projects v2: `#<issue_number>`.
 - `title` (string)
-- `body` (string or null)
-  - Issue description body.
+- `description` (string or null)
 - `priority` (integer or null)
-  - Derived from labels (e.g. `priority:1` → `1`); lower numbers are higher priority.
+  - Lower numbers are higher priority in dispatch sorting.
 - `state` (string)
-  - GitHub issue open/closed state combined with active label name.
+  - Current tracker state name.
+  - Asana: derived from the section the task belongs to. GitHub Projects v2: derived from the
+    Status single-select field value.
 - `branch_name` (string or null)
-  - Associated branch name if available (from linked PR or label convention).
+  - Tracker-provided branch metadata if available.
 - `url` (string or null)
 - `labels` (list of strings)
   - Normalized to lowercase.
 - `blocked_by` (list of blocker refs)
   - Each blocker ref contains:
     - `id` (string or null)
-    - `number` (integer or null)
     - `identifier` (string or null)
     - `state` (string or null)
 - `created_at` (timestamp or null)
@@ -189,9 +188,9 @@ Examples:
 
 - poll interval
 - workspace root
-- active and terminal issue labels
+- active and terminal issue states
 - concurrency limits
-- Claude Code executable/args/timeouts
+- coding-agent executable/args/timeouts
 - workspace hooks
 
 #### 4.1.4 Workspace
@@ -202,7 +201,7 @@ Fields (logical):
 
 - `path` (workspace path; current runtime typically uses absolute paths, but relative roots are
   possible if configured without path separators)
-- `workspace_key` (sanitized issue identifier, e.g. `issue-123`)
+- `workspace_key` (sanitized issue identifier)
 - `created_now` (boolean, used to gate `after_create` hook)
 
 #### 4.1.5 Run Attempt
@@ -212,7 +211,6 @@ One execution attempt for one issue.
 Fields (logical):
 
 - `issue_id`
-- `issue_number`
 - `issue_identifier`
 - `attempt` (integer or null, `null` for first run, `>=1` for retries/continuation)
 - `workspace_path`
@@ -222,22 +220,25 @@ Fields (logical):
 
 #### 4.1.6 Live Session (Agent Session Metadata)
 
-State tracked while a Claude Code subprocess is running.
+State tracked while a coding-agent subprocess is running.
 
 Fields:
 
-- `session_id` (string)
-  - Derived from process PID and run timestamp.
-- `claude_pid` (integer or null)
-  - OS process ID of the Claude Code subprocess.
-- `last_event` (string/enum or null)
-- `last_event_timestamp` (timestamp or null)
-- `last_message` (summarized payload)
-- `input_tokens` (integer)
-- `output_tokens` (integer)
-- `total_tokens` (integer)
+- `session_id` (string, `<thread_id>-<turn_id>`)
+- `thread_id` (string)
+- `turn_id` (string)
+- `agent_app_server_pid` (string or null)
+- `last_agent_event` (string/enum or null)
+- `last_agent_timestamp` (timestamp or null)
+- `last_agent_message` (summarized payload)
+- `agent_input_tokens` (integer)
+- `agent_output_tokens` (integer)
+- `agent_total_tokens` (integer)
+- `last_reported_input_tokens` (integer)
+- `last_reported_output_tokens` (integer)
+- `last_reported_total_tokens` (integer)
 - `turn_count` (integer)
-  - Number of Claude Code turns started within the current worker lifetime.
+  - Number of coding-agent turns started within the current worker lifetime.
 
 #### 4.1.7 Retry Entry
 
@@ -246,7 +247,6 @@ Scheduled retry state for an issue.
 Fields:
 
 - `issue_id`
-- `issue_number`
 - `identifier` (best-effort human ID for status surfaces/logs)
 - `attempt` (integer, 1-based for retry queue)
 - `due_at_ms` (monotonic clock timestamp)
@@ -265,24 +265,22 @@ Fields:
 - `claimed` (set of issue IDs reserved/running/retrying)
 - `retry_attempts` (map `issue_id -> RetryEntry`)
 - `completed` (set of issue IDs; bookkeeping only, not dispatch gating)
-- `claude_totals` (aggregate tokens + runtime seconds)
+- `agent_totals` (aggregate tokens + runtime seconds)
+- `agent_rate_limits` (latest rate-limit snapshot from agent events)
 
 ### 4.2 Stable Identifiers and Normalization Rules
 
 - `Issue ID`
-  - GitHub node ID; use for internal map keys.
-- `Issue Number`
-  - GitHub integer issue number; use for API lookups.
+  - Use for tracker lookups and internal map keys.
 - `Issue Identifier`
-  - Human-readable string (e.g. `#123`); use for logs and workspace naming.
+  - Use for human-readable logs and workspace naming.
 - `Workspace Key`
-  - Derive from `issue_number` as `issue-<number>` (e.g. `issue-123`).
-  - Replace any character not in `[A-Za-z0-9._-]` with `_` for safety.
+  - Derive from `issue.identifier` by replacing any character not in `[A-Za-z0-9._-]` with `_`.
   - Use the sanitized value for the workspace directory name.
-- `Normalized Label`
-  - Compare labels after `trim` + `lowercase`.
+- `Normalized Issue State`
+  - Compare states after `trim` + `lowercase`.
 - `Session ID`
-  - Compose from process PID and start timestamp.
+  - Compose from coding-agent `thread_id` and `turn_id` as `<thread_id>-<turn_id>`.
 
 ## 5. Workflow Specification (Repository Contract)
 
@@ -330,7 +328,7 @@ Top-level keys:
 - `workspace`
 - `hooks`
 - `agent`
-- `claude`
+- `codex`
 
 Unknown keys should be ignored for forward compatibility.
 
@@ -340,8 +338,8 @@ Note:
   (for example `server`) without changing the core schema above.
 - Extensions should document their field schema, defaults, validation rules, and whether changes
   apply dynamically or require restart.
-- Common extension: `server.port` (integer) enables the optional HTTP server described in
-  Section 13.7.
+- Common extension: `server.port` (integer) enables the optional HTTP server described in Section
+  13.7.
 
 #### 5.3.1 `tracker` (object)
 
@@ -349,29 +347,47 @@ Fields:
 
 - `kind` (string)
   - Required for dispatch.
-  - Current supported value: `github`
+  - Supported values: `asana`, `github_projects`
+
+**When `tracker.kind == "asana"`:**
+
 - `endpoint` (string)
-  - Default for `tracker.kind == "github"`: `https://api.github.com`
+  - Default: `https://app.asana.com/api/1.0`
 - `api_key` (string)
-  - GitHub Personal Access Token or GitHub App token.
   - May be a literal token or `$VAR_NAME`.
-  - Canonical environment variable for `tracker.kind == "github"`: `GITHUB_TOKEN`.
+  - Canonical environment variable: `ASANA_ACCESS_TOKEN`.
+  - If `$VAR_NAME` resolves to an empty string, treat the key as missing.
+- `project_gid` (string)
+  - Required for dispatch. Asana project GID.
+- `active_sections` (list of strings or comma-separated string)
+  - Section names treated as active states.
+  - Default: `To Do`, `In Progress`
+- `terminal_sections` (list of strings or comma-separated string)
+  - Section names treated as terminal states.
+  - Default: `Done`, `Cancelled`
+
+**When `tracker.kind == "github_projects"`:**
+
+- `endpoint` (string)
+  - Default: `https://api.github.com`
+- `api_key` (string)
+  - May be a literal token or `$VAR_NAME`.
+  - Canonical environment variable: `GITHUB_TOKEN`.
   - If `$VAR_NAME` resolves to an empty string, treat the key as missing.
 - `owner` (string)
-  - Required for dispatch when `tracker.kind == "github"`.
-  - GitHub repository owner (user or organization).
-- `repo` (string)
-  - Required for dispatch when `tracker.kind == "github"`.
-  - GitHub repository name.
-- `active_labels` (list of strings or comma-separated string)
-  - Default: `conductor:active`
-  - Issues bearing any of these labels are candidates for dispatch.
-- `terminal_labels` (list of strings or comma-separated string)
-  - Default: `conductor:done, conductor:cancelled`
-  - Issues bearing any of these labels (or that are closed) are considered terminal.
-- `include_closed` (boolean)
-  - Default: `false`
-  - If `true`, closed issues with active labels are still dispatched.
+  - Required for dispatch. GitHub organization or user login.
+- `project_number` (integer)
+  - Required for dispatch. GitHub Projects v2 project number.
+- `active_statuses` (list of strings or comma-separated string)
+  - Status field values treated as active states.
+  - Default: `Todo`, `In Progress`
+- `terminal_statuses` (list of strings or comma-separated string)
+  - Status field values treated as terminal states.
+  - Default: `Done`, `Cancelled`
+
+Note: For backward compatibility in config parsing, `active_states` and `terminal_states` are
+accepted as aliases for `active_sections` / `active_statuses` and `terminal_sections` /
+`terminal_statuses` respectively.
 
 #### 5.3.2 `polling` (object)
 
@@ -399,7 +415,8 @@ Fields:
   - Runs only when a workspace directory is newly created.
   - Failure aborts workspace creation.
 - `before_run` (multiline shell script string, optional)
-  - Runs before each agent attempt after workspace preparation and before launching Claude Code.
+  - Runs before each agent attempt after workspace preparation and before launching the coding
+    agent.
   - Failure aborts the current attempt.
 - `after_run` (multiline shell script string, optional)
   - Runs after each agent attempt (success, failure, timeout, or cancellation) once the workspace
@@ -421,33 +438,40 @@ Fields:
 - `max_concurrent_agents` (integer or string integer)
   - Default: `10`
   - Changes should be re-applied at runtime and affect subsequent dispatch decisions.
-- `max_turns` (integer or string integer)
-  - Default: `20`
-  - Maximum number of Claude Code turns before the worker exits.
 - `max_retry_backoff_ms` (integer or string integer)
   - Default: `300000` (5 minutes)
   - Changes should be re-applied at runtime and affect future retry scheduling.
-- `max_concurrent_agents_by_label` (map `label_name -> positive integer`)
+- `max_concurrent_agents_by_state` (map `state_name -> positive integer`)
   - Default: empty map.
-  - Label keys are normalized (`trim` + `lowercase`) for lookup.
+  - State keys are normalized (`trim` + `lowercase`) for lookup.
   - Invalid entries (non-positive or non-numeric) are ignored.
 
-#### 5.3.6 `claude` (object)
+#### 5.3.6 `codex` (object)
+
+The `codex` section configures the coding agent app-server subprocess. The field name `codex` is
+preserved for backward compatibility; it applies to any compatible coding-agent app-server
+implementation.
 
 Fields:
 
+For agent-owned config values such as `approval_policy`, `thread_sandbox`, and
+`turn_sandbox_policy`, supported values are defined by the targeted app-server version.
+Implementors should treat them as pass-through config values rather than relying on a
+hand-maintained enum in this spec. Consult the app-server documentation or schema generation
+tooling for the specific agent in use. Implementations may validate these fields locally if they
+want stricter startup checks.
+
 - `command` (string shell command)
-  - Default: `claude`
+  - Default: `codex app-server`
   - The runtime launches this command via `bash -lc` in the workspace directory.
-  - The launched process must accept a prompt on stdin and emit JSON events on stdout.
-- `permission_mode` (string)
-  - Claude Code permission/approval posture.
-  - Supported values: `default`, `acceptEdits`, `bypassPermissions`
-  - Default: `default`
-  - Maps to the `--permission-mode` CLI flag.
-- `allowed_tools` (list of strings, optional)
-  - Explicit tool allowlist passed via `--allowedTools`.
-  - Default: empty (all tools allowed per permission_mode).
+  - The launched process must speak a compatible app-server protocol over stdio.
+  - Replace this default with the appropriate command for the coding agent being used.
+- `approval_policy` (app-server `AskForApproval` value)
+  - Default: implementation-defined.
+- `thread_sandbox` (app-server `SandboxMode` value)
+  - Default: implementation-defined.
+- `turn_sandbox_policy` (app-server `SandboxPolicy` value)
+  - Default: implementation-defined.
 - `turn_timeout_ms` (integer)
   - Default: `3600000` (1 hour)
 - `read_timeout_ms` (integer)
@@ -477,7 +501,7 @@ Template input variables:
 Fallback prompt behavior:
 
 - If the workflow prompt body is empty, the runtime may use a minimal default prompt
-  (`You are working on a GitHub issue.`).
+  (`You are working on an issue from the configured issue tracker.`).
 - Workflow file read/parse failures are configuration/validation errors and should not silently fall
   back to a prompt.
 
@@ -522,7 +546,7 @@ Dynamic reload is required:
 - The software should watch `WORKFLOW.md` for changes.
 - On change, it should re-read and re-apply workflow config and prompt template without restart.
 - The software should attempt to adjust live behavior to the new config (for example polling
-  cadence, concurrency limits, active/terminal labels, claude settings, workspace paths/hooks, and
+  cadence, concurrency limits, active/terminal states, codex settings, workspace paths/hooks, and
   prompt content for future runs).
 - Reloaded config applies to future dispatch, retry scheduling, reconciliation decisions, hook
   execution, and agent launches.
@@ -555,23 +579,33 @@ Per-tick dispatch validation:
 Validation checks:
 
 - Workflow file can be loaded and parsed.
-- `tracker.kind` is present and supported.
+- `tracker.kind` is present and is one of: `asana`, `github_projects`.
 - `tracker.api_key` is present after `$` resolution.
-- `tracker.owner` and `tracker.repo` are present when required by the selected tracker kind.
-- `claude.command` is present and non-empty.
+- When `tracker.kind == "asana"`: `tracker.project_gid` is present.
+- When `tracker.kind == "github_projects"`: `tracker.owner` and `tracker.project_number` are
+  present.
+- `codex.command` is present and non-empty.
 
 ### 6.4 Config Fields Summary (Cheat Sheet)
 
 This section is intentionally redundant so a coding agent can implement the config layer quickly.
 
-- `tracker.kind`: string, required, currently `github`
-- `tracker.endpoint`: string, default `https://api.github.com` when `tracker.kind=github`
-- `tracker.api_key`: string or `$VAR`, canonical env `GITHUB_TOKEN` when `tracker.kind=github`
-- `tracker.owner`: string, required when `tracker.kind=github`
-- `tracker.repo`: string, required when `tracker.kind=github`
-- `tracker.active_labels`: list/string, default `conductor:active`
-- `tracker.terminal_labels`: list/string, default `conductor:done, conductor:cancelled`
-- `tracker.include_closed`: boolean, default `false`
+- `tracker.kind`: string, required, supported values: `asana`, `github_projects`
+
+When `tracker.kind=asana`:
+- `tracker.endpoint`: string, default `https://app.asana.com/api/1.0`
+- `tracker.api_key`: string or `$VAR`, canonical env `ASANA_ACCESS_TOKEN`
+- `tracker.project_gid`: string, required
+- `tracker.active_sections`: list/string, default `To Do, In Progress`
+- `tracker.terminal_sections`: list/string, default `Done, Cancelled`
+
+When `tracker.kind=github_projects`:
+- `tracker.endpoint`: string, default `https://api.github.com`
+- `tracker.api_key`: string or `$VAR`, canonical env `GITHUB_TOKEN`
+- `tracker.owner`: string, required (GitHub org or user)
+- `tracker.project_number`: integer, required
+- `tracker.active_statuses`: list/string, default `Todo, In Progress`
+- `tracker.terminal_statuses`: list/string, default `Done, Cancelled`
 - `polling.interval_ms`: integer, default `30000`
 - `workspace.root`: path, default `<system-temp>/conductor_workspaces`
 - `hooks.after_create`: shell script or null
@@ -582,13 +616,14 @@ This section is intentionally redundant so a coding agent can implement the conf
 - `agent.max_concurrent_agents`: integer, default `10`
 - `agent.max_turns`: integer, default `20`
 - `agent.max_retry_backoff_ms`: integer, default `300000` (5m)
-- `agent.max_concurrent_agents_by_label`: map of positive integers, default `{}`
-- `claude.command`: shell command string, default `claude`
-- `claude.permission_mode`: string, default `default`
-- `claude.allowed_tools`: list of strings, default `[]`
-- `claude.turn_timeout_ms`: integer, default `3600000`
-- `claude.read_timeout_ms`: integer, default `5000`
-- `claude.stall_timeout_ms`: integer, default `300000`
+- `agent.max_concurrent_agents_by_state`: map of positive integers, default `{}`
+- `codex.command`: shell command string, default `codex app-server`
+- `codex.approval_policy`: Codex `AskForApproval` value, default implementation-defined
+- `codex.thread_sandbox`: Codex `SandboxMode` value, default implementation-defined
+- `codex.turn_sandbox_policy`: Codex `SandboxPolicy` value, default implementation-defined
+- `codex.turn_timeout_ms`: integer, default `3600000`
+- `codex.read_timeout_ms`: integer, default `5000`
+- `codex.stall_timeout_ms`: integer, default `300000`
 - `server.port` (extension): integer, optional; enables the optional HTTP server, `0` may be used
   for ephemeral local bind, and CLI `--port` overrides it
 
@@ -599,7 +634,7 @@ reported back to it and converted into explicit state transitions.
 
 ### 7.1 Issue Orchestration States
 
-This is not the same as GitHub issue state (`open`/`closed`). This is the service's internal
+This is not the same as tracker states (`Todo`, `In Progress`, etc.). This is the service's internal
 claim state.
 
 1. `Unclaimed`
@@ -622,13 +657,13 @@ claim state.
 Important nuance:
 
 - A successful worker exit does not mean the issue is done forever.
-- The worker may continue through multiple back-to-back Claude Code turns before it exits.
-- After each normal turn completion, the worker re-checks the GitHub issue labels.
-- If the issue still bears an active label, the worker should start another turn in the same
-  workspace, up to `agent.max_turns`.
+- The worker may continue through multiple back-to-back coding-agent turns before it exits.
+- After each normal turn completion, the worker re-checks the tracker issue state.
+- If the issue is still in an active state, the worker should start another turn on the same live
+  coding-agent thread in the same workspace, up to `agent.max_turns`.
 - The first turn should use the full rendered task prompt.
-- Continuation turns should send only continuation guidance to the existing session, not resend the
-  original task prompt.
+- Continuation turns should send only continuation guidance to the existing thread, not resend the
+  original task prompt that is already present in thread history.
 - Once the worker exits normally, the orchestrator still schedules a short continuation retry
   (about 1 second) so it can re-check whether the issue remains active and needs another worker
   session.
@@ -670,14 +705,14 @@ Distinct terminal reasons are important because retry logic and logs differ.
   - Update aggregate runtime totals.
   - Schedule exponential-backoff retry.
 
-- `Claude Update Event`
-  - Update live session fields, token counters.
+- `Agent Update Event`
+  - Update live session fields, token counters, and rate limits.
 
 - `Retry Timer Fired`
   - Re-fetch active candidates and attempt re-dispatch, or release claim if no longer eligible.
 
 - `Reconciliation State Refresh`
-  - Stop runs whose issue labels are terminal or whose issues are no longer active.
+  - Stop runs whose issue states are terminal or no longer active.
 
 - `Stall Timeout`
   - Kill worker and schedule retry.
@@ -703,7 +738,7 @@ Tick sequence:
 
 1. Reconcile running issues.
 2. Run dispatch preflight validation.
-3. Fetch candidate issues from GitHub using active labels.
+3. Fetch candidate issues from tracker using active states.
 4. Sort issues by dispatch priority.
 5. Dispatch eligible issues while slots remain.
 6. Notify observability/status consumers of state changes.
@@ -715,21 +750,20 @@ first.
 
 An issue is dispatch-eligible only if all are true:
 
-- It has `id`, `number`, `title`, and at least one active label.
-- Its labels include at least one `active_label` and no `terminal_label`.
-- If `include_closed` is false, the GitHub issue state must be `open`.
+- It has `id`, `identifier`, `title`, and `state`.
+- Its state is in `active_states` and not in `terminal_states`.
 - It is not already in `running`.
 - It is not already in `claimed`.
 - Global concurrency slots are available.
-- Per-label concurrency slots are available.
-- Blocker rule passes:
-  - Do not dispatch when any labeled blocker is non-terminal.
+- Per-state concurrency slots are available.
+- Blocker rule for `Todo` state passes:
+  - If the issue state is `Todo`, do not dispatch when any blocker is non-terminal.
 
 Sorting order (stable intent):
 
-1. `priority` ascending (derived from priority labels; null/unknown sorts last)
+1. `priority` ascending (1..4 are preferred; null/unknown sorts last)
 2. `created_at` oldest first
-3. `number` ascending tie-breaker
+3. `identifier` lexicographic tie-breaker
 
 ### 8.3 Concurrency Control
 
@@ -737,12 +771,12 @@ Global limit:
 
 - `available_slots = max(max_concurrent_agents - running_count, 0)`
 
-Per-label limit:
+Per-state limit:
 
-- `max_concurrent_agents_by_label[label]` if present (label key normalized)
+- `max_concurrent_agents_by_state[state]` if present (state key normalized)
 - otherwise fallback to global limit
 
-The runtime counts issues by their current tracked active label in the `running` map.
+The runtime counts issues by their current tracked state in the `running` map.
 
 ### 8.4 Retry and Backoff
 
@@ -769,7 +803,8 @@ Retry handling behavior:
 
 Note:
 
-- Terminal-label workspace cleanup is handled by startup cleanup and active-run reconciliation.
+- Terminal-state workspace cleanup is handled by startup cleanup and active-run reconciliation
+  (including terminal transitions for currently running issues).
 - Retry handling mainly operates on active candidates and releases claims when the issue is absent,
   rather than performing terminal cleanup itself.
 
@@ -780,26 +815,26 @@ Reconciliation runs every tick and has two parts.
 Part A: Stall detection
 
 - For each running issue, compute `elapsed_ms` since:
-  - `last_event_timestamp` if any event has been seen, else
+  - `last_agent_timestamp` if any event has been seen, else
   - `started_at`
-- If `elapsed_ms > claude.stall_timeout_ms`, terminate the worker and queue a retry.
+- If `elapsed_ms > codex.stall_timeout_ms`, terminate the worker and queue a retry.
 - If `stall_timeout_ms <= 0`, skip stall detection entirely.
 
 Part B: Tracker state refresh
 
-- Fetch current labels for all running issue numbers.
+- Fetch current issue states for all running issue IDs.
 - For each running issue:
-  - If issue is closed or bears a terminal label: terminate worker and clean workspace.
-  - If issue still bears an active label: update the in-memory issue snapshot.
-  - If issue bears neither active nor terminal label: terminate worker without workspace cleanup.
+  - If tracker state is terminal: terminate worker and clean workspace.
+  - If tracker state is still active: update the in-memory issue snapshot.
+  - If tracker state is neither active nor terminal: terminate worker without workspace cleanup.
 - If state refresh fails, keep workers running and try again on the next tick.
 
 ### 8.6 Startup Terminal Workspace Cleanup
 
 When the service starts:
 
-1. Query GitHub for issues with terminal labels (and closed issues if configured).
-2. For each returned issue number, remove the corresponding workspace directory.
+1. Query tracker for issues in terminal states.
+2. For each returned issue identifier, remove the corresponding workspace directory.
 3. If the terminal-issues fetch fails, log a warning and continue startup.
 
 This prevents stale terminal workspaces from accumulating after restarts.
@@ -810,12 +845,12 @@ This prevents stale terminal workspaces from accumulating after restarts.
 
 Workspace root:
 
-- `workspace.root` (normalized path; the config layer expands path-like values and preserves
+- `workspace.root` (normalized path; the current config layer expands path-like values and preserves
   bare relative names)
 
 Per-issue workspace path:
 
-- `<workspace.root>/issue-<issue_number>`
+- `<workspace.root>/<sanitized_issue_identifier>`
 
 Workspace persistence:
 
@@ -824,11 +859,11 @@ Workspace persistence:
 
 ### 9.2 Workspace Creation and Reuse
 
-Input: `issue.number`
+Input: `issue.identifier`
 
 Algorithm summary:
 
-1. Derive `workspace_key = "issue-" + issue.number`.
+1. Sanitize identifier to `workspace_key`.
 2. Compute workspace path under workspace root.
 3. Ensure the workspace path exists as a directory.
 4. Mark `created_now=true` only if the directory was created during this call; otherwise
@@ -869,7 +904,8 @@ Execution contract:
 
 - Execute in a local shell context appropriate to the host OS, with the workspace directory as
   `cwd`.
-- On POSIX systems, `bash -lc <script>` is the conforming default.
+- On POSIX systems, `sh -lc <script>` (or a stricter equivalent such as `bash -lc <script>`) is a
+  conforming default.
 - Hook timeout uses `hooks.timeout_ms`; default: `60000 ms`.
 - Log hook start, failures, and timeouts.
 
@@ -884,9 +920,9 @@ Failure semantics:
 
 This is the most important portability constraint.
 
-Invariant 1: Run Claude Code only in the per-issue workspace path.
+Invariant 1: Run the coding agent only in the per-issue workspace path.
 
-- Before launching the Claude Code subprocess, validate:
+- Before launching the coding-agent subprocess, validate:
   - `cwd == workspace_path`
 
 Invariant 2: Workspace path must stay inside workspace root.
@@ -900,76 +936,123 @@ Invariant 3: Workspace key is sanitized.
 - Only `[A-Za-z0-9._-]` allowed in workspace directory names.
 - Replace all other characters with `_`.
 
-## 10. Agent Runner Protocol (Claude Code Integration)
+## 10. Agent Runner Protocol (Coding Agent Integration)
 
-This section defines the contract for integrating Claude Code as the coding agent.
+This section defines the language-neutral contract for integrating a coding agent app-server.
+
+Compatibility profile:
+
+- The normative contract is message ordering, required behaviors, and the logical fields that must
+  be extracted (for example session IDs, completion state, approval handling, and usage/rate-limit
+  telemetry).
+- Exact JSON field names may vary slightly across compatible app-server versions.
+- Implementations should tolerate equivalent payload shapes when they carry the same logical
+  meaning, especially for nested IDs, approval requests, user-input-required signals, and
+  token/rate-limit metadata.
 
 ### 10.1 Launch Contract
 
 Subprocess launch parameters:
 
-- Command: `claude.command` (default: `claude`)
-- Invocation: `bash -lc <claude.command> --output-format stream-json --print [--allowedTools <tools>] [--permission-mode <mode>]`
+- Command: `codex.command`
+- Invocation: `bash -lc <codex.command>`
 - Working directory: workspace path
-- Stdin: rendered prompt string
 - Stdout/stderr: separate streams
-- Framing: line-delimited JSON objects on stdout (one event per line)
+- Framing: line-delimited protocol messages on stdout (JSON-RPC-like JSON per line)
 
 Notes:
 
-- The `--output-format stream-json` flag instructs Claude Code to emit structured JSON events.
-- The `--print` flag runs non-interactively, reading the prompt from stdin.
-- Permission mode and allowed tools are passed as CLI flags per `claude.*` config values.
+- The default command is `codex app-server`. Replace with the appropriate command for the coding
+  agent being used.
+- Approval policy, cwd, and prompt are expressed in the protocol messages in Section 10.2.
 
 Recommended additional process settings:
 
 - Max line size: 10 MB (for safe buffering)
 
-### 10.2 Session Startup
+### 10.2 Session Startup Handshake
 
-Claude Code runs as a single-shot subprocess per turn. The orchestrator:
+The client must send these protocol messages in order:
 
-1. Renders the prompt string from `WORKFLOW.md` template + issue context.
-2. Launches `claude` subprocess with appropriate flags.
-3. Pipes the rendered prompt to stdin.
-4. Reads JSON events from stdout until process exits.
+Illustrative startup transcript (equivalent payload shapes are acceptable if they preserve the same
+semantics):
 
-For continuation turns (same issue, subsequent runs in the same session), the orchestrator may:
+```json
+{"id":1,"method":"initialize","params":{"clientInfo":{"name":"conductor","version":"1.0"},"capabilities":{}}}
+{"method":"initialized","params":{}}
+{"id":2,"method":"thread/start","params":{"approvalPolicy":"<implementation-defined>","sandbox":"<implementation-defined>","cwd":"/abs/workspace"}}
+{"id":3,"method":"turn/start","params":{"threadId":"<thread-id>","input":[{"type":"text","text":"<rendered prompt-or-continuation-guidance>"}],"cwd":"/abs/workspace","title":"ABC-123: Example","approvalPolicy":"<implementation-defined>","sandboxPolicy":{"type":"<implementation-defined>"}}}
+```
 
-- Reuse the same workspace directory.
-- Provide continuation guidance in the prompt (indicating this is a retry/continuation).
+1. `initialize` request
+   - Params include:
+     - `clientInfo` object (for example `{name, version}`)
+     - `capabilities` object (may be empty)
+   - If the targeted Codex app-server requires capability negotiation for dynamic tools, include the
+     necessary capability flag(s) here.
+   - Wait for response (`read_timeout_ms`)
+2. `initialized` notification
+3. `thread/start` request
+   - Params include:
+     - `approvalPolicy` = implementation-defined session approval policy value
+     - `sandbox` = implementation-defined session sandbox value
+     - `cwd` = absolute workspace path
+     - If optional client-side tools are implemented, include their advertised tool specs using the
+       protocol mechanism supported by the targeted Codex app-server version.
+4. `turn/start` request
+   - Params include:
+     - `threadId`
+     - `input` = single text item containing rendered prompt for the first turn, or continuation
+       guidance for later turns on the same thread
+     - `cwd`
+     - `title` = `<issue.identifier>: <issue.title>`
+     - `approvalPolicy` = implementation-defined turn approval policy value
+     - `sandboxPolicy` = implementation-defined object-form sandbox policy payload when required by
+       the targeted app-server version
 
 Session identifiers:
 
-- Derive `session_id` from process PID and start timestamp (e.g. `<pid>-<start_ms>`).
+- Read `thread_id` from `thread/start` result `result.thread.id`
+- Read `turn_id` from each `turn/start` result `result.turn.id`
+- Emit `session_id = "<thread_id>-<turn_id>"`
+- Reuse the same `thread_id` for all continuation turns inside one worker run
 
 ### 10.3 Streaming Turn Processing
 
-The client reads line-delimited JSON events from stdout until the process exits.
+The client reads line-delimited messages until the turn terminates.
 
 Completion conditions:
 
-- Process exits with code `0` -> success
-- Process exits with non-zero code -> failure
-- Turn timeout (`claude.turn_timeout_ms`) -> failure
-- Subprocess exit without expected completion event -> failure
+- `turn/completed` -> success
+- `turn/failed` -> failure
+- `turn/cancelled` -> failure
+- turn timeout (`turn_timeout_ms`) -> failure
+- subprocess exit -> failure
+
+Continuation processing:
+
+- If the worker decides to continue after a successful turn, it should issue another `turn/start`
+  on the same live `threadId`.
+- The app-server subprocess should remain alive across those continuation turns and be stopped only
+  when the worker run is ending.
 
 Line handling requirements:
 
-- Read JSON events from stdout only.
+- Read protocol messages from stdout only.
 - Buffer partial stdout lines until newline arrives.
 - Attempt JSON parse on complete stdout lines.
 - Stderr is not part of the protocol stream:
-  - Ignore it or log it as diagnostics.
-  - Do not attempt protocol JSON parsing on stderr.
+  - ignore it or log it as diagnostics
+  - do not attempt protocol JSON parsing on stderr
 
 ### 10.4 Emitted Runtime Events (Upstream to Orchestrator)
 
-The agent runner emits structured events to the orchestrator callback. Each event should include:
+The app-server client emits structured events to the orchestrator callback. Each event should
+include:
 
 - `event` (enum/string)
 - `timestamp` (UTC timestamp)
-- `claude_pid` (if available)
+- `agent_app_server_pid` (if available)
 - optional `usage` map (token counts)
 - payload fields as needed
 
@@ -979,144 +1062,328 @@ Important emitted events may include:
 - `startup_failed`
 - `turn_completed`
 - `turn_failed`
-- `message_received` (intermediate Claude output)
-- `tool_use` (tool execution event)
+- `turn_cancelled`
+- `turn_ended_with_error`
+- `turn_input_required`
+- `approval_auto_approved`
+- `unsupported_tool_call`
+- `notification`
+- `other_message`
 - `malformed`
 
-### 10.5 Permission Mode and Tool Policy
+### 10.5 Approval, Tool Calls, and User Input Policy
 
-Permission mode and tool allow-list behavior is implementation-defined.
+Approval, sandbox, and user-input behavior is implementation-defined.
 
 Policy requirements:
 
-- Each implementation should document its chosen permission mode posture.
-- Implementations should map `claude.permission_mode` to the appropriate `--permission-mode` CLI
-  flag value.
+- Each implementation should document its chosen approval, sandbox, and operator-confirmation
+  posture.
+- Approval requests and user-input-required events must not leave a run stalled indefinitely. An
+  implementation should either satisfy them, surface them to an operator, auto-resolve them, or
+  fail the run according to its documented policy.
 
-Supported permission modes:
+Example high-trust behavior:
 
-- `default` — Claude Code's standard interactive approval for sensitive operations.
-- `acceptEdits` — Auto-approve file edits; prompt for shell commands.
-- `bypassPermissions` — Auto-approve all operations (high-trust environments only).
+- Auto-approve command execution approvals for the session.
+- Auto-approve file-change approvals for the session.
+- Treat user-input-required turns as hard failure.
 
-Tool filtering:
+Unsupported dynamic tool calls:
 
-- If `claude.allowed_tools` is non-empty, pass the list via `--allowedTools` to restrict which
-  tools Claude Code may use.
-- If empty, no tool restriction is applied beyond the permission mode.
+- Supported dynamic tool calls that are explicitly implemented and advertised by the runtime should
+  be handled according to their extension contract.
+- If the agent requests a dynamic tool call (`item/tool/call`) that is not supported, return a tool
+  failure response and continue the session.
+- This prevents the session from stalling on unsupported tool execution paths.
+
+Optional client-side tool extension:
+
+- An implementation may expose a limited set of client-side tools to the app-server session.
+- Optional standardized tools: `asana_api` (when `tracker.kind == "asana"`) and `github_graphql`
+  (when `tracker.kind == "github_projects"`).
+- If implemented, supported tools should be advertised to the app-server session during startup
+  using the protocol mechanism supported by the targeted app-server version.
+- Unsupported tool names should still return a failure result and continue the session.
+
+`asana_api` extension contract:
+
+- Purpose: execute a raw REST API call against Asana using Conductor's configured tracker auth for
+  the current session.
+- Availability: only meaningful when `tracker.kind == "asana"` and valid Asana auth is configured.
+- Preferred input shape:
+
+  ```json
+  {
+    "method": "GET",
+    "path": "/tasks/1234567890",
+    "params": {
+      "optional": "query parameters or request body fields"
+    }
+  }
+  ```
+
+- `method` must be a non-empty HTTP method string (for example `GET`, `POST`, `PUT`, `DELETE`).
+- `path` must be a non-empty string beginning with `/`.
+- `params` is optional and, when present, must be a JSON object.
+- Execute one API request per tool call.
+- Reuse the configured Asana endpoint and auth from the active Conductor workflow/runtime config; do
+  not require the coding agent to read raw tokens from disk.
+- Tool result semantics:
+  - transport success + non-error HTTP status -> `success=true`
+  - HTTP error status -> `success=false`, but preserve the response body for debugging
+  - invalid input, missing auth, or transport failure -> `success=false` with an error payload
+- Return the API response or error payload as structured tool output that the model can inspect
+  in-session.
+
+`github_graphql` extension contract:
+
+- Purpose: execute a raw GraphQL query or mutation against GitHub using Conductor's configured
+  tracker auth for the current session.
+- Availability: only meaningful when `tracker.kind == "github_projects"` and valid GitHub auth is
+  configured.
+- Preferred input shape:
+
+  ```json
+  {
+    "query": "single GraphQL query or mutation document",
+    "variables": {
+      "optional": "graphql variables object"
+    }
+  }
+  ```
+
+- `query` must be a non-empty string.
+- `query` must contain exactly one GraphQL operation.
+- `variables` is optional and, when present, must be a JSON object.
+- Implementations may additionally accept a raw GraphQL query string as shorthand input.
+- Execute one GraphQL operation per tool call.
+- If the provided document contains multiple operations, reject the tool call as invalid input.
+- `operationName` selection is intentionally out of scope for this extension.
+- Reuse the configured GitHub endpoint and auth from the active Conductor workflow/runtime config;
+  do not require the coding agent to read raw tokens from disk.
+- Tool result semantics:
+  - transport success + no top-level GraphQL `errors` -> `success=true`
+  - top-level GraphQL `errors` present -> `success=false`, but preserve the GraphQL response body
+    for debugging
+  - invalid input, missing auth, or transport failure -> `success=false` with an error payload
+- Return the GraphQL response or error payload as structured tool output that the model can inspect
+  in-session.
+
+Illustrative responses (equivalent payload shapes are acceptable if they preserve the same outcome):
+
+```json
+{"id":"<approval-id>","result":{"approved":true}}
+{"id":"<tool-call-id>","result":{"success":false,"error":"unsupported_tool_call"}}
+```
+
+Hard failure on user input requirement:
+
+- If the agent requests user input, fail the run attempt immediately.
+- The client detects this via:
+  - explicit method (`item/tool/requestUserInput`), or
+  - turn methods/flags indicating input is required.
 
 ### 10.6 Timeouts and Error Mapping
 
 Timeouts:
 
-- `claude.read_timeout_ms`: request/response timeout during startup
-- `claude.turn_timeout_ms`: total subprocess execution timeout
-- `claude.stall_timeout_ms`: enforced by orchestrator based on event inactivity
+- `codex.read_timeout_ms`: request/response timeout during startup and sync requests
+- `codex.turn_timeout_ms`: total turn stream timeout
+- `codex.stall_timeout_ms`: enforced by orchestrator based on event inactivity
 
 Error mapping (recommended normalized categories):
 
-- `claude_not_found`
+- `agent_not_found`
 - `invalid_workspace_cwd`
+- `response_timeout`
 - `turn_timeout`
-- `process_exit_error`
+- `port_exit`
+- `response_error`
 - `turn_failed`
-- `stall_timeout`
+- `turn_cancelled`
+- `turn_input_required`
 
 ### 10.7 Agent Runner Contract
 
-The `Agent Runner` wraps workspace + prompt + Claude Code subprocess.
+The `Agent Runner` wraps workspace + prompt + app-server client.
 
 Behavior:
 
 1. Create/reuse workspace for issue.
 2. Build prompt from workflow template.
-3. Launch Claude Code subprocess.
-4. Forward Claude events to orchestrator.
+3. Start app-server session.
+4. Forward app-server events to orchestrator.
 5. On any error, fail the worker attempt (the orchestrator will retry).
 
 Note:
 
 - Workspaces are intentionally preserved after successful runs.
 
-## 11. Issue Tracker Integration Contract (GitHub)
+## 11. Issue Tracker Integration Contract
 
 ### 11.1 Required Operations
 
 An implementation must support these tracker adapter operations:
 
 1. `fetch_candidate_issues()`
-   - Return open issues bearing at least one `active_label` for the configured repository.
+   - Return issues in configured active states for a configured project.
 
-2. `fetch_issues_by_labels(label_names)`
+2. `fetch_issues_by_states(state_names)`
    - Used for startup terminal cleanup.
 
-3. `fetch_issue_labels_by_numbers(issue_numbers)`
+3. `fetch_issue_states_by_ids(issue_ids)`
    - Used for active-run reconciliation.
 
-### 11.2 Query Semantics (GitHub)
+### 11.A Asana Adapter
 
-GitHub-specific requirements for `tracker.kind == "github"`:
+Requirements for `tracker.kind == "asana"`:
 
-- GitHub REST API (`https://api.github.com` by default)
-- Auth token sent in `Authorization: Bearer <token>` header
-- `tracker.owner` and `tracker.repo` identify the repository
-- Candidate issue query: `GET /repos/{owner}/{repo}/issues?state=open&labels={active_label}`
-- Issue-label refresh: `GET /repos/{owner}/{repo}/issues/{number}` per running issue
-- Pagination required for candidate issues
+- Transport: Asana REST API (default endpoint `https://app.asana.com/api/1.0`)
+- Auth: `Authorization: Bearer <token>` header using the resolved `tracker.api_key`
+- State model: the section a task belongs to determines its state name
+- `tracker.project_gid` identifies the Asana project to query
+
+Candidate fetch:
+
+- Fetch tasks in the project using `GET /projects/{project_gid}/tasks` with opt-fields for task
+  details.
+- For each task, fetch its section membership to determine the current state.
+- Filter to tasks whose section name is in `active_sections`.
+
+State refresh by ID:
+
+- Fetch each task individually using `GET /tasks/{task_gid}` with section membership opt-fields.
+- Return minimal normalized issues (id, identifier, state).
+
+Terminal issue fetch:
+
+- Fetch tasks belonging to sections listed in `terminal_sections`.
+
+Pagination:
+
+- Use `offset` / `limit` style with `next_page.offset` from the response envelope.
 - Page size default: `50`
-- Network timeout: `30000 ms`
 
-GitHub GraphQL API (`https://api.github.com/graphql`) may be used as an alternative transport
-for batched operations.
+Network timeout: `30000 ms`
+
+Normalization:
+
+- `id` = Asana task GID (string)
+- `identifier` = task GID (use task name if a shorter human identifier is available)
+- `state` = section name the task belongs to
+- `title` = task name
+- `description` = task notes (or null)
+- `priority` = null (Asana has no native integer priority; implementations may map custom fields)
+- `labels` = tag names, normalized to lowercase
+- `blocked_by` = derived from task dependencies where the dependency is not yet complete
+- `created_at` / `updated_at` = parse ISO-8601 timestamps from `created_at` / `modified_at`
 
 Important:
 
-- GitHub API rate limits apply. Implement request throttling and respect `X-RateLimit-*` headers.
-- Keep query construction isolated to the GitHub adapter module.
+- Asana REST API schema details can drift. Keep query construction isolated and test the exact
+  fields required by this specification.
 
-A non-GitHub implementation may change transport details, but the normalized outputs must match the
-domain model in Section 4.
+### 11.B GitHub Projects v2 Adapter
 
-### 11.3 Normalization Rules
+Requirements for `tracker.kind == "github_projects"`:
+
+- Transport: GitHub GraphQL API (endpoint `https://api.github.com/graphql`)
+- Auth: `Authorization: Bearer <token>` header using the resolved `tracker.api_key`
+- State model: the value of the project item's single-select `Status` field determines its state
+  name
+- `tracker.owner` + `tracker.project_number` identify the GitHub Projects v2 project
+
+Candidate fetch:
+
+- Query project items using the GitHub Projects v2 GraphQL API.
+- Filter to items whose `Status` field value is in `active_statuses`.
+- Only include items linked to Issues or Pull Requests.
+
+State refresh by ID:
+
+- Query project items by their node IDs to fetch current `Status` field values.
+- Return minimal normalized issues (id, identifier, state).
+
+Terminal issue fetch:
+
+- Query project items whose `Status` field value is in `terminal_statuses`.
+
+Pagination:
+
+- Use cursor-based pagination with GraphQL `after` / `first` arguments.
+- Page size default: `50`
+
+Network timeout: `30000 ms`
+
+Normalization:
+
+- `id` = project item node ID (string)
+- `identifier` = `#<issue_number>` from the linked issue or pull request
+- `state` = `Status` field value
+- `title` = linked issue/PR title
+- `description` = linked issue/PR body (or null)
+- `priority` = null (map from a custom priority field if one exists in the project)
+- `url` = linked issue/PR HTML URL
+- `labels` = linked issue label names, normalized to lowercase
+- `blocked_by` = derived from linked issue's "blocked by" relationships if available
+- `created_at` / `updated_at` = parse ISO-8601 timestamps from the linked issue/PR
+
+Important:
+
+- GitHub Projects v2 GraphQL schema details can drift. Keep query construction isolated and test
+  the exact fields required by this specification.
+
+### 11.2 Normalization Rules (All Adapters)
 
 Candidate issue normalization should produce fields listed in Section 4.1.1.
 
-Additional normalization details:
+Common normalization rules:
 
-- `labels` -> lowercase strings (from GitHub label `name` field)
-- `priority` -> integer derived from `priority:N` label pattern (non-matching labels yield null)
-- `blocked_by` -> derived from issue body cross-references or `blocked-by: #N` convention
+- `labels` -> lowercase strings
+- `priority` -> integer only (non-integers become null)
 - `created_at` and `updated_at` -> parse ISO-8601 timestamps
-- `branch_name` -> derived from linked PR branch name if available
 
-### 11.4 Error Handling Contract
+### 11.3 Error Handling Contract
 
 Recommended error categories:
 
 - `unsupported_tracker_kind`
 - `missing_tracker_api_key`
-- `missing_tracker_owner_or_repo`
-- `github_api_request` (transport failures)
-- `github_api_status` (non-200 HTTP)
-- `github_api_rate_limited`
-- `github_unknown_payload`
-- `github_missing_pagination_cursor`
+- `missing_tracker_project_config` (missing `project_gid`, `owner`, or `project_number`)
+
+Asana-specific error categories:
+
+- `asana_api_request` (transport failures)
+- `asana_api_status` (non-200 HTTP)
+- `asana_unknown_payload`
+- `asana_missing_next_page` (pagination integrity error)
+
+GitHub Projects v2-specific error categories:
+
+- `github_projects_api_request` (transport failures)
+- `github_projects_api_status` (non-200 HTTP)
+- `github_projects_graphql_errors`
+- `github_projects_unknown_payload`
+- `github_projects_missing_end_cursor` (pagination integrity error)
 
 Orchestrator behavior on tracker errors:
 
 - Candidate fetch failure: log and skip dispatch for this tick.
-- Running-label refresh failure: log and keep active workers running.
+- Running-state refresh failure: log and keep active workers running.
 - Startup terminal cleanup failure: log warning and continue startup.
 
-### 11.5 Tracker Writes (Important Boundary)
+### 11.4 Tracker Writes (Important Boundary)
 
 Conductor does not require first-class tracker write APIs in the orchestrator.
 
-- Issue mutations (label changes, comments, PR metadata) are typically handled by Claude Code
-  using the `gh` CLI or GitHub API tools defined by the workflow prompt.
+- Ticket mutations (state transitions, comments, PR metadata) are typically handled by the coding
+  agent using tools defined by the workflow prompt.
 - The service remains a scheduler/runner and tracker reader.
-- Workflow-specific success often means "reached the next handoff label" (for example
-  `conductor:review`) rather than `Closed`.
+- Workflow-specific success often means "reached the next handoff state" (for example
+  `Human Review`) rather than tracker terminal state `Done`.
+- If the optional `asana_api` or `github_graphql` client-side tool extensions are implemented, they
+  are still part of the agent toolchain rather than orchestrator business logic.
 
 ## 12. Prompt Construction and Context Assembly
 
@@ -1158,10 +1425,9 @@ If prompt rendering fails:
 Required context fields for issue-related logs:
 
 - `issue_id`
-- `issue_number`
 - `issue_identifier`
 
-Required context for Claude Code session lifecycle logs:
+Required context for coding-agent session lifecycle logs:
 
 - `session_id`
 
@@ -1189,13 +1455,14 @@ If the implementation exposes a synchronous runtime snapshot (for dashboards or 
 should return:
 
 - `running` (list of running session rows)
-  - each running row should include `turn_count`
+- each running row should include `turn_count`
 - `retrying` (list of retry queue rows)
-- `claude_totals`
+- `agent_totals`
   - `input_tokens`
   - `output_tokens`
   - `total_tokens`
   - `seconds_running` (aggregate runtime seconds as of snapshot time, including active sessions)
+- `rate_limits` (latest coding-agent rate limit payload, if available)
 
 Recommended snapshot error modes:
 
@@ -1214,8 +1481,16 @@ correctness.
 
 Token accounting rules:
 
-- Agent events may include token counts.
-- Extract input/output/total token counts from Claude output event `usage` fields.
+- Agent events may include token counts in multiple payload shapes.
+- Prefer absolute thread totals when available, such as:
+  - `thread/tokenUsage/updated` payloads
+  - `total_token_usage` within token-count wrapper events
+- Ignore delta-style payloads such as `last_token_usage` for dashboard/API totals.
+- Extract input/output/total token counts leniently from common field names within the selected
+  payload.
+- For absolute totals, track deltas relative to last reported totals to avoid double-counting.
+- Do not treat generic `usage` maps as cumulative totals unless the event type defines them that
+  way.
 - Accumulate aggregate totals in orchestrator state.
 
 Runtime accounting:
@@ -1226,10 +1501,16 @@ Runtime accounting:
   snapshot/status view.
 - Add run duration seconds to the cumulative ended-session runtime when a session ends (normal exit
   or cancellation/termination).
+- Continuous background ticking of runtime totals is not required.
+
+Rate-limit tracking:
+
+- Track the latest rate-limit payload seen in any agent update.
+- Any human-readable presentation of rate-limit data is implementation-defined.
 
 ### 13.6 Humanized Agent Event Summaries (Optional)
 
-Humanized summaries of raw agent events are optional.
+Humanized summaries of raw agent protocol events are optional.
 
 If implemented:
 
@@ -1256,14 +1537,18 @@ Enablement (extension):
 - Precedence: CLI `--port` overrides `server.port` when both are present.
 - `server.port` must be an integer. Positive values bind that port. `0` may be used to request an
   ephemeral port for local development and tests.
-- Implementations should bind loopback by default (`127.0.0.1`) unless explicitly configured
-  otherwise.
+- Implementations should bind loopback by default (`127.0.0.1` or host equivalent) unless explicitly
+  configured otherwise.
+- Changes to HTTP listener settings (for example `server.port`) do not need to hot-rebind;
+  restart-required behavior is conformant.
 
 #### 13.7.1 Human-Readable Dashboard (`/`)
 
 - Host a human-readable dashboard at `/`.
 - The returned document should depict the current state of the system (for example active sessions,
   retry delays, token consumption, runtime totals, recent events, and health/error indicators).
+- It is up to the implementation whether this is server-generated HTML or a client-side app that
+  consumes the JSON API below.
 
 #### 13.7.2 JSON REST API (`/api/v1/*`)
 
@@ -1273,28 +1558,27 @@ Minimum endpoints:
 
 - `GET /api/v1/state`
   - Returns a summary view of the current system state (running sessions, retry queue/delays,
-    aggregate token/runtime totals).
+    aggregate token/runtime totals, latest rate limits, and any additional tracked summary fields).
   - Suggested response shape:
 
     ```json
     {
-      "generated_at": "2026-03-10T04:00:00Z",
+      "generated_at": "2026-02-24T20:15:30Z",
       "counts": {
         "running": 2,
         "retrying": 1
       },
       "running": [
         {
-          "issue_id": "I_abc123",
-          "issue_number": 42,
-          "issue_identifier": "#42",
-          "state": "open",
-          "session_id": "12345-1741571234000",
-          "turn_count": 3,
-          "last_event": "message_received",
-          "last_message": "Working on tests",
-          "started_at": "2026-03-10T04:00:00Z",
-          "last_event_at": "2026-03-10T04:05:00Z",
+          "issue_id": "abc123",
+          "issue_identifier": "MT-649",
+          "state": "In Progress",
+          "session_id": "thread-1-turn-1",
+          "turn_count": 7,
+          "last_event": "turn_completed",
+          "last_message": "",
+          "started_at": "2026-02-24T20:10:12Z",
+          "last_event_at": "2026-02-24T20:14:59Z",
           "tokens": {
             "input_tokens": 1200,
             "output_tokens": 800,
@@ -1304,36 +1588,103 @@ Minimum endpoints:
       ],
       "retrying": [
         {
-          "issue_id": "I_def456",
-          "issue_number": 43,
-          "issue_identifier": "#43",
-          "attempt": 2,
-          "due_at": "2026-03-10T04:06:00Z",
-          "error": "process_exit_error"
+          "issue_id": "def456",
+          "issue_identifier": "MT-650",
+          "attempt": 3,
+          "due_at": "2026-02-24T20:16:00Z",
+          "error": "no available orchestrator slots"
         }
       ],
-      "claude_totals": {
+      "agent_totals": {
         "input_tokens": 5000,
         "output_tokens": 2400,
         "total_tokens": 7400,
         "seconds_running": 1834.2
-      }
+      },
+      "rate_limits": null
     }
     ```
 
-- `GET /api/v1/<issue_number>`
-  - Returns issue-specific runtime/debug details for the identified issue.
-  - Return `404` with `{"error":{"code":"issue_not_found","message":"..."}}` if unknown.
+- `GET /api/v1/<issue_identifier>`
+  - Returns issue-specific runtime/debug details for the identified issue, including any information
+    the implementation tracks that is useful for debugging.
+  - Suggested response shape:
+
+    ```json
+    {
+      "issue_identifier": "MT-649",
+      "issue_id": "abc123",
+      "status": "running",
+      "workspace": {
+        "path": "/tmp/conductor_workspaces/MT-649"
+      },
+      "attempts": {
+        "restart_count": 1,
+        "current_retry_attempt": 2
+      },
+      "running": {
+        "session_id": "thread-1-turn-1",
+        "turn_count": 7,
+        "state": "In Progress",
+        "started_at": "2026-02-24T20:10:12Z",
+        "last_event": "notification",
+        "last_message": "Working on tests",
+        "last_event_at": "2026-02-24T20:14:59Z",
+        "tokens": {
+          "input_tokens": 1200,
+          "output_tokens": 800,
+          "total_tokens": 2000
+        }
+      },
+      "retry": null,
+      "logs": {
+        "agent_session_logs": [
+          {
+            "label": "latest",
+            "path": "/var/log/conductor/agent/MT-649/latest.log",
+            "url": null
+          }
+        ]
+      },
+      "recent_events": [
+        {
+          "at": "2026-02-24T20:14:59Z",
+          "event": "notification",
+          "message": "Working on tests"
+        }
+      ],
+      "last_error": null,
+      "tracked": {}
+    }
+    ```
+
+  - If the issue is unknown to the current in-memory state, return `404` with an error response (for
+    example `{\"error\":{\"code\":\"issue_not_found\",\"message\":\"...\"}}`).
 
 - `POST /api/v1/refresh`
-  - Queues an immediate tracker poll + reconciliation cycle.
-  - Response `202 Accepted`.
+  - Queues an immediate tracker poll + reconciliation cycle (best-effort trigger; implementations
+    may coalesce repeated requests).
+  - Suggested request body: empty body or `{}`.
+  - Suggested response (`202 Accepted`) shape:
+
+    ```json
+    {
+      "queued": true,
+      "coalesced": false,
+      "requested_at": "2026-02-24T20:15:30Z",
+      "operations": ["poll", "reconcile"]
+    }
+    ```
 
 API design notes:
 
+- The JSON shapes above are the recommended baseline for interoperability and debugging ergonomics.
+- Implementations may add fields, but should avoid breaking existing fields within a version.
 - Endpoints should be read-only except for operational triggers like `/refresh`.
 - Unsupported methods on defined routes should return `405 Method Not Allowed`.
 - API errors should use a JSON envelope such as `{"error":{"code":"...","message":"..."}}`.
+- If the dashboard is a client-side app, it should consume this API rather than duplicating state
+  logic.
 
 ## 14. Failure Model and Recovery Strategy
 
@@ -1342,8 +1693,8 @@ API design notes:
 1. `Workflow/Config Failures`
    - Missing `WORKFLOW.md`
    - Invalid YAML front matter
-   - Unsupported tracker kind or missing tracker credentials/owner/repo
-   - Missing Claude Code executable
+   - Unsupported tracker kind or missing tracker credentials/project slug
+   - Missing coding-agent executable
 
 2. `Workspace Failures`
    - Workspace directory creation failure
@@ -1352,16 +1703,18 @@ API design notes:
    - Hook timeout/failure
 
 3. `Agent Session Failures`
-   - Claude Code process not found
-   - Turn failed (non-zero exit)
+   - Startup handshake failure
+   - Turn failed/cancelled
    - Turn timeout
+   - User input requested (hard fail)
+   - Subprocess exit
    - Stalled session (no activity)
-   - Subprocess crash
 
 4. `Tracker Failures`
    - API transport errors
-   - Non-200 HTTP status
-   - Rate limiting
+   - Non-200 status
+   - GraphQL errors (GitHub Projects v2)
+   - REST API errors (Asana)
    - Malformed payloads
 
 5. `Observability Failures`
@@ -1409,57 +1762,529 @@ Operators can control behavior by:
 
 - Editing `WORKFLOW.md` (prompt and most runtime settings).
 - `WORKFLOW.md` changes should be detected and re-applied automatically without restart.
-- Changing issue labels in GitHub:
-  - Adding a terminal label to a running issue -> session is stopped and workspace cleaned when
-    reconciled.
-  - Closing a running issue (and `include_closed` is false) -> session is stopped.
-  - Removing the active label -> session is stopped without workspace cleanup.
-- Restarting the service to clear all in-memory state and retry timers.
-- Using `POST /api/v1/refresh` to trigger an immediate poll cycle.
+- Changing issue states in the tracker:
+  - terminal state -> running session is stopped and workspace cleaned when reconciled
+  - non-active state -> running session is stopped without cleanup
+- Restarting the service for process recovery or deployment (not as the normal path for applying
+  workflow config changes).
 
-## 15. Trust and Safety
+## 15. Security and Operational Safety
 
-### 15.1 Trust Posture
+### 15.1 Trust Boundary Assumption
 
-Conductor is designed for use in **trusted environments** by engineering teams who understand the
-risks of autonomous code execution. It is not designed as a public-facing, multi-tenant, or
-zero-trust service.
+Each implementation defines its own trust boundary.
 
-Implementations must document their chosen trust posture explicitly, including:
+Operational safety requirements:
 
-- Claude Code permission mode used.
-- Whether `bypassPermissions` mode is enabled.
-- Workspace isolation mechanisms in place.
-- Whether network access or external service access is restricted.
+- Implementations should state clearly whether they are intended for trusted environments, more
+  restrictive environments, or both.
+- Implementations should state clearly whether they rely on auto-approved actions, operator
+  approvals, stricter sandboxing, or some combination of those controls.
+- Workspace isolation and path validation are important baseline controls, but they are not a
+  substitute for whatever approval and sandbox policy an implementation chooses.
 
-### 15.2 Claude Code Permission Modes
+### 15.2 Filesystem Safety Requirements
 
-| Mode | Description | Use Case |
-|---|---|---|
-| `default` | Standard interactive approval for sensitive operations | Development, unknown repos |
-| `acceptEdits` | Auto-approve file edits; prompt for shell commands | Trusted codebases |
-| `bypassPermissions` | Auto-approve all operations | Fully trusted, sandboxed CI environments |
+Mandatory:
 
-Implementations should default to the most restrictive mode that is operationally viable.
+- Workspace path must remain under configured workspace root.
+- Coding-agent cwd must be the per-issue workspace path for the current run.
+- Workspace directory names must use sanitized identifiers.
 
-### 15.3 Workspace Isolation
+Recommended additional hardening for ports:
 
-- Each issue runs in a dedicated workspace directory under `workspace.root`.
-- Claude Code's working directory is validated to be the issue workspace before launch.
-- Workspace paths are sanitized to prevent path traversal.
-- Implementations may further restrict filesystem access using OS-level sandboxing (e.g. seccomp,
-  namespaces, Docker containers).
+- Run under a dedicated OS user.
+- Restrict workspace root permissions.
+- Mount workspace root on a dedicated volume if possible.
 
-### 15.4 Network and API Access
+### 15.3 Secret Handling
 
-- Claude Code has access to network resources by default.
-- Implementations in sensitive environments should consider network egress restrictions.
-- GitHub API credentials are passed via environment variable; Claude Code should not need direct
-  access to the raw token unless the workflow prompt explicitly requires it.
+- Support `$VAR` indirection in workflow config.
+- Do not log API tokens or secret env values.
+- Validate presence of secrets without printing them.
 
-### 15.5 Operator Confirmation
+### 15.4 Hook Script Safety
 
-- Conductor does not provide built-in operator confirmation prompts for agent actions.
-- Teams requiring human-in-the-loop approval should configure `claude.permission_mode: default` and
-  monitor agent runs.
-- The optional HTTP dashboard can be used to observe active sessions.
+Workspace hooks are arbitrary shell scripts from `WORKFLOW.md`.
+
+Implications:
+
+- Hooks are fully trusted configuration.
+- Hooks run inside the workspace directory.
+- Hook output should be truncated in logs.
+- Hook timeouts are required to avoid hanging the orchestrator.
+
+### 15.5 Harness Hardening Guidance
+
+Running coding agents against repositories, issue trackers, and other inputs that may contain
+sensitive data or externally-controlled content can be dangerous. A permissive deployment can lead
+to data leaks, destructive mutations, or full machine compromise if the agent is induced to execute
+harmful commands or use overly-powerful integrations.
+
+Implementations should explicitly evaluate their own risk profile and harden the execution harness
+where appropriate. This specification intentionally does not mandate a single hardening posture, but
+ports should not assume that tracker data, repository contents, prompt inputs, or tool arguments are
+fully trustworthy just because they originate inside a normal workflow.
+
+Possible hardening measures include:
+
+- Tightening coding-agent approval and sandbox settings described elsewhere in this specification
+  instead of running with a maximally permissive configuration.
+- Adding external isolation layers such as OS/container/VM sandboxing, network restrictions, or
+  separate credentials beyond the built-in agent policy controls.
+- Filtering which Asana tasks, projects, sections, or GitHub project items, labels, or other
+  tracker sources are eligible for dispatch so untrusted or out-of-scope tasks do not automatically
+  reach the agent.
+- Narrowing the optional `asana_api` or `github_graphql` tools so they can only read or mutate
+  data inside the intended project scope, rather than exposing general workspace-wide tracker
+  access.
+- Reducing the set of client-side tools, credentials, filesystem paths, and network destinations
+  available to the agent to the minimum needed for the workflow.
+
+The correct controls are deployment-specific, but implementations should document them clearly and
+treat harness hardening as part of the core safety model rather than an optional afterthought.
+
+## 16. Reference Algorithms (Language-Agnostic)
+
+### 16.1 Service Startup
+
+```text
+function start_service():
+  configure_logging()
+  start_observability_outputs()
+  start_workflow_watch(on_change=reload_and_reapply_workflow)
+
+  state = {
+    poll_interval_ms: get_config_poll_interval_ms(),
+    max_concurrent_agents: get_config_max_concurrent_agents(),
+    running: {},
+    claimed: set(),
+    retry_attempts: {},
+    completed: set(),
+    agent_totals: {input_tokens: 0, output_tokens: 0, total_tokens: 0, seconds_running: 0},
+    agent_rate_limits: null
+  }
+
+  validation = validate_dispatch_config()
+  if validation is not ok:
+    log_validation_error(validation)
+    fail_startup(validation)
+
+  startup_terminal_workspace_cleanup()
+  schedule_tick(delay_ms=0)
+
+  event_loop(state)
+```
+
+### 16.2 Poll-and-Dispatch Tick
+
+```text
+on_tick(state):
+  state = reconcile_running_issues(state)
+
+  validation = validate_dispatch_config()
+  if validation is not ok:
+    log_validation_error(validation)
+    notify_observers()
+    schedule_tick(state.poll_interval_ms)
+    return state
+
+  issues = tracker.fetch_candidate_issues()
+  if issues failed:
+    log_tracker_error()
+    notify_observers()
+    schedule_tick(state.poll_interval_ms)
+    return state
+
+  for issue in sort_for_dispatch(issues):
+    if no_available_slots(state):
+      break
+
+    if should_dispatch(issue, state):
+      state = dispatch_issue(issue, state, attempt=null)
+
+  notify_observers()
+  schedule_tick(state.poll_interval_ms)
+  return state
+```
+
+### 16.3 Reconcile Active Runs
+
+```text
+function reconcile_running_issues(state):
+  state = reconcile_stalled_runs(state)
+
+  running_ids = keys(state.running)
+  if running_ids is empty:
+    return state
+
+  refreshed = tracker.fetch_issue_states_by_ids(running_ids)
+  if refreshed failed:
+    log_debug("keep workers running")
+    return state
+
+  for issue in refreshed:
+    if issue.state in terminal_states:
+      state = terminate_running_issue(state, issue.id, cleanup_workspace=true)
+    else if issue.state in active_states:
+      state.running[issue.id].issue = issue
+    else:
+      state = terminate_running_issue(state, issue.id, cleanup_workspace=false)
+
+  return state
+```
+
+### 16.4 Dispatch One Issue
+
+```text
+function dispatch_issue(issue, state, attempt):
+  worker = spawn_worker(
+    fn -> run_agent_attempt(issue, attempt, parent_orchestrator_pid) end
+  )
+
+  if worker spawn failed:
+    return schedule_retry(state, issue.id, next_attempt(attempt), {
+      identifier: issue.identifier,
+      error: "failed to spawn agent"
+    })
+
+  state.running[issue.id] = {
+    worker_handle,
+    monitor_handle,
+    identifier: issue.identifier,
+    issue,
+    session_id: null,
+    agent_app_server_pid: null,
+    last_agent_message: null,
+    last_agent_event: null,
+    last_agent_timestamp: null,
+    agent_input_tokens: 0,
+    agent_output_tokens: 0,
+    agent_total_tokens: 0,
+    last_reported_input_tokens: 0,
+    last_reported_output_tokens: 0,
+    last_reported_total_tokens: 0,
+    retry_attempt: normalize_attempt(attempt),
+    started_at: now_utc()
+  }
+
+  state.claimed.add(issue.id)
+  state.retry_attempts.remove(issue.id)
+  return state
+```
+
+### 16.5 Worker Attempt (Workspace + Prompt + Agent)
+
+```text
+function run_agent_attempt(issue, attempt, orchestrator_channel):
+  workspace = workspace_manager.create_for_issue(issue.identifier)
+  if workspace failed:
+    fail_worker("workspace error")
+
+  if run_hook("before_run", workspace.path) failed:
+    fail_worker("before_run hook error")
+
+  session = app_server.start_session(workspace=workspace.path)
+  if session failed:
+    run_hook_best_effort("after_run", workspace.path)
+    fail_worker("agent session startup error")
+
+  max_turns = config.agent.max_turns
+  turn_number = 1
+
+  while true:
+    prompt = build_turn_prompt(workflow_template, issue, attempt, turn_number, max_turns)
+    if prompt failed:
+      app_server.stop_session(session)
+      run_hook_best_effort("after_run", workspace.path)
+      fail_worker("prompt error")
+
+    turn_result = app_server.run_turn(
+      session=session,
+      prompt=prompt,
+      issue=issue,
+      on_message=(msg) -> send(orchestrator_channel, {agent_update, issue.id, msg})
+    )
+
+    if turn_result failed:
+      app_server.stop_session(session)
+      run_hook_best_effort("after_run", workspace.path)
+      fail_worker("agent turn error")
+
+    refreshed_issue = tracker.fetch_issue_states_by_ids([issue.id])
+    if refreshed_issue failed:
+      app_server.stop_session(session)
+      run_hook_best_effort("after_run", workspace.path)
+      fail_worker("issue state refresh error")
+
+    issue = refreshed_issue[0] or issue
+
+    if issue.state is not active:
+      break
+
+    if turn_number >= max_turns:
+      break
+
+    turn_number = turn_number + 1
+
+  app_server.stop_session(session)
+  run_hook_best_effort("after_run", workspace.path)
+
+  exit_normal()
+```
+
+### 16.6 Worker Exit and Retry Handling
+
+```text
+on_worker_exit(issue_id, reason, state):
+  running_entry = state.running.remove(issue_id)
+  state = add_runtime_seconds_to_agent_totals(state, running_entry)
+
+  if reason == normal:
+    state.completed.add(issue_id)  # bookkeeping only
+    state = schedule_retry(state, issue_id, 1, {
+      identifier: running_entry.identifier,
+      delay_type: continuation
+    })
+  else:
+    state = schedule_retry(state, issue_id, next_attempt_from(running_entry), {
+      identifier: running_entry.identifier,
+      error: format("worker exited: %reason")
+    })
+
+  notify_observers()
+  return state
+```
+
+```text
+on_retry_timer(issue_id, state):
+  retry_entry = state.retry_attempts.pop(issue_id)
+  if missing:
+    return state
+
+  candidates = tracker.fetch_candidate_issues()
+  if fetch failed:
+    return schedule_retry(state, issue_id, retry_entry.attempt + 1, {
+      identifier: retry_entry.identifier,
+      error: "retry poll failed"
+    })
+
+  issue = find_by_id(candidates, issue_id)
+  if issue is null:
+    state.claimed.remove(issue_id)
+    return state
+
+  if available_slots(state) == 0:
+    return schedule_retry(state, issue_id, retry_entry.attempt + 1, {
+      identifier: issue.identifier,
+      error: "no available orchestrator slots"
+    })
+
+  return dispatch_issue(issue, state, attempt=retry_entry.attempt)
+```
+
+## 17. Test and Validation Matrix
+
+A conforming implementation should include tests that cover the behaviors defined in this
+specification.
+
+Validation profiles:
+
+- `Core Conformance`: deterministic tests required for all conforming implementations.
+- `Extension Conformance`: required only for optional features that an implementation chooses to
+  ship.
+- `Real Integration Profile`: environment-dependent smoke/integration checks recommended before
+  production use.
+
+Unless otherwise noted, Sections 17.1 through 17.7 are `Core Conformance`. Bullets that begin with
+`If ... is implemented` are `Extension Conformance`.
+
+### 17.1 Workflow and Config Parsing
+
+- Workflow file path precedence:
+  - explicit runtime path is used when provided
+  - cwd default is `WORKFLOW.md` when no explicit runtime path is provided
+- Workflow file changes are detected and trigger re-read/re-apply without restart
+- Invalid workflow reload keeps last known good effective configuration and emits an
+  operator-visible error
+- Missing `WORKFLOW.md` returns typed error
+- Invalid YAML front matter returns typed error
+- Front matter non-map returns typed error
+- Config defaults apply when optional values are missing
+- `tracker.kind` validation enforces currently supported kinds (`asana`, `github_projects`)
+- `tracker.api_key` works (including `$VAR` indirection)
+- `$VAR` resolution works for tracker API key and path values
+- `~` path expansion works
+- `codex.command` is preserved as a shell command string
+- Per-state concurrency override map normalizes state names and ignores invalid values
+- Prompt template renders `issue` and `attempt`
+- Prompt rendering fails on unknown variables (strict mode)
+
+### 17.2 Workspace Manager and Safety
+
+- Deterministic workspace path per issue identifier
+- Missing workspace directory is created
+- Existing workspace directory is reused
+- Existing non-directory path at workspace location is handled safely (replace or fail per
+  implementation policy)
+- Optional workspace population/synchronization errors are surfaced
+- Temporary artifacts (`tmp`, `.elixir_ls`) are removed during prep
+- `after_create` hook runs only on new workspace creation
+- `before_run` hook runs before each attempt and failure/timeouts abort the current attempt
+- `after_run` hook runs after each attempt and failure/timeouts are logged and ignored
+- `before_remove` hook runs on cleanup and failures/timeouts are ignored
+- Workspace path sanitization and root containment invariants are enforced before agent launch
+- Agent launch uses the per-issue workspace path as cwd and rejects out-of-root paths
+
+### 17.3 Issue Tracker Client
+
+- Candidate issue fetch uses configured active states and project configuration
+- Asana adapter: fetches tasks filtered by section membership using `project_gid`
+- GitHub Projects v2 adapter: fetches project items filtered by `Status` field using GraphQL
+- Empty `fetch_issues_by_states([])` returns empty without API call
+- Pagination preserves order across multiple pages
+- Asana adapter: pagination uses `offset` / `next_page.offset` style
+- GitHub Projects v2 adapter: pagination uses cursor-based `after` / `first` style
+- Labels are normalized to lowercase
+- Issue state refresh by ID returns minimal normalized issues
+- GitHub Projects v2 adapter: state refresh query uses GraphQL node IDs
+- Error mapping for transport errors, non-200 HTTP status, GraphQL errors (GitHub), REST errors
+  (Asana), and malformed payloads
+
+### 17.4 Orchestrator Dispatch, Reconciliation, and Retry
+
+- Dispatch sort order is priority then oldest creation time
+- `Todo` issue with non-terminal blockers is not eligible
+- `Todo` issue with terminal blockers is eligible
+- Active-state issue refresh updates running entry state
+- Non-active state stops running agent without workspace cleanup
+- Terminal state stops running agent and cleans workspace
+- Reconciliation with no running issues is a no-op
+- Normal worker exit schedules a short continuation retry (attempt 1)
+- Abnormal worker exit increments retries with 10s-based exponential backoff
+- Retry backoff cap uses configured `agent.max_retry_backoff_ms`
+- Retry queue entries include attempt, due time, identifier, and error
+- Stall detection kills stalled sessions and schedules retry
+- Slot exhaustion requeues retries with explicit error reason
+- If a snapshot API is implemented, it returns running rows, retry rows, agent token totals, and
+  rate limits
+- If a snapshot API is implemented, timeout/unavailable cases are surfaced
+
+### 17.5 Coding-Agent App-Server Client
+
+- Launch command uses workspace cwd and invokes `bash -lc <codex.command>`
+- Startup handshake sends `initialize`, `initialized`, `thread/start`, `turn/start`
+- `initialize` includes client identity/capabilities payload required by the targeted app-server
+  protocol
+- Policy-related startup payloads use the implementation's documented approval/sandbox settings
+- `thread/start` and `turn/start` parse nested IDs and emit `session_started`
+- Request/response read timeout is enforced
+- Turn timeout is enforced
+- Partial JSON lines are buffered until newline
+- Stdout and stderr are handled separately; protocol JSON is parsed from stdout only
+- Non-JSON stderr lines are logged but do not crash parsing
+- Command/file-change approvals are handled according to the implementation's documented policy
+- Unsupported dynamic tool calls are rejected without stalling the session
+- User input requests are handled according to the implementation's documented policy and do not
+  stall indefinitely
+- Usage and rate-limit payloads are extracted from nested payload shapes
+- Compatible payload variants for approvals, user-input-required signals, and usage/rate-limit
+  telemetry are accepted when they preserve the same logical meaning
+- If optional client-side tools are implemented, the startup handshake advertises the supported tool
+  specs required for discovery by the targeted app-server version
+- If the optional `asana_api` client-side tool extension is implemented:
+  - the tool is advertised to the session (only when `tracker.kind == "asana"`)
+  - valid `method` / `path` / `params` inputs execute against configured Asana auth
+  - HTTP error responses produce `success=false` while preserving the response body
+  - invalid arguments, missing auth, and transport failures return structured failure payloads
+  - unsupported tool names still fail without stalling the session
+- If the optional `github_graphql` client-side tool extension is implemented:
+  - the tool is advertised to the session (only when `tracker.kind == "github_projects"`)
+  - valid `query` / `variables` inputs execute against configured GitHub auth
+  - top-level GraphQL `errors` produce `success=false` while preserving the GraphQL body
+  - invalid arguments, missing auth, and transport failures return structured failure payloads
+  - unsupported tool names still fail without stalling the session
+
+### 17.6 Observability
+
+- Validation failures are operator-visible
+- Structured logging includes issue/session context fields
+- Logging sink failures do not crash orchestration
+- Token/rate-limit aggregation remains correct across repeated agent updates
+- If a human-readable status surface is implemented, it is driven from orchestrator state and does
+  not affect correctness
+- If humanized event summaries are implemented, they cover key wrapper/agent event classes without
+  changing orchestrator behavior
+
+### 17.7 CLI and Host Lifecycle
+
+- CLI accepts an optional positional workflow path argument (`path-to-WORKFLOW.md`)
+- CLI uses `./WORKFLOW.md` when no workflow path argument is provided
+- CLI errors on nonexistent explicit workflow path or missing default `./WORKFLOW.md`
+- CLI surfaces startup failure cleanly
+- CLI exits with success when application starts and shuts down normally
+- CLI exits nonzero when startup fails or the host process exits abnormally
+
+### 17.8 Real Integration Profile (Recommended)
+
+These checks are recommended for production readiness and may be skipped in CI when credentials,
+network access, or external service permissions are unavailable.
+
+- A real tracker smoke test can be run with valid credentials supplied by `ASANA_ACCESS_TOKEN`
+  (for `tracker.kind=asana`) or `GITHUB_TOKEN` (for `tracker.kind=github_projects`), or a
+  documented local bootstrap mechanism.
+- Real integration tests should use isolated test identifiers/workspaces and clean up tracker
+  artifacts when practical.
+- A skipped real-integration test should be reported as skipped, not silently treated as passed.
+- If a real-integration profile is explicitly enabled in CI or release validation, failures should
+  fail that job.
+
+## 18. Implementation Checklist (Definition of Done)
+
+Use the same validation profiles as Section 17:
+
+- Section 18.1 = `Core Conformance`
+- Section 18.2 = `Extension Conformance`
+- Section 18.3 = `Real Integration Profile`
+
+### 18.1 Required for Conformance
+
+- Workflow path selection supports explicit runtime path and cwd default
+- `WORKFLOW.md` loader with YAML front matter + prompt body split
+- Typed config layer with defaults and `$` resolution
+- Dynamic `WORKFLOW.md` watch/reload/re-apply for config and prompt
+- Polling orchestrator with single-authority mutable state
+- Issue tracker client with candidate fetch + state refresh + terminal fetch
+- Workspace manager with sanitized per-issue workspaces
+- Workspace lifecycle hooks (`after_create`, `before_run`, `after_run`, `before_remove`)
+- Hook timeout config (`hooks.timeout_ms`, default `60000`)
+- Coding-agent app-server subprocess client with JSON line protocol
+- Coding-agent launch command config (`codex.command`, default `codex app-server`)
+- Strict prompt rendering with `issue` and `attempt` variables
+- Exponential retry queue with continuation retries after normal exit
+- Configurable retry backoff cap (`agent.max_retry_backoff_ms`, default 5m)
+- Reconciliation that stops runs on terminal/non-active tracker states
+- Workspace cleanup for terminal issues (startup sweep + active transition)
+- Structured logs with `issue_id`, `issue_identifier`, and `session_id`
+- Operator-visible observability (structured logs; optional snapshot/status surface)
+
+### 18.2 Recommended Extensions (Not Required for Conformance)
+
+- Optional HTTP server honors CLI `--port` over `server.port`, uses a safe default bind host, and
+  exposes the baseline endpoints/error semantics in Section 13.7 if shipped.
+- Optional `asana_api` client-side tool extension exposes Asana REST API access through the
+  app-server session using configured Conductor auth (only when `tracker.kind=asana`).
+- Optional `github_graphql` client-side tool extension exposes GitHub GraphQL access through the
+  app-server session using configured Conductor auth (only when `tracker.kind=github_projects`).
+- TODO: Persist retry queue and session metadata across process restarts.
+- TODO: Make observability settings configurable in workflow front matter without prescribing UI
+  implementation details.
+- TODO: Add first-class tracker write APIs (comments/state transitions) in the orchestrator instead
+  of only via agent tools.
+
+### 18.3 Operational Validation Before Production (Recommended)
+
+- Run the `Real Integration Profile` from Section 17.8 with valid credentials and network access.
+- Verify hook execution and workflow path resolution on the target host OS/shell environment.
+- If the optional HTTP server is shipped, verify the configured port behavior and loopback/default
+  bind expectations on the target environment.

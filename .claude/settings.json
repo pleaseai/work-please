@@ -25,6 +25,7 @@
     "spec-kit@pleaseai": true,
     "code-review@pleaseai": true,
     "claude-md-management@pleaseai": true,
+    "gatekeeper@pleaseai": true,
     "typescript-lsp@code-intelligence": true,
     "eslint-lsp@code-intelligence": true
   },
