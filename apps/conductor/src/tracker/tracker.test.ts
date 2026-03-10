@@ -22,6 +22,69 @@ function makeGitHubConfig(extra: Record<string, unknown> = {}): ServiceConfig {
   })
 }
 
+describe('fetchCandidateIssues - uses active states (Section 17.3)', () => {
+  test('asana: calls fetchIssuesByStates with configured active_sections', async () => {
+    const config = makeAsanaConfig({ active_sections: 'In Progress,Review' })
+    const adapter = createAsanaAdapter(config)
+
+    const fetchedUrls: string[] = []
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      fetchedUrls.push(String(url))
+      // Return empty sections so no tasks are fetched
+      return {
+        ok: true,
+        json: async () => ({ data: [] }),
+      } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateIssues()
+      expect(Array.isArray(result)).toBe(true)
+      // The sections fetch should have been called
+      expect(fetchedUrls.some(u => u.includes('/projects/'))).toBe(true)
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('github_projects: calls fetchIssuesByStates with active_statuses', async () => {
+    const config = makeGitHubConfig({ active_statuses: 'In Progress,Todo' })
+    const adapter = createGitHubAdapter(config)
+
+    let fetchCalled = false
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      fetchCalled = true
+      return {
+        ok: true,
+        json: async () => ({
+          data: {
+            organization: {
+              projectV2: {
+                items: {
+                  nodes: [],
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                },
+              },
+            },
+          },
+        }),
+      } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateIssues()
+      expect(Array.isArray(result)).toBe(true)
+      expect(fetchCalled).toBe(true)
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
 describe('fetchIssuesByStates - empty states early return', () => {
   test('asana: returns [] immediately without making any fetch call', async () => {
     const config = makeAsanaConfig()
