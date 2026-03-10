@@ -1,0 +1,303 @@
+import type { ServiceConfig, WorkflowDefinition } from './types'
+import { tmpdir } from 'node:os'
+import { join, sep } from 'node:path'
+import process from 'node:process'
+
+const ENV_VAR_RE = /^\$([A-Z_]\w*)$/i
+
+const DEFAULTS = {
+  POLL_INTERVAL_MS: 30_000,
+  WORKSPACE_ROOT: join(tmpdir(), 'conductor_workspaces'),
+  HOOK_TIMEOUT_MS: 60_000,
+  MAX_CONCURRENT_AGENTS: 10,
+  AGENT_MAX_TURNS: 20,
+  MAX_RETRY_BACKOFF_MS: 300_000,
+  CLAUDE_COMMAND: 'claude',
+  CLAUDE_PERMISSION_MODE: 'bypassPermissions',
+  CLAUDE_ALLOWED_TOOLS: [] as string[],
+  CLAUDE_TURN_TIMEOUT_MS: 3_600_000,
+  CLAUDE_READ_TIMEOUT_MS: 5_000,
+  CLAUDE_STALL_TIMEOUT_MS: 300_000,
+  ASANA_ENDPOINT: 'https://app.asana.com/api/1.0',
+  ASANA_ACTIVE_SECTIONS: ['To Do', 'In Progress'] as string[],
+  ASANA_TERMINAL_SECTIONS: ['Done', 'Cancelled'] as string[],
+  GITHUB_ENDPOINT: 'https://api.github.com',
+  GITHUB_ACTIVE_STATUSES: ['Todo', 'In Progress'] as string[],
+  GITHUB_TERMINAL_STATUSES: ['Done', 'Cancelled'] as string[],
+}
+
+export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
+  const raw = workflow.config
+  const tracker = sectionMap(raw, 'tracker')
+  const polling = sectionMap(raw, 'polling')
+  const workspace = sectionMap(raw, 'workspace')
+  const hooks = sectionMap(raw, 'hooks')
+  const agent = sectionMap(raw, 'agent')
+  const claude = sectionMap(raw, 'claude')
+  const server = sectionMap(raw, 'server')
+
+  const kind = normalizeTrackerKind(stringValue(tracker.kind))
+
+  return {
+    tracker: buildTrackerConfig(kind, tracker),
+    polling: {
+      interval_ms: intValue(polling.interval_ms, DEFAULTS.POLL_INTERVAL_MS),
+    },
+    workspace: {
+      root: resolvePathValue(stringValue(workspace.root), DEFAULTS.WORKSPACE_ROOT),
+    },
+    hooks: {
+      after_create: hookScriptValue(hooks.after_create),
+      before_run: hookScriptValue(hooks.before_run),
+      after_run: hookScriptValue(hooks.after_run),
+      before_remove: hookScriptValue(hooks.before_remove),
+      timeout_ms: posIntValue(hooks.timeout_ms, DEFAULTS.HOOK_TIMEOUT_MS),
+    },
+    agent: {
+      max_concurrent_agents: intValue(agent.max_concurrent_agents, DEFAULTS.MAX_CONCURRENT_AGENTS),
+      max_turns: posIntValue(agent.max_turns, DEFAULTS.AGENT_MAX_TURNS),
+      max_retry_backoff_ms: posIntValue(agent.max_retry_backoff_ms, DEFAULTS.MAX_RETRY_BACKOFF_MS),
+      max_concurrent_agents_by_state: stateLimitsValue(agent.max_concurrent_agents_by_state),
+    },
+    claude: {
+      command: commandValue(claude.command) ?? DEFAULTS.CLAUDE_COMMAND,
+      permission_mode: stringValue(claude.permission_mode) ?? DEFAULTS.CLAUDE_PERMISSION_MODE,
+      allowed_tools: stringArrayValue(claude.allowed_tools, DEFAULTS.CLAUDE_ALLOWED_TOOLS),
+      turn_timeout_ms: intValue(claude.turn_timeout_ms, DEFAULTS.CLAUDE_TURN_TIMEOUT_MS),
+      read_timeout_ms: intValue(claude.read_timeout_ms, DEFAULTS.CLAUDE_READ_TIMEOUT_MS),
+      stall_timeout_ms: intValue(claude.stall_timeout_ms, DEFAULTS.CLAUDE_STALL_TIMEOUT_MS),
+    },
+    server: {
+      port: nonNegIntOrNull(server.port),
+    },
+  }
+}
+
+function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown>): ServiceConfig['tracker'] {
+  if (kind === 'asana') {
+    return {
+      kind,
+      endpoint: stringValue(tracker.endpoint) ?? DEFAULTS.ASANA_ENDPOINT,
+      api_key: resolveEnvValue(stringValue(tracker.api_key), process.env.ASANA_ACCESS_TOKEN),
+      project_gid: stringValue(tracker.project_gid) ?? null,
+      active_sections: csvValue(tracker.active_sections) ?? csvValue(tracker.active_states) ?? DEFAULTS.ASANA_ACTIVE_SECTIONS,
+      terminal_sections: csvValue(tracker.terminal_sections) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.ASANA_TERMINAL_SECTIONS,
+    }
+  }
+
+  if (kind === 'github_projects') {
+    return {
+      kind,
+      endpoint: stringValue(tracker.endpoint) ?? DEFAULTS.GITHUB_ENDPOINT,
+      api_key: resolveEnvValue(stringValue(tracker.api_key), process.env.GITHUB_TOKEN),
+      owner: stringValue(tracker.owner) ?? null,
+      project_number: posIntValue(tracker.project_number, null as unknown as number) ?? null,
+      active_statuses: csvValue(tracker.active_statuses) ?? csvValue(tracker.active_states) ?? DEFAULTS.GITHUB_ACTIVE_STATUSES,
+      terminal_statuses: csvValue(tracker.terminal_statuses) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.GITHUB_TERMINAL_STATUSES,
+    }
+  }
+
+  return {
+    kind,
+    endpoint: stringValue(tracker.endpoint) ?? '',
+    api_key: resolveEnvValue(stringValue(tracker.api_key), undefined),
+  }
+}
+
+export type ValidationError
+  = | { code: 'missing_tracker_kind' }
+    | { code: 'unsupported_tracker_kind', kind: string }
+    | { code: 'missing_tracker_api_key' }
+    | { code: 'missing_tracker_project_config', field: string }
+    | { code: 'missing_claude_command' }
+
+export function validateConfig(config: ServiceConfig): ValidationError | null {
+  const { kind } = config.tracker
+
+  if (!kind)
+    return { code: 'missing_tracker_kind' }
+  if (kind !== 'asana' && kind !== 'github_projects') {
+    return { code: 'unsupported_tracker_kind', kind }
+  }
+  if (!config.tracker.api_key)
+    return { code: 'missing_tracker_api_key' }
+
+  if (kind === 'asana' && !config.tracker.project_gid) {
+    return { code: 'missing_tracker_project_config', field: 'project_gid' }
+  }
+  if (kind === 'github_projects') {
+    if (!config.tracker.owner) {
+      return { code: 'missing_tracker_project_config', field: 'owner' }
+    }
+    if (!config.tracker.project_number) {
+      return { code: 'missing_tracker_project_config', field: 'project_number' }
+    }
+  }
+
+  if (!config.claude.command.trim())
+    return { code: 'missing_claude_command' }
+
+  return null
+}
+
+export function getActiveStates(config: ServiceConfig): string[] {
+  const { kind } = config.tracker
+  if (kind === 'asana')
+    return config.tracker.active_sections ?? DEFAULTS.ASANA_ACTIVE_SECTIONS
+  if (kind === 'github_projects')
+    return config.tracker.active_statuses ?? DEFAULTS.GITHUB_ACTIVE_STATUSES
+  return []
+}
+
+export function getTerminalStates(config: ServiceConfig): string[] {
+  const { kind } = config.tracker
+  if (kind === 'asana')
+    return config.tracker.terminal_sections ?? DEFAULTS.ASANA_TERMINAL_SECTIONS
+  if (kind === 'github_projects')
+    return config.tracker.terminal_statuses ?? DEFAULTS.GITHUB_TERMINAL_STATUSES
+  return []
+}
+
+export function normalizeState(state: string): string {
+  return state.trim().toLowerCase()
+}
+
+export function maxConcurrentForState(config: ServiceConfig, state: string): number {
+  const normalized = normalizeState(state)
+  const byState = config.agent.max_concurrent_agents_by_state
+  return byState[normalized] ?? config.agent.max_concurrent_agents
+}
+
+// --- helpers ---
+
+function sectionMap(raw: Record<string, unknown>, key: string): Record<string, unknown> {
+  const val = raw[key]
+  return (val && typeof val === 'object' && !Array.isArray(val)) ? val as Record<string, unknown> : {}
+}
+
+function stringValue(val: unknown): string | null {
+  if (typeof val === 'string')
+    return val.trim() || null
+  if (typeof val === 'number' || typeof val === 'boolean')
+    return String(val)
+  return null
+}
+
+function intValue(val: unknown, fallback: number): number {
+  if (typeof val === 'number' && Number.isInteger(val))
+    return val
+  if (typeof val === 'string') {
+    const parsed = Number.parseInt(val.trim(), 10)
+    if (!Number.isNaN(parsed))
+      return parsed
+  }
+  return fallback
+}
+
+function posIntValue(val: unknown, fallback: number): number {
+  const n = intValue(val, -1)
+  return n > 0 ? n : fallback
+}
+
+function nonNegIntOrNull(val: unknown): number | null {
+  if (typeof val === 'number' && Number.isInteger(val) && val >= 0)
+    return val
+  if (typeof val === 'string') {
+    const parsed = Number.parseInt(val.trim(), 10)
+    if (!Number.isNaN(parsed) && parsed >= 0)
+      return parsed
+  }
+  return null
+}
+
+function hookScriptValue(val: unknown): string | null {
+  if (typeof val !== 'string')
+    return null
+  const trimmed = val.trimEnd()
+  return trimmed === '' ? null : trimmed
+}
+
+function commandValue(val: unknown): string | null {
+  if (typeof val !== 'string')
+    return null
+  const trimmed = val.trim()
+  return trimmed === '' ? null : trimmed
+}
+
+function csvValue(val: unknown): string[] | null {
+  if (Array.isArray(val)) {
+    const items = val.flatMap((v) => {
+      const s = stringValue(v)
+      return s ? [s] : []
+    })
+    return items.length > 0 ? items : null
+  }
+  if (typeof val === 'string') {
+    const items = val.split(',').map(s => s.trim()).filter(Boolean)
+    return items.length > 0 ? items : null
+  }
+  return null
+}
+
+function stringArrayValue(val: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(val))
+    return fallback
+  return val.filter(v => typeof v === 'string')
+}
+
+function stateLimitsValue(val: unknown): Record<string, number> {
+  if (!val || typeof val !== 'object' || Array.isArray(val))
+    return {}
+  const result: Record<string, number> = {}
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    const n = posIntValue(v, -1)
+    if (n > 0) {
+      result[normalizeState(String(k))] = n
+    }
+  }
+  return result
+}
+
+function resolveEnvValue(val: string | null, envFallback: string | undefined): string | null {
+  if (!val)
+    return envFallback?.trim() || null
+  const envRefMatch = val.match(ENV_VAR_RE)
+  if (envRefMatch) {
+    const envName = envRefMatch[1]
+    const envVal = process.env[envName]?.trim()
+    return envVal || null
+  }
+  return val.trim() || null
+}
+
+function resolvePathValue(val: string | null, fallback: string): string {
+  if (!val)
+    return fallback
+  // $VAR expansion
+  const envRefMatch = val.match(ENV_VAR_RE)
+  if (envRefMatch) {
+    const envVal = process.env[envRefMatch[1]]?.trim()
+    if (!envVal)
+      return fallback
+    return expandPath(envVal) || fallback
+  }
+  return expandPath(val) || fallback
+}
+
+function expandPath(val: string): string {
+  if (val.startsWith('~')) {
+    return join(process.env.HOME ?? '~', val.slice(1))
+  }
+  if (val.includes(sep) || val.includes('/')) {
+    return val
+  }
+  // bare relative name — preserve as-is
+  return val
+}
+
+function normalizeTrackerKind(kind: string | null): string | null {
+  if (!kind)
+    return null
+  const normalized = kind.trim().toLowerCase()
+  return normalized || null
+}
