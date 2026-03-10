@@ -223,6 +223,31 @@ describe('github_projects fetchIssueStatesByIds', () => {
       globalThis.fetch = origFetch
     }
   })
+
+  test('returns github_projects_graphql_errors on 200 with errors array', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => ({
+      ok: true,
+      json: async () => ({
+        errors: [{ message: 'Could not resolve to a node' }],
+        data: null,
+      }),
+    })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssueStatesByIds(['bad-id'])
+      expect(Array.isArray(result)).toBe(false)
+      if (Array.isArray(result))
+        return
+      expect((result as { code: string }).code).toBe('github_projects_graphql_errors')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
 })
 
 describe('asana blockers normalization', () => {
