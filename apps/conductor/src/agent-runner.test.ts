@@ -348,6 +348,68 @@ describe('AppServerClient - startup_failed event (Section 10.4)', () => {
     expect(turnCompleted).toBeDefined()
   })
 
+  it('returns Error with response_timeout when agent does not respond to turn/start within read_timeout_ms (Section 17.5)', async () => {
+    const scriptPath = join(tmpRoot, 'fake-agent-slow.sh')
+    writeFileSync(scriptPath, [
+      '#!/usr/bin/env bash',
+      'while IFS= read -r line; do',
+      '  id=$(printf \'%s\' "$line" | grep -o \'"id":[0-9]*\' | grep -o \'[0-9]*\' | head -1)',
+      '  case "$id" in',
+      '    1) printf \'%s\\n\' \'{"id":1,"result":{"capabilities":{}}}\';;',
+      '    2) printf \'%s\\n\' \'{"id":2,"result":{"thread":{"id":"t-1"}}}\';;',
+      // id=3 (turn/start) intentionally not handled — agent hangs
+      '  esac',
+      'done',
+    ].join('\n'), { mode: 0o755 })
+
+    const wsPath = join(tmpRoot, 'ws-slow')
+    mkdirSync(wsPath)
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: scriptPath, read_timeout_ms: 500, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath)
+    const session = await client.startSession()
+    expect(session instanceof Error).toBe(false)
+    if (session instanceof Error)
+      return
+
+    const messages: AgentMessage[] = []
+    const result = await client.runTurn(
+      session,
+      'hello',
+      {
+        id: 'i5',
+        identifier: 'MT-5',
+        title: 'Timeout Test',
+        description: null,
+        priority: null,
+        state: 'In Progress',
+        branch_name: null,
+        url: null,
+        labels: [],
+        blocked_by: [],
+        created_at: null,
+        updated_at: null,
+      },
+      msg => messages.push(msg),
+    )
+    client.stopSession()
+
+    expect(result instanceof Error).toBe(true)
+    if (!(result instanceof Error))
+      return
+    expect(result.message).toContain('response_timeout')
+    const startupFailed = messages.find(m => m.event === 'startup_failed')
+    expect(startupFailed).toBeDefined()
+  })
+
   it('emits turn_input_required and returns Error when agent requests user input (Section 17.5)', async () => {
     const scriptPath = join(tmpRoot, 'fake-agent-input.sh')
     writeFileSync(scriptPath, [
