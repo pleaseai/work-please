@@ -600,3 +600,51 @@ describe('asana label normalization', () => {
     }
   })
 })
+
+describe('github_projects label normalization (Section 17.3)', () => {
+  test('normalizes issue labels to lowercase', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => ({
+      ok: true,
+      json: async () => ({
+        data: {
+          organization: {
+            projectV2: {
+              items: {
+                nodes: [
+                  {
+                    id: 'PVTI_1',
+                    fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+                    content: {
+                      number: 1,
+                      title: 'Labeled Issue',
+                      body: null,
+                      url: null,
+                      labels: { nodes: [{ name: 'BUG' }, { name: 'High-Priority' }] },
+                    },
+                  },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+          },
+        },
+      }),
+    })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['Todo'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(1)
+      expect(result[0].labels).toEqual(['bug', 'high-priority'])
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
