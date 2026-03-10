@@ -328,7 +328,7 @@ Top-level keys:
 - `workspace`
 - `hooks`
 - `agent`
-- `codex`
+- `claude`
 
 Unknown keys should be ignored for forward compatibility.
 
@@ -446,32 +446,24 @@ Fields:
   - State keys are normalized (`trim` + `lowercase`) for lookup.
   - Invalid entries (non-positive or non-numeric) are ignored.
 
-#### 5.3.6 `codex` (object)
+#### 5.3.6 `claude` (object)
 
-The `codex` section configures the coding agent app-server subprocess. The field name `codex` is
-preserved for backward compatibility; it applies to any compatible coding-agent app-server
-implementation.
+The `claude` section configures the Claude Code CLI subprocess used as the coding agent.
 
 Fields:
 
-For agent-owned config values such as `approval_policy`, `thread_sandbox`, and
-`turn_sandbox_policy`, supported values are defined by the targeted app-server version.
-Implementors should treat them as pass-through config values rather than relying on a
-hand-maintained enum in this spec. Consult the app-server documentation or schema generation
-tooling for the specific agent in use. Implementations may validate these fields locally if they
-want stricter startup checks.
-
 - `command` (string shell command)
-  - Default: `codex app-server`
+  - Default: `claude`
   - The runtime launches this command via `bash -lc` in the workspace directory.
   - The launched process must speak a compatible app-server protocol over stdio.
-  - Replace this default with the appropriate command for the coding agent being used.
-- `approval_policy` (app-server `AskForApproval` value)
+  - Replace this default with the appropriate command if using a custom Claude Code wrapper.
+- `permission_mode` (string)
   - Default: implementation-defined.
-- `thread_sandbox` (app-server `SandboxMode` value)
+  - Controls Claude Code's permission level (e.g., `default`, `acceptEdits`, `bypassPermissions`).
+  - Consult the Claude Code CLI documentation for supported values.
+- `allowed_tools` (array of strings)
   - Default: implementation-defined.
-- `turn_sandbox_policy` (app-server `SandboxPolicy` value)
-  - Default: implementation-defined.
+  - List of tool names that Claude Code is permitted to use during a turn.
 - `turn_timeout_ms` (integer)
   - Default: `3600000` (1 hour)
 - `read_timeout_ms` (integer)
@@ -546,7 +538,7 @@ Dynamic reload is required:
 - The software should watch `WORKFLOW.md` for changes.
 - On change, it should re-read and re-apply workflow config and prompt template without restart.
 - The software should attempt to adjust live behavior to the new config (for example polling
-  cadence, concurrency limits, active/terminal states, codex settings, workspace paths/hooks, and
+  cadence, concurrency limits, active/terminal states, claude settings, workspace paths/hooks, and
   prompt content for future runs).
 - Reloaded config applies to future dispatch, retry scheduling, reconciliation decisions, hook
   execution, and agent launches.
@@ -584,7 +576,7 @@ Validation checks:
 - When `tracker.kind == "asana"`: `tracker.project_gid` is present.
 - When `tracker.kind == "github_projects"`: `tracker.owner` and `tracker.project_number` are
   present.
-- `codex.command` is present and non-empty.
+- `claude.command` is present and non-empty.
 
 ### 6.4 Config Fields Summary (Cheat Sheet)
 
@@ -617,13 +609,12 @@ When `tracker.kind=github_projects`:
 - `agent.max_turns`: integer, default `20`
 - `agent.max_retry_backoff_ms`: integer, default `300000` (5m)
 - `agent.max_concurrent_agents_by_state`: map of positive integers, default `{}`
-- `codex.command`: shell command string, default `codex app-server`
-- `codex.approval_policy`: Codex `AskForApproval` value, default implementation-defined
-- `codex.thread_sandbox`: Codex `SandboxMode` value, default implementation-defined
-- `codex.turn_sandbox_policy`: Codex `SandboxPolicy` value, default implementation-defined
-- `codex.turn_timeout_ms`: integer, default `3600000`
-- `codex.read_timeout_ms`: integer, default `5000`
-- `codex.stall_timeout_ms`: integer, default `300000`
+- `claude.command`: shell command string, default `claude`
+- `claude.permission_mode`: string, default implementation-defined
+- `claude.allowed_tools`: array of strings, default implementation-defined
+- `claude.turn_timeout_ms`: integer, default `3600000`
+- `claude.read_timeout_ms`: integer, default `5000`
+- `claude.stall_timeout_ms`: integer, default `300000`
 - `server.port` (extension): integer, optional; enables the optional HTTP server, `0` may be used
   for ephemeral local bind, and CLI `--port` overrides it
 
@@ -817,7 +808,7 @@ Part A: Stall detection
 - For each running issue, compute `elapsed_ms` since:
   - `last_agent_timestamp` if any event has been seen, else
   - `started_at`
-- If `elapsed_ms > codex.stall_timeout_ms`, terminate the worker and queue a retry.
+- If `elapsed_ms > claude.stall_timeout_ms`, terminate the worker and queue a retry.
 - If `stall_timeout_ms <= 0`, skip stall detection entirely.
 
 Part B: Tracker state refresh
@@ -954,15 +945,15 @@ Compatibility profile:
 
 Subprocess launch parameters:
 
-- Command: `codex.command`
-- Invocation: `bash -lc <codex.command>`
+- Command: `claude.command`
+- Invocation: `bash -lc <claude.command>`
 - Working directory: workspace path
 - Stdout/stderr: separate streams
 - Framing: line-delimited protocol messages on stdout (JSON-RPC-like JSON per line)
 
 Notes:
 
-- The default command is `codex app-server`. Replace with the appropriate command for the coding
+- The default command is `claude`. Replace with the appropriate command for the coding
   agent being used.
 - Approval policy, cwd, and prompt are expressed in the protocol messages in Section 10.2.
 
@@ -988,7 +979,7 @@ semantics):
    - Params include:
      - `clientInfo` object (for example `{name, version}`)
      - `capabilities` object (may be empty)
-   - If the targeted Codex app-server requires capability negotiation for dynamic tools, include the
+   - If the targeted Claude Code version requires capability negotiation for dynamic tools, include the
      necessary capability flag(s) here.
    - Wait for response (`read_timeout_ms`)
 2. `initialized` notification
@@ -998,7 +989,7 @@ semantics):
      - `sandbox` = implementation-defined session sandbox value
      - `cwd` = absolute workspace path
      - If optional client-side tools are implemented, include their advertised tool specs using the
-       protocol mechanism supported by the targeted Codex app-server version.
+       protocol mechanism supported by the targeted Claude Code version.
 4. `turn/start` request
    - Params include:
      - `threadId`
@@ -1188,9 +1179,9 @@ Hard failure on user input requirement:
 
 Timeouts:
 
-- `codex.read_timeout_ms`: request/response timeout during startup and sync requests
-- `codex.turn_timeout_ms`: total turn stream timeout
-- `codex.stall_timeout_ms`: enforced by orchestrator based on event inactivity
+- `claude.read_timeout_ms`: request/response timeout during startup and sync requests
+- `claude.turn_timeout_ms`: total turn stream timeout
+- `claude.stall_timeout_ms`: enforced by orchestrator based on event inactivity
 
 Error mapping (recommended normalized categories):
 
@@ -2115,7 +2106,7 @@ Unless otherwise noted, Sections 17.1 through 17.7 are `Core Conformance`. Bulle
 - `tracker.api_key` works (including `$VAR` indirection)
 - `$VAR` resolution works for tracker API key and path values
 - `~` path expansion works
-- `codex.command` is preserved as a shell command string
+- `claude.command` is preserved as a shell command string
 - Per-state concurrency override map normalizes state names and ignores invalid values
 - Prompt template renders `issue` and `attempt`
 - Prompt rendering fails on unknown variables (strict mode)
@@ -2172,7 +2163,7 @@ Unless otherwise noted, Sections 17.1 through 17.7 are `Core Conformance`. Bulle
 
 ### 17.5 Coding-Agent App-Server Client
 
-- Launch command uses workspace cwd and invokes `bash -lc <codex.command>`
+- Launch command uses workspace cwd and invokes `bash -lc <claude.command>`
 - Startup handshake sends `initialize`, `initialized`, `thread/start`, `turn/start`
 - `initialize` includes client identity/capabilities payload required by the targeted app-server
   protocol
@@ -2259,7 +2250,7 @@ Use the same validation profiles as Section 17:
 - Workspace lifecycle hooks (`after_create`, `before_run`, `after_run`, `before_remove`)
 - Hook timeout config (`hooks.timeout_ms`, default `60000`)
 - Coding-agent app-server subprocess client with JSON line protocol
-- Coding-agent launch command config (`codex.command`, default `codex app-server`)
+- Coding-agent launch command config (`claude.command`, default `claude`)
 - Strict prompt rendering with `issue` and `attempt` variables
 - Exponential retry queue with continuation retries after normal exit
 - Configurable retry backoff cap (`agent.max_retry_backoff_ms`, default 5m)
