@@ -85,6 +85,76 @@ describe('fetchCandidateIssues - uses active states (Section 17.3)', () => {
   })
 })
 
+describe('github_projects pagination', () => {
+  test('fetchIssuesByStates collects items across multiple pages', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    let callCount = 0
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      callCount++
+      if (callCount === 1) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              organization: {
+                projectV2: {
+                  items: {
+                    nodes: [
+                      {
+                        id: 'PVTI_1',
+                        fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
+                        content: { number: 1, title: 'Issue One' },
+                      },
+                    ],
+                    pageInfo: { hasNextPage: true, endCursor: 'cursor1' },
+                  },
+                },
+              },
+            },
+          }),
+        } as unknown as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          data: {
+            organization: {
+              projectV2: {
+                items: {
+                  nodes: [
+                    {
+                      id: 'PVTI_2',
+                      fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
+                      content: { number: 2, title: 'Issue Two' },
+                    },
+                  ],
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                },
+              },
+            },
+          },
+        }),
+      } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Progress'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(2)
+      expect(result[0].id).toBe('PVTI_1')
+      expect(result[1].id).toBe('PVTI_2')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
 describe('fetchIssuesByStates - empty states early return', () => {
   test('asana: returns [] immediately without making any fetch call', async () => {
     const config = makeAsanaConfig()
