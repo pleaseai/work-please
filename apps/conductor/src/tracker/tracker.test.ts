@@ -160,6 +160,71 @@ describe('asana fetchIssueStatesByIds', () => {
   })
 })
 
+describe('github_projects fetchIssueStatesByIds', () => {
+  test('returns normalized minimal issue with state from GraphQL nodes response', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => ({
+      ok: true,
+      json: async () => ({
+        data: {
+          nodes: [
+            {
+              id: 'PVTI_abc',
+              fieldValues: {
+                nodes: [
+                  { name: 'In Progress', field: { name: 'Status' } },
+                ],
+              },
+              content: { number: 42, title: 'Test Issue' },
+            },
+          ],
+        },
+      }),
+    })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssueStatesByIds(['PVTI_abc'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe('PVTI_abc')
+      expect(result[0].identifier).toBe('#42')
+      expect(result[0].state).toBe('In Progress')
+      expect(result[0].title).toBe('Test Issue')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('returns github_projects_api_status error on non-200 response', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: 'Unauthorized' }),
+    })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssueStatesByIds(['some-id'])
+      expect(Array.isArray(result)).toBe(false)
+      if (Array.isArray(result))
+        return
+      expect((result as { code: string }).code).toBe('github_projects_api_status')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
 describe('asana label normalization', () => {
   test('normalizes tags to lowercase', async () => {
     const config = makeAsanaConfig()
