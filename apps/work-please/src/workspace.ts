@@ -1,5 +1,4 @@
 import type { Issue, ServiceConfig, Workspace } from './types'
-import { spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, rmSync, statSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 import process from 'node:process'
@@ -123,7 +122,7 @@ export async function createWorkspace(
   const workspace: Workspace = { path: wsPath, workspace_key: key, created_now: createdNow }
 
   if (createdNow && config.hooks.after_create) {
-    const hookErr = await runHook(config.hooks.after_create, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
+    const hookErr = runHook(config.hooks.after_create, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
     if (hookErr)
       return hookErr
   }
@@ -145,7 +144,7 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string,
   }
 
   if (config.hooks.before_remove && statSync(wsPath).isDirectory()) {
-    const hookErr = await runHook(config.hooks.before_remove, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
+    const hookErr = runHook(config.hooks.before_remove, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
     if (hookErr) {
       console.error(`before_remove hook failed (ignored): ${hookErr.message}`)
     }
@@ -168,41 +167,37 @@ export async function runBeforeRunHook(config: ServiceConfig, wsPath: string, is
 export async function runAfterRunHook(config: ServiceConfig, wsPath: string, issue?: Issue): Promise<void> {
   if (!config.hooks.after_run)
     return
-  const err = await runHook(config.hooks.after_run, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
+  const err = runHook(config.hooks.after_run, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
   if (err) {
     console.error(`after_run hook failed (ignored): ${err.message}`)
   }
 }
 
-export async function runHook(script: string, cwd: string, timeoutMs: number, env: Record<string, string> = {}): Promise<Error | null> {
-  return new Promise((resolve) => {
-    const result = spawnSync('sh', ['-lc', script], {
+export function runHook(script: string, cwd: string, timeoutMs: number, env: Record<string, string> = {}): Error | null {
+  let result: ReturnType<typeof Bun.spawnSync>
+  try {
+    result = Bun.spawnSync(['sh', '-lc', script], {
       cwd,
       timeout: timeoutMs,
-      encoding: 'utf-8',
-      shell: false,
       env: { ...process.env, ...env },
     })
+  }
+  catch (err) {
+    return new Error(`hook spawn failed: ${err instanceof Error ? err.message : String(err)}`)
+  }
 
-    if (result.error) {
-      const isTimeout = result.error.message.includes('ETIMEDOUT') || result.status === null
-      if (isTimeout) {
-        resolve(new Error(`hook timeout after ${timeoutMs}ms`))
-      }
-      else {
-        resolve(result.error)
-      }
-      return
-    }
+  if (result.exitCode === null) {
+    const signal = result.signalCode ?? 'unknown'
+    return new Error(`hook timeout after ${timeoutMs}ms (signal: ${signal})`)
+  }
 
-    if (result.status !== 0) {
-      const output = (result.stdout + result.stderr).slice(0, 2048)
-      resolve(new Error(`hook exited with status ${result.status}: ${output}`))
-      return
-    }
+  if (!result.success) {
+    const raw = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048)
+    const output = raw.length > 0 ? raw : '(no output captured)'
+    return new Error(`hook exited with status ${result.exitCode}: ${output}`)
+  }
 
-    resolve(null)
-  })
+  return null
 }
 
 function cleanArtifacts(wsPath: string): void {
