@@ -5,6 +5,8 @@
       "release-type": "node",
       "package-name": "@pleaseai/work",
       "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
       "private": true
     }
   }
