@@ -122,7 +122,7 @@ export async function createWorkspace(
   const workspace: Workspace = { path: wsPath, workspace_key: key, created_now: createdNow }
 
   if (createdNow && config.hooks.after_create) {
-    const hookErr = await runHook(config.hooks.after_create, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
+    const hookErr = runHook(config.hooks.after_create, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
     if (hookErr)
       return hookErr
   }
@@ -144,7 +144,7 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string,
   }
 
   if (config.hooks.before_remove && statSync(wsPath).isDirectory()) {
-    const hookErr = await runHook(config.hooks.before_remove, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
+    const hookErr = runHook(config.hooks.before_remove, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
     if (hookErr) {
       console.error(`before_remove hook failed (ignored): ${hookErr.message}`)
     }
@@ -167,25 +167,32 @@ export async function runBeforeRunHook(config: ServiceConfig, wsPath: string, is
 export async function runAfterRunHook(config: ServiceConfig, wsPath: string, issue?: Issue): Promise<void> {
   if (!config.hooks.after_run)
     return
-  const err = await runHook(config.hooks.after_run, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
+  const err = runHook(config.hooks.after_run, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
   if (err) {
     console.error(`after_run hook failed (ignored): ${err.message}`)
   }
 }
 
-export async function runHook(script: string, cwd: string, timeoutMs: number, env: Record<string, string> = {}): Promise<Error | null> {
-  const result = Bun.spawnSync(['sh', '-lc', script], {
-    cwd,
-    timeout: timeoutMs,
-    env: { ...process.env, ...env },
-  })
+export function runHook(script: string, cwd: string, timeoutMs: number, env: Record<string, string> = {}): Error | null {
+  let result: ReturnType<typeof Bun.spawnSync>
+  try {
+    result = Bun.spawnSync(['sh', '-lc', script], {
+      cwd,
+      timeout: timeoutMs,
+      env: { ...process.env, ...env },
+    })
+  }
+  catch (err) {
+    return new Error(`hook spawn failed: ${err instanceof Error ? err.message : String(err)}`)
+  }
 
   if (result.exitCode === null) {
-    return new Error(`hook timeout after ${timeoutMs}ms`)
+    const signal = result.signalCode ?? 'unknown'
+    return new Error(`hook timeout after ${timeoutMs}ms (signal: ${signal})`)
   }
 
   if (!result.success) {
-    const output = (result.stdout.toString() + result.stderr.toString()).slice(0, 2048)
+    const output = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).slice(0, 2048)
     return new Error(`hook exited with status ${result.exitCode}: ${output}`)
   }
 
