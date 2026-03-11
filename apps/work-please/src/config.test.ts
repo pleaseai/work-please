@@ -1,6 +1,6 @@
 import type { WorkflowDefinition } from './types'
-import process from 'node:process'
 import { describe, expect, it } from 'bun:test'
+import process from 'node:process'
 import { buildConfig, getActiveStates, getTerminalStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 
 function makeWorkflow(config: Record<string, unknown>): WorkflowDefinition {

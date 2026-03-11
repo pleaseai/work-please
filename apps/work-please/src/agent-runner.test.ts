@@ -1,8 +1,8 @@
 import type { AgentMessage } from './types'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { AppServerClient, extractRateLimits, extractUsage, isInputRequired } from './agent-runner'
 import { buildConfig } from './config'
 

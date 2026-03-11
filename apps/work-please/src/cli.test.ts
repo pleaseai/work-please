@@ -1,6 +1,6 @@
+import { describe, expect, it } from 'bun:test'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'bun:test'
 import { parseArgs } from './cli'
 
 describe('parseArgs - workflow path', () => {
