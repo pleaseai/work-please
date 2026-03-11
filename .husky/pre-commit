@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$branch" = "main" ]; then
+  echo "Direct commits to main branch are not allowed." >&2
+  echo "Please create a feature branch and submit a PR." >&2
+  exit 1
+fi
