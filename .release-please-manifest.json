@@ -1,3 +1,4 @@
 {
-  "apps/work-please": "0.0.0"
+  "apps/work-please": "0.0.0",
+  ".": "1.0.0"
 }
