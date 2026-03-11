@@ -4,7 +4,8 @@
     "apps/work-please": {
       "release-type": "node",
       "package-name": "@pleaseai/work",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "private": true
     }
   }
 }
