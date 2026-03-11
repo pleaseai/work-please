@@ -1,7 +1,7 @@
 import antfu from '@antfu/eslint-config'
 
 export default antfu({
-  type: 'lib',
+  type: 'app',
   typescript: true,
   stylistic: {
     indent: 2,
@@ -11,6 +11,5 @@ export default antfu({
   ignores: [
     '**/dist',
     '**/node_modules',
-    'vendor/**',
   ],
 })
