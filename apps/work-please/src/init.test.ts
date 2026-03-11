@@ -13,12 +13,11 @@ import {
 // helpers
 // ---------------------------------------------------------------------------
 
-function mockResponse(ok: boolean, body: unknown, status = ok ? 200 : 400): Response {
-  return {
-    ok,
+function mockResponse(_ok: boolean, body: unknown, status = _ok ? 200 : 400): Response {
+  return new Response(JSON.stringify(body), {
     status,
-    json: async () => body,
-  } as Response
+    headers: { 'content-type': 'application/json' },
+  })
 }
 
 // ---------------------------------------------------------------------------

@@ -1,9 +1,9 @@
 import { existsSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
+import { graphql as createGraphql, GraphqlResponseError } from '@octokit/graphql'
 
 const GITHUB_API_ENDPOINT = 'https://api.github.com'
-const NETWORK_TIMEOUT_MS = 30_000
 const DEFAULT_TITLE = 'Work Please'
 const WORKFLOW_FILE_NAME = 'WORKFLOW.md'
 
@@ -33,46 +33,30 @@ export function isInitError(val: unknown): val is InitError {
   return typeof val === 'object' && val !== null && 'code' in val
 }
 
-function makeHeaders(token: string): Record<string, string> {
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  }
-}
-
-async function graphql(
+async function runGraphql(
   endpoint: string,
   token: string,
   query: string,
   variables: Record<string, unknown> = {},
 ): Promise<{ data: unknown } | InitError> {
-  let response: Response
   try {
-    const ctrl = new AbortController()
-    const timeout = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS)
-    response = await fetch(`${endpoint}/graphql`, {
-      method: 'POST',
-      headers: makeHeaders(token),
-      body: JSON.stringify({ query, variables }),
-      signal: ctrl.signal,
+    const octokit = createGraphql.defaults({
+      baseUrl: endpoint,
+      headers: { authorization: `bearer ${token}` },
     })
-    clearTimeout(timeout)
+    const data = await octokit(query, variables)
+    return { data }
   }
-  catch (cause) {
-    return { code: 'init_network_error', cause }
+  catch (err) {
+    if (err instanceof GraphqlResponseError) {
+      return { code: 'init_graphql_errors', errors: err.errors }
+    }
+    const e = err as { status?: number, response?: unknown }
+    if (typeof e.status === 'number' && e.response !== undefined) {
+      return { code: 'init_create_failed', cause: { status: e.status } }
+    }
+    return { code: 'init_network_error', cause: err }
   }
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null)
-    return { code: 'init_create_failed', cause: { status: response.status, body } }
-  }
-
-  const body = await response.json().catch(() => null) as { errors?: unknown, data?: unknown }
-  if (body?.errors) {
-    return { code: 'init_graphql_errors', errors: body.errors }
-  }
-
-  return { data: body?.data }
 }
 
 const RESOLVE_OWNER_QUERY = `
@@ -87,7 +71,7 @@ export async function resolveOwnerId(
   owner: string,
   endpoint: string = GITHUB_API_ENDPOINT,
 ): Promise<string | InitError> {
-  const result = await graphql(endpoint, token, RESOLVE_OWNER_QUERY, { login: owner })
+  const result = await runGraphql(endpoint, token, RESOLVE_OWNER_QUERY, { login: owner })
   if ('code' in result)
     return result
 
@@ -116,7 +100,7 @@ export async function createProject(
   title: string,
   endpoint: string = GITHUB_API_ENDPOINT,
 ): Promise<{ projectId: string, projectNumber: number } | InitError> {
-  const result = await graphql(endpoint, token, CREATE_PROJECT_MUTATION, { ownerId, title })
+  const result = await runGraphql(endpoint, token, CREATE_PROJECT_MUTATION, { ownerId, title })
   if ('code' in result)
     return result
 
