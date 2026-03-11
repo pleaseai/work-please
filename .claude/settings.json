@@ -67,5 +67,18 @@
       "autoUpdate": true
     }
   },
-  "language": "en"
+  "language": "en",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun install --ignore-scripts"
+          }
+        ]
+      }
+    ]
+  }
 }
