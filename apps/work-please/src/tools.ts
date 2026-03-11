@@ -1,6 +1,7 @@
 import type { AnyZodRawShape, SdkMcpToolDefinition } from '@anthropic-ai/claude-agent-sdk'
 import type { ServiceConfig } from './types'
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk'
+import { graphql as createGraphql, GraphqlResponseError } from '@octokit/graphql'
 import { z } from 'zod'
 
 const NETWORK_TIMEOUT_MS = 30_000
@@ -192,40 +193,31 @@ async function executeGitHubGraphql(config: ServiceConfig, rawArgs: unknown): Pr
   }
 
   const base = (config.tracker.endpoint ?? 'https://api.github.com').replace(TRAILING_SLASH_RE, '')
-  const graphqlUrl = `${base}/graphql`
 
-  let response: Response
   try {
-    response = await fetch(graphqlUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query, variables: variables ?? {} }),
-      signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
+    const octokit = createGraphql.defaults({
+      baseUrl: base,
+      headers: { authorization: `bearer ${apiKey}` },
+      request: { timeout: NETWORK_TIMEOUT_MS },
     })
+    const data = await octokit(query, variables ?? {})
+    return {
+      success: true,
+      contentItems: [{ type: 'inputText', text: JSON.stringify({ data }, null, 2) }],
+    }
   }
   catch (err) {
+    if (err instanceof GraphqlResponseError) {
+      return {
+        success: false,
+        contentItems: [{ type: 'inputText', text: JSON.stringify({ data: err.data, errors: err.errors }, null, 2) }],
+      }
+    }
+    const e = err as { status?: number, response?: unknown }
+    if (typeof e.status === 'number' && e.response !== undefined) {
+      return failureResult({ error: { message: `GitHub GraphQL HTTP ${e.status}` } })
+    }
     return failureResult({ error: { message: `GitHub GraphQL request failed: ${err}` } })
-  }
-
-  let body: unknown
-  try {
-    body = await response.json()
-  }
-  catch {
-    body = await response.text().catch(() => null)
-  }
-
-  if (!response.ok) {
-    return failureResult({ error: { message: `GitHub GraphQL HTTP ${response.status}`, body } })
-  }
-
-  const hasErrors = hasGraphqlErrors(body)
-  return {
-    success: !hasErrors,
-    contentItems: [{ type: 'inputText', text: JSON.stringify(body, null, 2) }],
   }
 }
 
@@ -264,13 +256,6 @@ function parseGitHubArgs(raw: unknown): { query: string, variables: Record<strin
     : null
 
   return { query, variables }
-}
-
-function hasGraphqlErrors(body: unknown): boolean {
-  if (!body || typeof body !== 'object')
-    return false
-  const b = body as Record<string, unknown>
-  return Array.isArray(b.errors) && b.errors.length > 0
 }
 
 function failureResult(payload: unknown): ToolResult {

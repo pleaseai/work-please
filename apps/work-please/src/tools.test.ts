@@ -189,11 +189,10 @@ describe('executeTool - github_graphql validation', () => {
 
   test('ignores operationName field (legacy compat)', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = (async () => ({
-      ok: true,
-      status: 200,
-      json: async () => ({ data: { viewer: { login: 'testuser' } } }),
-    })) as unknown as typeof fetch
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({ data: { viewer: { login: 'testuser' } } }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )) as unknown as typeof fetch
 
     try {
       const result = await executeTool(makeConfig('github_projects'), 'github_graphql', {
@@ -209,14 +208,13 @@ describe('executeTool - github_graphql validation', () => {
 
   test('marks GraphQL error response as failure while preserving body in contentItems', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = (async () => ({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({
         data: null,
         errors: [{ message: 'Field does not exist on type Query' }],
       }),
-    })) as unknown as typeof fetch
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )) as unknown as typeof fetch
 
     try {
       const result = await executeTool(
@@ -236,13 +234,10 @@ describe('executeTool - github_graphql validation', () => {
 
   test('returns success=true with body for successful GitHub GraphQL response', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = (async () => ({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        data: { viewer: { login: 'testuser' } },
-      }),
-    })) as unknown as typeof fetch
+    globalThis.fetch = (async () => new Response(
+      JSON.stringify({ data: { viewer: { login: 'testuser' } } }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )) as unknown as typeof fetch
 
     try {
       const result = await executeTool(
@@ -295,11 +290,10 @@ describe('createToolsMcpServer - MCP server factory (Section 18.2)', () => {
 
   test('github tool handler delegates to executeTool and produces text content', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => ({
-      ok: true,
-      status: 200,
-      json: async () => ({ data: { viewer: { login: 'testuser' } } }),
-    })) as unknown as typeof fetch
+    globalThis.fetch = mock(async () => new Response(
+      JSON.stringify({ data: { viewer: { login: 'testuser' } } }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )) as unknown as typeof fetch
 
     try {
       const config = makeConfig('github_projects')
