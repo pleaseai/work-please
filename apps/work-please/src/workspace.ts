@@ -192,7 +192,8 @@ export function runHook(script: string, cwd: string, timeoutMs: number, env: Rec
   }
 
   if (!result.success) {
-    const output = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).slice(0, 2048)
+    const raw = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048)
+    const output = raw.length > 0 ? raw : '(no output captured)'
     return new Error(`hook exited with status ${result.exitCode}: ${output}`)
   }
 
