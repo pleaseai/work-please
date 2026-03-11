@@ -64,7 +64,7 @@ describe('CLI startup - nonexistent workflow path (Section 17.7)', () => {
     })
     expect(result.exitCode).not.toBe(0)
     const output = [result.stderr, result.stdout]
-      .map(b => (b && b.length > 0 ? b.toString() : ''))
+      .map(b => b?.toString() ?? '')
       .join('')
     expect(output).toContain('workflow file not found')
   })
@@ -79,7 +79,7 @@ describe('CLI startup - nonexistent workflow path (Section 17.7)', () => {
     })
     expect(result.exitCode).not.toBe(0)
     const output = [result.stderr, result.stdout]
-      .map(b => (b && b.length > 0 ? b.toString() : ''))
+      .map(b => b?.toString() ?? '')
       .join('')
     expect(output).toContain('workflow file not found')
   })
