@@ -11,8 +11,21 @@ permissions:
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, ubuntu-2404, aws]
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: actions/create-github-app-token@v2
+        id: app-token
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          app-id: ${{ vars.PF_BOT_APP_ID }}
+          private-key: ${{ secrets.PF_BOT_PRIVATE_KEY }}
+
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          release-type: node
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
