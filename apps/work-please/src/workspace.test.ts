@@ -1,11 +1,13 @@
-import type { ServiceConfig } from './types'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import type { Issue, ServiceConfig } from './types'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { buildConfig } from './config'
 import {
+  buildHookEnv,
   createWorkspace,
+  extractRepoUrl,
   removeWorkspace,
   runAfterRunHook,
   runBeforeRunHook,
@@ -13,6 +15,24 @@ import {
   validateWorkspacePath,
   workspacePath,
 } from './workspace'
+
+function makeIssue(overrides: Partial<Issue> = {}): Issue {
+  return {
+    id: 'PVTI_abc123',
+    identifier: '#42',
+    title: 'Fix login bug',
+    description: null,
+    priority: null,
+    state: 'Todo',
+    branch_name: null,
+    url: 'https://github.com/org/repo/issues/42',
+    labels: [],
+    blocked_by: [],
+    created_at: null,
+    updated_at: null,
+    ...overrides,
+  }
+}
 
 function makeConfig(root: string, extra: Record<string, unknown> = {}): ServiceConfig {
   return buildConfig({
@@ -316,5 +336,145 @@ describe('removeWorkspace', () => {
 
     await removeWorkspace(config, 'MT-BRL')
     expect(existsSync(wsPath)).toBe(false)
+  })
+})
+
+describe('extractRepoUrl', () => {
+  it('extracts repo URL from GitHub issue URL', () => {
+    expect(extractRepoUrl('https://github.com/org/repo/issues/42')).toBe('https://github.com/org/repo')
+  })
+
+  it('extracts repo URL from GitHub PR URL', () => {
+    expect(extractRepoUrl('https://github.com/org/repo/pull/5')).toBe('https://github.com/org/repo')
+  })
+
+  it('returns null for URL without /issues/ or /pull/ segment', () => {
+    expect(extractRepoUrl('https://linear.app/team/issue/MT-42')).toBeNull()
+  })
+
+  it('returns null for bare repo URL', () => {
+    expect(extractRepoUrl('https://github.com/org/repo')).toBeNull()
+  })
+})
+
+describe('buildHookEnv', () => {
+  it('returns empty object when no issue provided', () => {
+    expect(buildHookEnv()).toEqual({})
+    expect(buildHookEnv(undefined)).toEqual({})
+  })
+
+  it('sets WORK_ISSUE_* vars from issue fields', () => {
+    const env = buildHookEnv(makeIssue())
+    expect(env.WORK_ISSUE_ID).toBe('PVTI_abc123')
+    expect(env.WORK_ISSUE_IDENTIFIER).toBe('#42')
+    expect(env.WORK_ISSUE_TITLE).toBe('Fix login bug')
+    expect(env.WORK_ISSUE_URL).toBe('https://github.com/org/repo/issues/42')
+    expect(env.WORK_REPO_URL).toBe('https://github.com/org/repo')
+  })
+
+  it('omits WORK_ISSUE_URL and WORK_REPO_URL when url is null', () => {
+    const env = buildHookEnv(makeIssue({ url: null }))
+    expect(env.WORK_ISSUE_ID).toBe('PVTI_abc123')
+    expect('WORK_ISSUE_URL' in env).toBe(false)
+    expect('WORK_REPO_URL' in env).toBe(false)
+  })
+
+  it('omits WORK_REPO_URL when URL does not match GitHub issue/PR pattern', () => {
+    const env = buildHookEnv(makeIssue({ url: 'https://linear.app/team/issue/MT-42' }))
+    expect(env.WORK_ISSUE_URL).toBe('https://linear.app/team/issue/MT-42')
+    expect('WORK_REPO_URL' in env).toBe(false)
+  })
+
+  it('extracts WORK_REPO_URL from GitHub PR URL', () => {
+    const env = buildHookEnv(makeIssue({ url: 'https://github.com/org/repo/pull/99' }))
+    expect(env.WORK_REPO_URL).toBe('https://github.com/org/repo')
+  })
+})
+
+describe('hook env var injection', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-env-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('after_create hook receives WORK_ISSUE_* env vars', async () => {
+    const envFile = join(tmpRoot, 'env-out.txt')
+    const config = makeConfig(tmpRoot, {
+      hooks: { after_create: `printenv WORK_ISSUE_ID > ${envFile}` },
+    })
+    const issue = makeIssue()
+
+    await createWorkspace(config, 'ENV-1', issue)
+    expect(existsSync(envFile)).toBe(true)
+    expect(readFileSync(envFile, 'utf-8').trim()).toBe('PVTI_abc123')
+  })
+
+  it('after_create hook receives WORK_REPO_URL env var', async () => {
+    const envFile = join(tmpRoot, 'repo-url-out.txt')
+    const config = makeConfig(tmpRoot, {
+      hooks: { after_create: `printenv WORK_REPO_URL > ${envFile}` },
+    })
+    const issue = makeIssue()
+
+    await createWorkspace(config, 'ENV-2', issue)
+    expect(existsSync(envFile)).toBe(true)
+    expect(readFileSync(envFile, 'utf-8').trim()).toBe('https://github.com/org/repo')
+  })
+
+  it('before_run hook receives WORK_ISSUE_* env vars', async () => {
+    const wsPath = join(tmpRoot, 'ws-before-run')
+    mkdirSync(wsPath)
+    const envFile = join(tmpRoot, 'before-run-env.txt')
+    const config = makeConfig(tmpRoot, {
+      hooks: { before_run: `printenv WORK_ISSUE_TITLE > ${envFile}` },
+    })
+    const issue = makeIssue()
+
+    await runBeforeRunHook(config, wsPath, issue)
+    expect(existsSync(envFile)).toBe(true)
+    expect(readFileSync(envFile, 'utf-8').trim()).toBe('Fix login bug')
+  })
+
+  it('after_run hook receives WORK_ISSUE_* env vars', async () => {
+    const wsPath = join(tmpRoot, 'ws-after-run')
+    mkdirSync(wsPath)
+    const envFile = join(tmpRoot, 'after-run-env.txt')
+    const config = makeConfig(tmpRoot, {
+      hooks: { after_run: `printenv WORK_ISSUE_IDENTIFIER > ${envFile}` },
+    })
+    const issue = makeIssue()
+
+    await runAfterRunHook(config, wsPath, issue)
+    expect(existsSync(envFile)).toBe(true)
+    expect(readFileSync(envFile, 'utf-8').trim()).toBe('#42')
+  })
+
+  it('before_remove hook receives WORK_ISSUE_* env vars', async () => {
+    const wsPath = join(tmpRoot, 'ws-before-remove')
+    mkdirSync(wsPath)
+    const envFile = join(tmpRoot, 'before-remove-env.txt')
+    const config = makeConfig(tmpRoot, {
+      hooks: { before_remove: `printenv WORK_ISSUE_ID > ${envFile}` },
+    })
+    const issue = makeIssue()
+
+    await removeWorkspace(config, 'ws-before-remove', issue)
+    expect(existsSync(envFile)).toBe(true)
+    expect(readFileSync(envFile, 'utf-8').trim()).toBe('PVTI_abc123')
+  })
+
+  it('hook still works when no issue provided (no WORK_* vars set)', async () => {
+    const envFile = join(tmpRoot, 'no-issue-env.txt')
+    const config = makeConfig(tmpRoot, {
+      hooks: { after_create: `touch ${envFile}` },
+    })
+
+    await createWorkspace(config, 'ENV-3')
+    expect(existsSync(envFile)).toBe(true)
   })
 })

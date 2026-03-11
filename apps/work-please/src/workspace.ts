@@ -1,12 +1,39 @@
-import type { ServiceConfig, Workspace } from './types'
+import type { Issue, ServiceConfig, Workspace } from './types'
 import { spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, rmSync, statSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
+import process from 'node:process'
 
 const EXCLUDED_ARTIFACTS = ['.elixir_ls', 'tmp']
 const IDENTIFIER_UNSAFE_RE = /[^\w.-]/g
 const LEADING_PATH_SEP_RE = /^[/\\]/
 const RELATIVE_PARTS_RE = /[/\\]/
+const REPO_URL_STRIP_RE = /\/(?:issues|pull)\/\d+/
+
+export function extractRepoUrl(url: string): string | null {
+  const match = REPO_URL_STRIP_RE.exec(url)
+  return match ? url.slice(0, match.index) : null
+}
+
+export function buildHookEnv(issue?: Issue): Record<string, string> {
+  if (!issue)
+    return {}
+
+  const env: Record<string, string> = {
+    WORK_ISSUE_ID: issue.id,
+    WORK_ISSUE_IDENTIFIER: issue.identifier,
+    WORK_ISSUE_TITLE: issue.title,
+  }
+
+  if (issue.url) {
+    env.WORK_ISSUE_URL = issue.url
+    const repoUrl = extractRepoUrl(issue.url)
+    if (repoUrl)
+      env.WORK_REPO_URL = repoUrl
+  }
+
+  return env
+}
 
 export function sanitizeIdentifier(identifier: string): string {
   return (identifier || 'issue').replace(IDENTIFIER_UNSAFE_RE, '_')
@@ -62,6 +89,7 @@ export interface WorkspaceCreateResult {
 export async function createWorkspace(
   config: ServiceConfig,
   identifier: string,
+  issue?: Issue,
 ): Promise<Workspace | Error> {
   const key = sanitizeIdentifier(identifier)
   const wsPath = join(config.workspace.root, key)
@@ -95,7 +123,7 @@ export async function createWorkspace(
   const workspace: Workspace = { path: wsPath, workspace_key: key, created_now: createdNow }
 
   if (createdNow && config.hooks.after_create) {
-    const hookErr = await runHook(config.hooks.after_create, wsPath, config.hooks.timeout_ms)
+    const hookErr = await runHook(config.hooks.after_create, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
     if (hookErr)
       return hookErr
   }
@@ -103,7 +131,7 @@ export async function createWorkspace(
   return workspace
 }
 
-export async function removeWorkspace(config: ServiceConfig, identifier: string): Promise<void> {
+export async function removeWorkspace(config: ServiceConfig, identifier: string, issue?: Issue): Promise<void> {
   const key = sanitizeIdentifier(identifier)
   const wsPath = join(config.workspace.root, key)
 
@@ -117,7 +145,7 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string)
   }
 
   if (config.hooks.before_remove && statSync(wsPath).isDirectory()) {
-    const hookErr = await runHook(config.hooks.before_remove, wsPath, config.hooks.timeout_ms)
+    const hookErr = await runHook(config.hooks.before_remove, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
     if (hookErr) {
       console.error(`before_remove hook failed (ignored): ${hookErr.message}`)
     }
@@ -131,28 +159,29 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string)
   }
 }
 
-export async function runBeforeRunHook(config: ServiceConfig, wsPath: string): Promise<Error | null> {
+export async function runBeforeRunHook(config: ServiceConfig, wsPath: string, issue?: Issue): Promise<Error | null> {
   if (!config.hooks.before_run)
     return null
-  return runHook(config.hooks.before_run, wsPath, config.hooks.timeout_ms)
+  return runHook(config.hooks.before_run, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
 }
 
-export async function runAfterRunHook(config: ServiceConfig, wsPath: string): Promise<void> {
+export async function runAfterRunHook(config: ServiceConfig, wsPath: string, issue?: Issue): Promise<void> {
   if (!config.hooks.after_run)
     return
-  const err = await runHook(config.hooks.after_run, wsPath, config.hooks.timeout_ms)
+  const err = await runHook(config.hooks.after_run, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
   if (err) {
     console.error(`after_run hook failed (ignored): ${err.message}`)
   }
 }
 
-export async function runHook(script: string, cwd: string, timeoutMs: number): Promise<Error | null> {
+export async function runHook(script: string, cwd: string, timeoutMs: number, env?: Record<string, string>): Promise<Error | null> {
   return new Promise((resolve) => {
     const result = spawnSync('sh', ['-lc', script], {
       cwd,
       timeout: timeoutMs,
       encoding: 'utf-8',
       shell: false,
+      env: env && Object.keys(env).length > 0 ? { ...process.env, ...env } : undefined,
     })
 
     if (result.error) {

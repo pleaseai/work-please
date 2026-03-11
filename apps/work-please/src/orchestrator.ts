@@ -223,15 +223,15 @@ export class Orchestrator {
 
   private async executeAgentRun(issue: Issue, attempt: number | null): Promise<void> {
     // Create/reuse workspace
-    const wsResult = await createWorkspace(this.config, issue.identifier)
+    const wsResult = await createWorkspace(this.config, issue.identifier, issue)
     if (wsResult instanceof Error) {
       throw wsResult
     }
 
     // Before-run hook
-    const beforeRunErr = await runBeforeRunHook(this.config, wsResult.path)
+    const beforeRunErr = await runBeforeRunHook(this.config, wsResult.path, issue)
     if (beforeRunErr) {
-      await runAfterRunHook(this.config, wsResult.path)
+      await runAfterRunHook(this.config, wsResult.path, issue)
       throw beforeRunErr
     }
 
@@ -239,7 +239,7 @@ export class Orchestrator {
     const client = new AppServerClient(this.config, wsResult.path)
     const session = await client.startSession()
     if (session instanceof Error) {
-      await runAfterRunHook(this.config, wsResult.path)
+      await runAfterRunHook(this.config, wsResult.path, issue)
       throw session
     }
 
@@ -248,7 +248,7 @@ export class Orchestrator {
     }
     finally {
       client.stopSession()
-      await runAfterRunHook(this.config, wsResult.path)
+      await runAfterRunHook(this.config, wsResult.path, issue)
     }
   }
 
@@ -517,7 +517,7 @@ export class Orchestrator {
     this.state.claimed.delete(issueId)
 
     if (cleanupWorkspace) {
-      removeWorkspace(this.config, entry.identifier).catch((err) => {
+      removeWorkspace(this.config, entry.identifier, entry.issue).catch((err) => {
         console.error(`[orchestrator] workspace cleanup failed issue_id=${issueId}: ${err}`)
       })
     }
@@ -539,7 +539,7 @@ export class Orchestrator {
     }
 
     for (const issue of result) {
-      await removeWorkspace(this.config, issue.identifier).catch((err) => {
+      await removeWorkspace(this.config, issue.identifier, issue).catch((err) => {
         console.error(`[orchestrator] startup cleanup workspace removal failed: ${err}`)
       })
     }
