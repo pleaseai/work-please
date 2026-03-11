@@ -3,3 +3,5 @@ dist/
 .turbo/
 bun.lock
 *.tsbuildinfo
+.claude/settings.local.json
+/.claude/worktrees/

@@ -31,6 +31,8 @@
     "code-review@pleaseai": true,
     "claude-md-management@pleaseai": true,
     "gatekeeper@pleaseai": true,
+    "fetch@pleaseai": true,
+    "markitdown@pleaseai": true,
     "typescript-lsp@code-intelligence": true,
     "eslint-lsp@code-intelligence": true,
     "ralph-loop@claude-plugins-official": true
