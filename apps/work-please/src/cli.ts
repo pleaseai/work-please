@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
+import { Command } from 'commander'
 import { runInit } from './init'
 import { Orchestrator } from './orchestrator'
 import { HttpServer } from './server'
@@ -71,76 +72,60 @@ export async function runCli(argv: string[]): Promise<void> {
 }
 
 export function parseArgs(args: string[]): ParsedArgs {
-  // Check if first positional arg is 'init'
-  if (args[0] === 'init') {
-    return parseInitArgs(args.slice(1))
-  }
-
-  return parseRunArgs(args)
-}
-
-function parseInitArgs(args: string[]): ParsedArgs {
-  let owner: string | null = null
-  let title: string | null = null
-  let token: string | null = null
-
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--owner' && i + 1 < args.length) {
-      owner = args[i + 1]
-      i++
-    }
-    else if (args[i].startsWith('--owner=')) {
-      owner = args[i].slice(8)
-    }
-    else if (args[i] === '--title' && i + 1 < args.length) {
-      title = args[i + 1]
-      i++
-    }
-    else if (args[i].startsWith('--title=')) {
-      title = args[i].slice(8)
-    }
-    else if (args[i] === '--token' && i + 1 < args.length) {
-      token = args[i + 1]
-      i++
-    }
-    else if (args[i].startsWith('--token=')) {
-      token = args[i].slice(8)
-    }
-  }
-
-  return {
-    command: 'init',
+  let result: ParsedArgs = {
+    command: 'run',
     workflowPath: WORKFLOW_FILE_NAME,
     portOverride: null,
-    initOptions: { owner, title, token },
-  }
-}
-
-function parseRunArgs(args: string[]): ParsedArgs {
-  let portOverride: number | null = null
-  const positional: string[] = []
-
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--port' && i + 1 < args.length) {
-      const n = Number.parseInt(args[i + 1], 10)
-      if (!Number.isNaN(n) && n >= 0)
-        portOverride = n
-      i++
-    }
-    else if (args[i].startsWith('--port=')) {
-      const n = Number.parseInt(args[i].slice(7), 10)
-      if (!Number.isNaN(n) && n >= 0)
-        portOverride = n
-    }
-    else {
-      positional.push(args[i])
-    }
-  }
-
-  return {
-    command: 'run',
-    workflowPath: positional[0] ?? WORKFLOW_FILE_NAME,
-    portOverride,
     initOptions: null,
   }
+
+  const program = new Command()
+  program.exitOverride()
+  program.allowUnknownOption()
+  program.allowExcessArguments(true)
+
+  program
+    .argument('[workflowPath]', 'path to workflow file')
+    .option('--port <number>', 'port to listen on')
+    .action((workflowPath: string | undefined, opts: { port?: string }) => {
+      let portOverride: number | null = null
+      if (opts.port !== undefined) {
+        const n = Number.parseInt(opts.port, 10)
+        portOverride = (!Number.isNaN(n) && n >= 0) ? n : null
+      }
+      result = {
+        command: 'run',
+        workflowPath: workflowPath ?? WORKFLOW_FILE_NAME,
+        portOverride,
+        initOptions: null,
+      }
+    })
+
+  program
+    .command('init')
+    .option('--owner <value>', 'repository owner')
+    .option('--title <value>', 'project title')
+    .option('--token <value>', 'API token')
+    .action(function (this: Command) {
+      const opts = this.opts<{ owner?: string, title?: string, token?: string }>()
+      result = {
+        command: 'init',
+        workflowPath: WORKFLOW_FILE_NAME,
+        portOverride: null,
+        initOptions: {
+          owner: opts.owner ?? null,
+          title: opts.title ?? null,
+          token: opts.token ?? null,
+        },
+      }
+    })
+
+  try {
+    program.parse(['node', 'work-please', ...args])
+  }
+  catch {
+    // exitOverride throws CommanderError for --help/--version; ignore
+  }
+
+  return result
 }
