@@ -15,7 +15,7 @@
 | `docs/knowledge/` | Knowledge base articles |
 | `templates/` | Workflow templates (plugin-provided) |
 | `scripts/` | Utility scripts (plugin-provided) |
-| `references/` | Reference files → [References Index](references/INDEX.md) |.p
+| `references/` | Reference files → [References Index](references/INDEX.md) |
 
 ## Configuration
 
