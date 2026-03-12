@@ -18,6 +18,7 @@ export interface InitResult {
   projectNumber: number
   owner: string
   workflowPath: string
+  statusConfigured: boolean
 }
 
 export type InitError
@@ -112,6 +113,73 @@ export async function createProject(
   return { projectId: project.id, projectNumber: project.number }
 }
 
+const GET_STATUS_FIELD_QUERY = `
+  query($projectId: ID!) {
+    node(id: $projectId) {
+      ... on ProjectV2 {
+        field(name: "Status") {
+          ... on ProjectV2SingleSelectField { id }
+        }
+      }
+    }
+  }
+`
+
+const UPDATE_STATUS_FIELD_MUTATION = `
+  mutation($fieldId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
+    updateProjectV2Field(input: {
+      fieldId: $fieldId
+      singleSelectOptions: $options
+    }) {
+      projectV2Field { ... on ProjectV2SingleSelectField { id } }
+    }
+  }
+`
+
+const STATUS_OPTIONS = [
+  { name: 'Todo', description: 'Not started', color: 'GRAY' },
+  { name: 'In Progress', description: 'Currently being worked on', color: 'YELLOW' },
+  { name: 'In Review', description: 'PR created, awaiting human review', color: 'BLUE' },
+  { name: 'Done', description: 'Completed', color: 'GREEN' },
+  { name: 'Cancelled', description: 'Will not be done', color: 'RED' },
+]
+
+export async function getStatusFieldId(
+  token: string,
+  projectId: string,
+  endpoint: string = GITHUB_API_ENDPOINT,
+): Promise<string | InitError> {
+  const result = await runGraphql(endpoint, token, GET_STATUS_FIELD_QUERY, { projectId })
+  if ('code' in result)
+    return result
+
+  const data = result.data as { node?: { field?: { id?: string } } }
+  const id = data.node?.field?.id
+  if (!id) {
+    return { code: 'init_create_failed', cause: 'Status field not found in project' }
+  }
+  return id
+}
+
+export async function configureStatusField(
+  token: string,
+  projectId: string,
+  endpoint: string = GITHUB_API_ENDPOINT,
+): Promise<true | InitError> {
+  const fieldIdResult = await getStatusFieldId(token, projectId, endpoint)
+  if (isInitError(fieldIdResult))
+    return fieldIdResult
+
+  const result = await runGraphql(endpoint, token, UPDATE_STATUS_FIELD_MUTATION, {
+    fieldId: fieldIdResult,
+    options: STATUS_OPTIONS,
+  })
+  if ('code' in result)
+    return result
+
+  return true
+}
+
 export function generateWorkflow(owner: string, projectNumber: number): string {
   return `---
 tracker:
@@ -197,7 +265,7 @@ You are operating in an unattended session. Follow these rules:
 3. **Implement the changes** — follow the repository conventions in \`CLAUDE.md\` if present.
 4. **Run tests and lint** — ensure all checks pass before committing.
 5. **Commit using conventional format** — e.g. \`feat(scope): add new capability\`.
-6. **Push and open a PR** — create or update a pull request linked to the issue URL.
+6. **Push and open a PR** — create or update a pull request linked to the issue URL. After the PR is created, move the issue status to \`In Review\`.
 7. **Operate autonomously** — never ask a human for follow-up actions. Complete the task end-to-end.
 8. **Blocked?** — if blocked by missing auth, permissions, or secrets that cannot be resolved in-session, document the blocker clearly and stop. Do not loop indefinitely.
 `
@@ -222,6 +290,9 @@ export async function initProject(
   if (isInitError(projectResult))
     return projectResult
 
+  const statusResult = await configureStatusField(options.token, projectResult.projectId, endpoint)
+  const statusConfigured = statusResult === true
+
   const workflowContent = generateWorkflow(options.owner, projectResult.projectNumber)
   writeFileSync(workflowPath, workflowContent, 'utf-8')
 
@@ -230,6 +301,7 @@ export async function initProject(
     projectNumber: projectResult.projectNumber,
     owner: options.owner,
     workflowPath,
+    statusConfigured,
   }
 }
 
@@ -277,5 +349,10 @@ export async function runInit(options: {
 
   console.warn(`[work-please] created GitHub Projects v2 board: #${result.projectNumber}`)
   console.warn(`[work-please] generated ${result.workflowPath}`)
-  console.warn('[work-please] Note: add a "Cancelled" status to your project manually via GitHub UI if needed')
+  if (result.statusConfigured) {
+    console.warn('[work-please] configured Status field: Todo, In Progress, In Review, Done, Cancelled')
+  }
+  else {
+    console.warn('[work-please] warning: could not configure Status field — add "In Review" and "Cancelled" statuses manually')
+  }
 }

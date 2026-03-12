@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
+  configureStatusField,
   createProject,
   generateWorkflow,
   initProject,
@@ -114,6 +115,67 @@ describe('generateWorkflow', () => {
     const a = generateWorkflow('myorg', 1)
     const b = generateWorkflow('myorg', 99)
     expect(a).not.toBe(b)
+  })
+
+  it('includes "In Review" instruction in PR step', () => {
+    const content = generateWorkflow('myorg', 42)
+    expect(content).toContain('In Review')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// configureStatusField
+// ---------------------------------------------------------------------------
+
+describe('configureStatusField', () => {
+  it('returns true on success', async () => {
+    const origFetch = globalThis.fetch
+    let callCount = 0
+    globalThis.fetch = mock(async () => {
+      callCount++
+      if (callCount === 1) {
+        return mockResponse(true, { data: { node: { field: { id: 'FIELD_1' } } } })
+      }
+      return mockResponse(true, { data: { updateProjectV2Field: { projectV2Field: { id: 'FIELD_1' } } } })
+    }) as unknown as typeof fetch
+    try {
+      const result = await configureStatusField('tok', 'PVT_1', 'http://localhost')
+      expect(result).toBe(true)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  it('returns error when status field not found', async () => {
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () =>
+      mockResponse(true, { data: { node: { field: null } } }),
+    ) as unknown as typeof fetch
+    try {
+      const result = await configureStatusField('tok', 'PVT_1', 'http://localhost')
+      expect(isInitError(result)).toBe(true)
+      if (isInitError(result))
+        expect(result.code).toBe('init_create_failed')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  it('returns error when update mutation fails with GraphQL errors', async () => {
+    const origFetch = globalThis.fetch
+    let callCount = 0
+    globalThis.fetch = mock(async () => {
+      callCount++
+      if (callCount === 1) {
+        return mockResponse(true, { data: { node: { field: { id: 'FIELD_1' } } } })
+      }
+      return mockResponse(true, { errors: [{ message: 'Cannot update field' }] })
+    }) as unknown as typeof fetch
+    try {
+      const result = await configureStatusField('tok', 'PVT_1', 'http://localhost')
+      expect(isInitError(result)).toBe(true)
+      if (isInitError(result))
+        expect(result.code).toBe('init_graphql_errors')
+    }
+    finally { globalThis.fetch = origFetch }
   })
 })
 
@@ -443,6 +505,66 @@ describe('initProject', () => {
       expect(isInitError(result)).toBe(false)
       if (!isInitError(result))
         expect(result.workflowPath).toBe(resolve(tmpDir, 'WORKFLOW.md'))
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  it('returns statusConfigured: true when all 4 API calls succeed', async () => {
+    const origFetch = globalThis.fetch
+    let callCount = 0
+    globalThis.fetch = mock(async () => {
+      callCount++
+      if (callCount === 1)
+        return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
+      if (callCount === 2)
+        return mockResponse(true, { data: { createProjectV2: { projectV2: { id: 'PVT_1', number: 3 } } } })
+      if (callCount === 3)
+        return mockResponse(true, { data: { node: { field: { id: 'FIELD_1' } } } })
+      return mockResponse(true, { data: { updateProjectV2Field: { projectV2Field: { id: 'FIELD_1' } } } })
+    }) as unknown as typeof fetch
+    try {
+      const result = await initProject(
+        { owner: 'myorg', title: 'My Board', token: 'tok' },
+        'http://localhost',
+        tmpDir,
+      )
+
+      expect(isInitError(result)).toBe(false)
+      if (!isInitError(result)) {
+        expect(result.statusConfigured).toBe(true)
+        expect(result.projectNumber).toBe(3)
+        expect(result.projectId).toBe('PVT_1')
+      }
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  it('returns statusConfigured: false when status configuration fails (non-fatal)', async () => {
+    const origFetch = globalThis.fetch
+    let callCount = 0
+    globalThis.fetch = mock(async () => {
+      callCount++
+      if (callCount === 1)
+        return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
+      if (callCount === 2)
+        return mockResponse(true, { data: { createProjectV2: { projectV2: { id: 'PVT_1', number: 3 } } } })
+      return mockResponse(true, { data: { node: { field: null } } })
+    }) as unknown as typeof fetch
+    try {
+      const result = await initProject(
+        { owner: 'myorg', title: 'My Board', token: 'tok' },
+        'http://localhost',
+        tmpDir,
+      )
+
+      expect(isInitError(result)).toBe(false)
+      if (!isInitError(result)) {
+        expect(result.statusConfigured).toBe(false)
+        expect(result.projectNumber).toBe(3)
+      }
+
+      const written = readFileSync(join(tmpDir, 'WORKFLOW.md'), 'utf-8')
+      expect(written).toContain('owner: "myorg"')
     }
     finally { globalThis.fetch = origFetch }
   })
