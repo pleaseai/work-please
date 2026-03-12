@@ -92,6 +92,7 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
       api_key: resolveEnvValue(stringValue(tracker.api_key), process.env.GITHUB_TOKEN),
       owner: stringValue(tracker.owner) ?? null,
       project_number: posIntValue(tracker.project_number, null as unknown as number) ?? null,
+      project_id: stringValue(tracker.project_id) ?? null,
       active_statuses: csvValue(tracker.active_statuses) ?? csvValue(tracker.active_states) ?? DEFAULTS.GITHUB_ACTIVE_STATUSES,
       terminal_statuses: csvValue(tracker.terminal_statuses) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.GITHUB_TERMINAL_STATUSES,
     }
@@ -125,7 +126,7 @@ export function validateConfig(config: ServiceConfig): ValidationError | null {
   if (kind === 'asana' && !config.tracker.project_gid) {
     return { code: 'missing_tracker_project_config', field: 'project_gid' }
   }
-  if (kind === 'github_projects') {
+  if (kind === 'github_projects' && !config.tracker.project_id) {
     if (!config.tracker.owner) {
       return { code: 'missing_tracker_project_config', field: 'owner' }
     }

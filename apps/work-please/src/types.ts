@@ -35,6 +35,7 @@ export interface TrackerConfig {
   // github_projects
   owner?: string | null
   project_number?: number | null
+  project_id?: string | null
   active_statuses?: string[]
   terminal_statuses?: string[]
 }

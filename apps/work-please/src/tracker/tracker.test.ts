@@ -1,6 +1,6 @@
 import type { ServiceConfig } from '../types'
 import { describe, expect, mock, test } from 'bun:test'
-import { buildConfig } from '../config'
+import { buildConfig, validateConfig } from '../config'
 import { createAsanaAdapter } from './asana'
 import { createGitHubAdapter } from './github'
 
@@ -59,7 +59,7 @@ describe('fetchCandidateIssues - uses active states (Section 17.3)', () => {
       fetchCalled = true
       return new Response(JSON.stringify({
         data: {
-          organization: {
+          repositoryOwner: {
             projectV2: {
               items: {
                 nodes: [],
@@ -94,7 +94,7 @@ describe('github_projects pagination', () => {
       if (callCount === 1) {
         return new Response(JSON.stringify({
           data: {
-            organization: {
+            repositoryOwner: {
               projectV2: {
                 items: {
                   nodes: [
@@ -113,7 +113,7 @@ describe('github_projects pagination', () => {
       }
       return new Response(JSON.stringify({
         data: {
-          organization: {
+          repositoryOwner: {
             projectV2: {
               items: {
                 nodes: [
@@ -143,6 +143,95 @@ describe('github_projects pagination', () => {
     finally {
       globalThis.fetch = origFetch
     }
+  })
+})
+
+describe('github_projects project_id path', () => {
+  test('uses node(id) query when project_id is configured', async () => {
+    const config = makeGitHubConfig({ project_id: 'PVT_kwABC123' })
+    const adapter = createGitHubAdapter(config)
+
+    let capturedBody: string | null = null
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
+      capturedBody = typeof init?.body === 'string' ? init.body : null
+      return new Response(JSON.stringify({
+        data: {
+          node: {
+            items: {
+              nodes: [],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateIssues()
+      expect(Array.isArray(result)).toBe(true)
+      expect(capturedBody).not.toBeNull()
+      const body = JSON.parse(capturedBody!)
+      expect(body.query).toContain('node(id: $projectId)')
+      expect(body.variables.projectId).toBe('PVT_kwABC123')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('returns issues from node query response', async () => {
+    const config = makeGitHubConfig({ project_id: 'PVT_kwABC123' })
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        node: {
+          items: {
+            nodes: [
+              {
+                id: 'PVTI_1',
+                fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
+                content: { number: 5, title: 'Node ID Issue', body: null, url: null, labels: { nodes: [] } },
+              },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Progress'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe('PVTI_1')
+      expect(result[0].identifier).toBe('#5')
+      expect(result[0].title).toBe('Node ID Issue')
+      expect(result[0].state).toBe('In Progress')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('validateConfig accepts project_id without owner/project_number', () => {
+    const config = buildConfig({
+      config: { tracker: { kind: 'github_projects', api_key: 'ghtoken', project_id: 'PVT_kwABC123' } },
+      prompt_template: '',
+    })
+    expect(validateConfig(config)).toBeNull()
+  })
+
+  test('validateConfig requires owner when project_id is absent', () => {
+    const config = buildConfig({
+      config: { tracker: { kind: 'github_projects', api_key: 'ghtoken' } },
+      prompt_template: '',
+    })
+    expect((validateConfig(config) as { code: string } | null)?.code).toBe('missing_tracker_project_config')
   })
 })
 
@@ -593,7 +682,7 @@ describe('github_projects label normalization (Section 17.3)', () => {
     const origFetch = globalThis.fetch
     globalThis.fetch = mock(async () => new Response(JSON.stringify({
       data: {
-        organization: {
+        repositoryOwner: {
           projectV2: {
             items: {
               nodes: [

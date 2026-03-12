@@ -12,6 +12,7 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
   const apiKey = config.tracker.api_key ?? ''
   const owner = config.tracker.owner ?? ''
   const projectNumber = config.tracker.project_number ?? 0
+  const projectId = config.tracker.project_id ?? null
   const activeStatuses = config.tracker.active_statuses ?? ['Todo', 'In Progress']
 
   const octokit = createGraphql.defaults({
@@ -39,38 +40,75 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
 
   const PROJECT_ITEMS_QUERY = `
     query($owner: String!, $number: Int!, $cursor: String) {
-      user(login: $owner) {
-        projectV2(number: $number) {
-          items(first: ${PAGE_SIZE}, after: $cursor) {
-            pageInfo { hasNextPage endCursor }
-            nodes {
-              id
-              fieldValues(first: 20) {
-                nodes {
-                  ... on ProjectV2ItemFieldSingleSelectValue {
-                    name
-                    field { ... on ProjectV2SingleSelectField { name } }
+      repositoryOwner(login: $owner) {
+        ... on Organization {
+          projectV2(number: $number) {
+            items(first: ${PAGE_SIZE}, after: $cursor) {
+              pageInfo { hasNextPage endCursor }
+              nodes {
+                id
+                fieldValues(first: 20) {
+                  nodes {
+                    ... on ProjectV2ItemFieldSingleSelectValue {
+                      name
+                      field { ... on ProjectV2SingleSelectField { name } }
+                    }
+                  }
+                }
+                content {
+                  ... on Issue {
+                    number title body url
+                    labels(first: 20) { nodes { name } }
+                    createdAt updatedAt
+                  }
+                  ... on PullRequest {
+                    number title body url
+                    labels(first: 20) { nodes { name } }
+                    createdAt updatedAt
                   }
                 }
               }
-              content {
-                ... on Issue {
-                  number title body url
-                  labels(first: 20) { nodes { name } }
-                  createdAt updatedAt
+            }
+          }
+        }
+        ... on User {
+          projectV2(number: $number) {
+            items(first: ${PAGE_SIZE}, after: $cursor) {
+              pageInfo { hasNextPage endCursor }
+              nodes {
+                id
+                fieldValues(first: 20) {
+                  nodes {
+                    ... on ProjectV2ItemFieldSingleSelectValue {
+                      name
+                      field { ... on ProjectV2SingleSelectField { name } }
+                    }
+                  }
                 }
-                ... on PullRequest {
-                  number title body url
-                  labels(first: 20) { nodes { name } }
-                  createdAt updatedAt
+                content {
+                  ... on Issue {
+                    number title body url
+                    labels(first: 20) { nodes { name } }
+                    createdAt updatedAt
+                  }
+                  ... on PullRequest {
+                    number title body url
+                    labels(first: 20) { nodes { name } }
+                    createdAt updatedAt
+                  }
                 }
               }
             }
           }
         }
       }
-      organization(login: $owner) {
-        projectV2(number: $number) {
+    }
+  `
+
+  const PROJECT_BY_ID_QUERY = `
+    query($projectId: ID!, $cursor: String) {
+      node(id: $projectId) {
+        ... on ProjectV2 {
           items(first: ${PAGE_SIZE}, after: $cursor) {
             pageInfo { hasNextPage endCursor }
             nodes {
@@ -129,11 +167,9 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
     let cursor: string | null = null
 
     do {
-      const result = await runGraphql(PROJECT_ITEMS_QUERY, {
-        owner,
-        number: projectNumber,
-        cursor,
-      })
+      const result = projectId
+        ? await runGraphql(PROJECT_BY_ID_QUERY, { projectId, cursor })
+        : await runGraphql(PROJECT_ITEMS_QUERY, { owner, number: projectNumber, cursor })
       if ('code' in result)
         return result
 
@@ -222,13 +258,17 @@ interface ProjectItems {
 }
 
 function extractProjectData(payload: Record<string, unknown>): { items: ProjectItems } | null {
-  const org = (payload.organization as Record<string, unknown> | null)?.projectV2 as Record<string, unknown> | null
-  const user = (payload.user as Record<string, unknown> | null)?.projectV2 as Record<string, unknown> | null
+  // project_id path: node(id: $projectId) { ... on ProjectV2 { items } }
+  const node = payload.node as Record<string, unknown> | null
+  if (node?.items)
+    return { items: node.items as ProjectItems }
 
-  if (org?.items)
-    return { items: org.items as ProjectItems }
-  if (user?.items)
-    return { items: user.items as ProjectItems }
+  // owner/number path: repositoryOwner { ... { projectV2 { items } } }
+  const owner = payload.repositoryOwner as Record<string, unknown> | null
+  const project = owner?.projectV2 as Record<string, unknown> | null
+  if (project?.items)
+    return { items: project.items as ProjectItems }
+
   return null
 }
 
