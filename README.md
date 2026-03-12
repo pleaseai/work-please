@@ -36,6 +36,8 @@ For full technical details, see [SPEC.md](SPEC.md).
 
 - **Multi-tracker support** — Dispatch work from Asana tasks or GitHub Projects v2 items on a
   fixed cadence.
+- **Assignee & label filters** — Narrow eligible issues by assignee (OR) and label (OR); both
+  filters AND together. Configured per-tracker in `WORKFLOW.md`.
 - **Isolated workspaces** — Each issue gets a dedicated directory; workspaces persist across runs.
 - **`WORKFLOW.md` config** — Version agent prompt and runtime settings alongside your code.
 - **Bounded concurrency** — Global and per-state concurrent agent limits.
@@ -268,6 +270,11 @@ tracker:
   #   - Done
   #   - Cancelled
 
+  # --- Shared filter fields (both trackers) ---
+  # filter:
+  #   assignee: user1, user2          # Optional: CSV or array; issue must be assigned to one of these
+  #   label: bug, feature             # Optional: CSV or array; issue must have at least one of these
+
 polling:
   interval_ms: 30000                  # Optional: poll cadence in ms, default 30000
 
@@ -313,6 +320,7 @@ Your prompt template goes here. Available variables:
 - {{ issue.description }}  — Issue body/description
 - {{ issue.state }}        — Current tracker state name
 - {{ issue.url }}          — Issue URL
+- {{ issue.assignee }}     — Assignee login (GitHub) or email (Asana), or null
 - {{ issue.labels }}       — Array of label strings (normalized to lowercase)
 - {{ issue.blocked_by }}   — Array of blocker refs (each has id, identifier, state)
 - {{ issue.priority }}     — Numeric priority or null

@@ -18,7 +18,7 @@ function makeConfig(overrides: Partial<ServiceConfig> = {}): ServiceConfig {
 function makeRunningEntry(overrides: Partial<RunningEntry> = {}): RunningEntry {
   return {
     identifier: 'TEST-1',
-    issue: { id: 'issue-1', identifier: 'TEST-1', title: 'Test issue', description: null, priority: 1, state: 'In Progress', branch_name: null, url: null, labels: [], blocked_by: [], created_at: null, updated_at: null },
+    issue: { id: 'issue-1', identifier: 'TEST-1', title: 'Test issue', description: null, priority: 1, state: 'In Progress', branch_name: null, url: null, assignee: null, labels: [], blocked_by: [], created_at: null, updated_at: null },
     session_id: 'sess-1',
     agent_app_server_pid: null,
     last_agent_message: null,

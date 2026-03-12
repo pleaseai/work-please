@@ -10,6 +10,9 @@ tracker:
   terminal_states:
     - Done
     - Cancelled
+  # filter:
+  #   assignee: user1, user2      # optional: only dispatch issues assigned to these users
+  #   label: bug, feature         # optional: only dispatch issues with at least one of these labels
 polling:
   interval_ms: 30000                 # default: 30s
 workspace:

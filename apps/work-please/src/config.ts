@@ -75,6 +75,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
 
 function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown>): ServiceConfig['tracker'] {
   const label_prefix = stringValue(tracker.label_prefix) ?? null
+  const filter = buildFilterConfig(sectionMap(tracker, 'filter'))
 
   if (kind === 'asana') {
     return {
@@ -85,6 +86,7 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
       active_sections: csvValue(tracker.active_sections) ?? csvValue(tracker.active_states) ?? DEFAULTS.ASANA_ACTIVE_SECTIONS,
       terminal_sections: csvValue(tracker.terminal_sections) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.ASANA_TERMINAL_SECTIONS,
       label_prefix,
+      filter,
     }
   }
 
@@ -102,6 +104,7 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
       private_key: resolveEnvValue(stringValue(tracker.private_key), process.env.GITHUB_APP_PRIVATE_KEY),
       installation_id: resolveInstallationId(tracker.installation_id),
       label_prefix,
+      filter,
     }
   }
 
@@ -110,6 +113,14 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
     endpoint: stringValue(tracker.endpoint) ?? '',
     api_key: resolveEnvValue(stringValue(tracker.api_key), undefined),
     label_prefix,
+    filter,
+  }
+}
+
+function buildFilterConfig(filter: Record<string, unknown>): { assignee: string[], label: string[] } {
+  return {
+    assignee: csvValue(filter.assignee) ?? [],
+    label: csvValue(filter.label) ?? [],
   }
 }
 

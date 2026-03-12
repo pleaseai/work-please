@@ -217,6 +217,7 @@ function makeIssue() {
     state: 'In Progress',
     branch_name: null,
     url: null,
+    assignee: null,
     labels: [],
     blocked_by: [],
     created_at: null,

@@ -718,3 +718,290 @@ describe('github_projects label normalization (Section 17.3)', () => {
     }
   })
 })
+
+describe('asana assignee extraction', () => {
+  test('extracts assignee email from task response', async () => {
+    const config = makeAsanaConfig()
+    const adapter = createAsanaAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/projects/')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'sec1', name: 'Todo' }] }) } as unknown as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              gid: 'task1',
+              name: 'Assigned Task',
+              notes: null,
+              tags: [],
+              dependencies: [],
+              created_at: null,
+              modified_at: null,
+              assignee: { email: 'alice@example.com' },
+            },
+          ],
+          next_page: null,
+        }),
+      } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['Todo'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(1)
+      expect(result[0].assignee).toBe('alice@example.com')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('sets assignee to null when task has no assignee', async () => {
+    const config = makeAsanaConfig()
+    const adapter = createAsanaAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/projects/')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'sec1', name: 'Todo' }] }) } as unknown as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          data: [
+            { gid: 'task1', name: 'Unassigned Task', notes: null, tags: [], dependencies: [], created_at: null, modified_at: null, assignee: null },
+          ],
+          next_page: null,
+        }),
+      } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['Todo'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].assignee).toBeNull()
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
+describe('github_projects assignee extraction', () => {
+  test('extracts first assignee login from GraphQL response', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_1',
+                  fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+                  content: {
+                    number: 1,
+                    title: 'Assigned Issue',
+                    body: null,
+                    url: null,
+                    labels: { nodes: [] },
+                    assignees: { nodes: [{ login: 'bob' }] },
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['Todo'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(1)
+      expect(result[0].assignee).toBe('bob')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('sets assignee to null when issue has no assignees', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_1',
+                  fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+                  content: {
+                    number: 1,
+                    title: 'Unassigned Issue',
+                    body: null,
+                    url: null,
+                    labels: { nodes: [] },
+                    assignees: { nodes: [] },
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['Todo'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].assignee).toBeNull()
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
+describe('fetchCandidateIssues filter application', () => {
+  test('asana: filters candidates by assignee when filter configured', async () => {
+    const config = makeAsanaConfig({ filter: { assignee: 'alice@example.com' } })
+    const adapter = createAsanaAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/projects/')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'sec1', name: 'To Do' }] }) } as unknown as Response
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          data: [
+            { gid: 'task1', name: 'Matching', notes: null, tags: [], dependencies: [], created_at: null, modified_at: null, assignee: { email: 'alice@example.com' } },
+            { gid: 'task2', name: 'Non-matching', notes: null, tags: [], dependencies: [], created_at: null, modified_at: null, assignee: { email: 'bob@example.com' } },
+          ],
+          next_page: null,
+        }),
+      } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateIssues()
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(1)
+      expect(result[0].identifier).toBe('task1')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('github_projects: filters candidates by label when filter configured', async () => {
+    const config = makeGitHubConfig({ filter: { label: 'bug' } })
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_1',
+                  fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+                  content: { number: 1, title: 'Bug Issue', body: null, url: null, labels: { nodes: [{ name: 'bug' }] }, assignees: { nodes: [] } },
+                },
+                {
+                  id: 'PVTI_2',
+                  fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+                  content: { number: 2, title: 'Docs Issue', body: null, url: null, labels: { nodes: [{ name: 'docs' }] }, assignees: { nodes: [] } },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateIssues()
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(1)
+      expect(result[0].identifier).toBe('#1')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('no filter: all candidates returned (backward-compatible)', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_1',
+                  fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+                  content: { number: 1, title: 'Issue One', body: null, url: null, labels: { nodes: [] }, assignees: { nodes: [] } },
+                },
+                {
+                  id: 'PVTI_2',
+                  fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+                  content: { number: 2, title: 'Issue Two', body: null, url: null, labels: { nodes: [] }, assignees: { nodes: [] } },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateIssues()
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(2)
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})

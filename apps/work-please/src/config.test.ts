@@ -413,3 +413,55 @@ describe('per-state concurrency limits', () => {
     expect(maxConcurrentForState(config, 'In Progress')).toBe(2)
   })
 })
+
+describe('tracker filter config', () => {
+  it('defaults to empty assignee and label arrays when filter section absent', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+    }))
+    expect(config.tracker.filter).toEqual({ assignee: [], label: [] })
+  })
+
+  it('defaults to empty arrays when filter fields are missing', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', api_key: 'tok', owner: 'org', project_number: 1, filter: {} },
+    }))
+    expect(config.tracker.filter).toEqual({ assignee: [], label: [] })
+  })
+
+  it('parses filter.assignee from CSV string', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid', filter: { assignee: 'user1, user2' } },
+    }))
+    expect(config.tracker.filter?.assignee).toEqual(['user1', 'user2'])
+  })
+
+  it('parses filter.assignee from YAML array', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', api_key: 'tok', owner: 'org', project_number: 1, filter: { assignee: ['alice', 'bob'] } },
+    }))
+    expect(config.tracker.filter?.assignee).toEqual(['alice', 'bob'])
+  })
+
+  it('parses filter.label from CSV string', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid', filter: { label: 'bug, feature' } },
+    }))
+    expect(config.tracker.filter?.label).toEqual(['bug', 'feature'])
+  })
+
+  it('parses filter.label from YAML array', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', api_key: 'tok', owner: 'org', project_number: 1, filter: { label: ['bug', 'enhancement'] } },
+    }))
+    expect(config.tracker.filter?.label).toEqual(['bug', 'enhancement'])
+  })
+
+  it('parses both assignee and label together', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid', filter: { assignee: 'user1', label: 'bug' } },
+    }))
+    expect(config.tracker.filter?.assignee).toEqual(['user1'])
+    expect(config.tracker.filter?.label).toEqual(['bug'])
+  })
+})

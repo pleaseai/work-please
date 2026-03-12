@@ -13,6 +13,7 @@ export interface Issue {
   state: string
   branch_name: string | null
   url: string | null
+  assignee: string | null
   labels: string[]
   blocked_by: BlockerRef[]
   created_at: Date | null
@@ -43,6 +44,11 @@ export interface TrackerConfig {
   private_key?: string | null
   installation_id?: number | null
   label_prefix: string | null
+  // shared filter
+  filter?: {
+    assignee: string[]
+    label: string[]
+  }
 }
 
 export interface ServiceConfig {

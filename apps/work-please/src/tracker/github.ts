@@ -3,6 +3,7 @@ import type { TrackerAdapter, TrackerError } from './types'
 import { GraphqlResponseError } from '@octokit/graphql'
 import { normalizeState } from '../config'
 import { createAuthenticatedGraphql } from './github-auth'
+import { matchesFilter } from '../filter'
 
 const PAGE_SIZE = 50
 
@@ -11,6 +12,7 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
   const projectNumber = config.tracker.project_number ?? 0
   const projectId = config.tracker.project_id ?? null
   const activeStatuses = config.tracker.active_statuses ?? ['Todo', 'In Progress']
+  const filter = config.tracker.filter ?? { assignee: [], label: [] }
 
   const octokit = createAuthenticatedGraphql(config)
 
@@ -52,11 +54,13 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                   ... on Issue {
                     number title body url
                     labels(first: 20) { nodes { name } }
+                    assignees(first: 1) { nodes { login } }
                     createdAt updatedAt
                   }
                   ... on PullRequest {
                     number title body url
                     labels(first: 20) { nodes { name } }
+                    assignees(first: 1) { nodes { login } }
                     createdAt updatedAt
                   }
                 }
@@ -82,11 +86,13 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                   ... on Issue {
                     number title body url
                     labels(first: 20) { nodes { name } }
+                    assignees(first: 1) { nodes { login } }
                     createdAt updatedAt
                   }
                   ... on PullRequest {
                     number title body url
                     labels(first: 20) { nodes { name } }
+                    assignees(first: 1) { nodes { login } }
                     createdAt updatedAt
                   }
                 }
@@ -118,11 +124,13 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                 ... on Issue {
                   number title body url
                   labels(first: 20) { nodes { name } }
+                  assignees(first: 1) { nodes { login } }
                   createdAt updatedAt
                 }
                 ... on PullRequest {
                   number title body url
                   labels(first: 20) { nodes { name } }
+                  assignees(first: 1) { nodes { login } }
                   createdAt updatedAt
                 }
               }
@@ -212,7 +220,10 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
 
   return {
     async fetchCandidateIssues() {
-      return fetchAllItems(activeStatuses)
+      const issues = await fetchAllItems(activeStatuses)
+      if ('code' in issues)
+        return issues
+      return issues.filter(issue => matchesFilter(issue, filter))
     },
 
     async fetchIssuesByStates(states: string[]) {
@@ -286,6 +297,10 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string): Is
   const labels = Array.isArray((content?.labels as { nodes?: Array<{ name?: string }> })?.nodes)
     ? ((content.labels as { nodes: Array<{ name?: string }> }).nodes).map(l => (l.name ?? '').toLowerCase()).filter(Boolean)
     : []
+  const assigneeNodes = (content?.assignees as { nodes?: Array<{ login?: string }> })?.nodes
+  const assignee = Array.isArray(assigneeNodes) && assigneeNodes.length > 0
+    ? (assigneeNodes[0].login ?? null)
+    : null
 
   return {
     id: String(node.id ?? ''),
@@ -296,6 +311,7 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string): Is
     state: status,
     branch_name: null,
     url: content?.url ? String(content.url) : null,
+    assignee,
     labels,
     blocked_by: [],
     created_at: content?.createdAt ? new Date(String(content.createdAt)) : null,
