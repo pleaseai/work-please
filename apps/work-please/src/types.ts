@@ -42,6 +42,7 @@ export interface TrackerConfig {
   app_id?: string | null
   private_key?: string | null
   installation_id?: number | null
+  label_prefix?: string | null
 }
 
 export interface ServiceConfig {

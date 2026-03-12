@@ -1,7 +1,9 @@
+import type { LabelService } from './label'
 import type { Issue, OrchestratorState, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
 import { watch } from 'node:fs'
 import { AppServerClient } from './agent-runner'
 import { buildConfig, getActiveStates, getTerminalStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
+import { createLabelService } from './label'
 import { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
 import { createTrackerAdapter, isTrackerError } from './tracker/index'
 import { isWorkflowError, loadWorkflow } from './workflow'
@@ -17,6 +19,7 @@ export class Orchestrator {
   private workflowPath: string
   private pollTimer: ReturnType<typeof setTimeout> | null = null
   private fileWatcher: ReturnType<typeof watch> | null = null
+  private labelService: LabelService | null = null
 
   constructor(workflowPath: string) {
     this.workflowPath = workflowPath
@@ -27,6 +30,7 @@ export class Orchestrator {
     }
     this.workflow = wf
     this.config = buildConfig(wf)
+    this.labelService = createLabelService(this.config)
 
     this.state = {
       poll_interval_ms: this.config.polling.interval_ms,
@@ -200,6 +204,10 @@ export class Orchestrator {
 
     console.warn(`[orchestrator] dispatching issue_id=${issue.id} issue_identifier=${issue.identifier} attempt=${attempt ?? 'first'}`)
 
+    this.labelService?.setLabel(issue, 'dispatched').catch((err) => {
+      console.warn(`[orchestrator] label service error issue_id=${issue.id}: ${err}`)
+    })
+
     // Run in background
     this.runWorker(issue, attempt).catch((err) => {
       console.error(`[orchestrator] worker uncaught error issue_id=${issue.id}: ${err}`)
@@ -368,10 +376,16 @@ export class Orchestrator {
     this.state.agent_totals.total_tokens += running.agent_total_tokens
 
     if (reason === 'normal') {
+      this.labelService?.setLabel(running.issue, 'done').catch((err) => {
+        console.warn(`[orchestrator] label service error issue_id=${issueId}: ${err}`)
+      })
       this.state.completed.add(issueId)
       this.scheduleRetry(issueId, running.identifier, 1, null, 'continuation')
     }
     else {
+      this.labelService?.setLabel(running.issue, 'failed').catch((err) => {
+        console.warn(`[orchestrator] label service error issue_id=${issueId}: ${err}`)
+      })
       const nextAttempt = nextAttemptFrom(running.retry_attempt)
       this.scheduleRetry(issueId, running.identifier, nextAttempt, error, 'failure')
     }
@@ -494,6 +508,12 @@ export class Orchestrator {
 
       if (isTerminal) {
         console.warn(`[orchestrator] issue terminal, stopping worker issue_id=${issue.id} state=${issue.state}`)
+        const runningEntry = this.state.running.get(issue.id)
+        if (runningEntry) {
+          this.labelService?.setLabel(runningEntry.issue, 'done').catch((err) => {
+            console.warn(`[orchestrator] label service error issue_id=${issue.id}: ${err}`)
+          })
+        }
         this.terminateRunningIssue(issue.id, true)
       }
       else if (isActive) {
@@ -573,6 +593,7 @@ export class Orchestrator {
 
     this.workflow = wf
     this.config = newConfig
+    this.labelService = createLabelService(newConfig)
     this.state.poll_interval_ms = newConfig.polling.interval_ms
     this.state.max_concurrent_agents = newConfig.agent.max_concurrent_agents
 

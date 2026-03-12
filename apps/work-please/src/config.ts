@@ -82,6 +82,7 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
       project_gid: stringValue(tracker.project_gid) ?? null,
       active_sections: csvValue(tracker.active_sections) ?? csvValue(tracker.active_states) ?? DEFAULTS.ASANA_ACTIVE_SECTIONS,
       terminal_sections: csvValue(tracker.terminal_sections) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.ASANA_TERMINAL_SECTIONS,
+      label_prefix: stringValue(tracker.label_prefix) ?? null,
     }
   }
 
@@ -98,6 +99,7 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
       app_id: resolveEnvValue(stringValue(tracker.app_id), process.env.GITHUB_APP_ID),
       private_key: resolveEnvValue(stringValue(tracker.private_key), process.env.GITHUB_APP_PRIVATE_KEY),
       installation_id: resolveInstallationId(tracker.installation_id),
+      label_prefix: stringValue(tracker.label_prefix) ?? null,
     }
   }
 
@@ -105,6 +107,7 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
     kind,
     endpoint: stringValue(tracker.endpoint) ?? '',
     api_key: resolveEnvValue(stringValue(tracker.api_key), undefined),
+    label_prefix: stringValue(tracker.label_prefix) ?? null,
   }
 }
 

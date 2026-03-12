@@ -338,6 +338,35 @@ describe('normalizeState', () => {
   })
 })
 
+describe('label_prefix parsing', () => {
+  it('parses label_prefix from github_projects config', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: {
+        kind: 'github_projects',
+        api_key: 'token',
+        owner: 'myorg',
+        project_number: 1,
+        label_prefix: 'work-please',
+      },
+    }))
+    expect(config.tracker.label_prefix).toBe('work-please')
+  })
+
+  it('defaults label_prefix to null when omitted', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', api_key: 'token', owner: 'myorg', project_number: 1 },
+    }))
+    expect(config.tracker.label_prefix).toBeNull()
+  })
+
+  it('parses label_prefix from asana config', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'token', project_gid: 'gid', label_prefix: 'ci' },
+    }))
+    expect(config.tracker.label_prefix).toBe('ci')
+  })
+})
+
 describe('path expansion', () => {
   it('expands ~ to HOME directory', () => {
     const home = process.env.HOME ?? '/home/user'
