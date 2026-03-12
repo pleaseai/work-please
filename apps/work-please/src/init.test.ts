@@ -122,10 +122,10 @@ describe('generateWorkflow', () => {
 // ---------------------------------------------------------------------------
 
 describe('resolveOwnerId', () => {
-  it('returns the organization id when org is found', async () => {
+  it('returns the owner id for an organization login', async () => {
     const origFetch = globalThis.fetch
     globalThis.fetch = mock(async () =>
-      mockResponse(true, { data: { organization: { id: 'O_org123' }, user: null } }),
+      mockResponse(true, { data: { repositoryOwner: { id: 'O_org123' } } }),
     ) as unknown as typeof fetch
     try {
       const result = await resolveOwnerId('tok', 'myorg', 'http://localhost')
@@ -134,10 +134,10 @@ describe('resolveOwnerId', () => {
     finally { globalThis.fetch = origFetch }
   })
 
-  it('falls back to user id when org is null', async () => {
+  it('returns the owner id for a user login', async () => {
     const origFetch = globalThis.fetch
     globalThis.fetch = mock(async () =>
-      mockResponse(true, { data: { organization: null, user: { id: 'U_user456' } } }),
+      mockResponse(true, { data: { repositoryOwner: { id: 'U_user456' } } }),
     ) as unknown as typeof fetch
     try {
       const result = await resolveOwnerId('tok', 'myuser', 'http://localhost')
@@ -146,10 +146,10 @@ describe('resolveOwnerId', () => {
     finally { globalThis.fetch = origFetch }
   })
 
-  it('returns init_owner_not_found when both org and user are null', async () => {
+  it('returns init_owner_not_found when repositoryOwner is null', async () => {
     const origFetch = globalThis.fetch
     globalThis.fetch = mock(async () =>
-      mockResponse(true, { data: { organization: null, user: null } }),
+      mockResponse(true, { data: { repositoryOwner: null } }),
     ) as unknown as typeof fetch
     try {
       const result = await resolveOwnerId('tok', 'nobody', 'http://localhost')
@@ -160,7 +160,7 @@ describe('resolveOwnerId', () => {
     finally { globalThis.fetch = origFetch }
   })
 
-  it('returns init_owner_not_found when data has no id fields', async () => {
+  it('returns init_owner_not_found when data has no repositoryOwner field', async () => {
     const origFetch = globalThis.fetch
     globalThis.fetch = mock(async () =>
       mockResponse(true, { data: {} }),
@@ -333,7 +333,7 @@ describe('initProject', () => {
     globalThis.fetch = mock(async () => {
       callCount++
       if (callCount === 1) {
-        return mockResponse(true, { data: { organization: { id: 'O_org1' }, user: null } })
+        return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
       }
       return mockResponse(true, { data: { createProjectV2: { projectV2: { id: 'PVT_1', number: 3 } } } })
     }) as unknown as typeof fetch
@@ -404,7 +404,7 @@ describe('initProject', () => {
     globalThis.fetch = mock(async () => {
       callCount++
       if (callCount === 1)
-        return mockResponse(true, { data: { organization: { id: 'O_org1' }, user: null } })
+        return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
       return mockResponse(false, { message: 'Forbidden' }, 403)
     }) as unknown as typeof fetch
     try {
@@ -430,7 +430,7 @@ describe('initProject', () => {
     globalThis.fetch = mock(async () => {
       callCount++
       if (callCount === 1)
-        return mockResponse(true, { data: { organization: { id: 'O_org1' }, user: null } })
+        return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
       return mockResponse(true, { data: { createProjectV2: { projectV2: { id: 'PVT_1', number: 7 } } } })
     }) as unknown as typeof fetch
     try {

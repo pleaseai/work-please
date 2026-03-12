@@ -61,8 +61,7 @@ async function runGraphql(
 
 const RESOLVE_OWNER_QUERY = `
   query($login: String!) {
-    organization(login: $login) { id }
-    user(login: $login) { id }
+    repositoryOwner(login: $login) { id }
   }
 `
 
@@ -75,8 +74,8 @@ export async function resolveOwnerId(
   if ('code' in result)
     return result
 
-  const data = result.data as { organization?: { id?: string }, user?: { id?: string } }
-  const id = data.organization?.id ?? data.user?.id
+  const data = result.data as { repositoryOwner?: { id?: string } }
+  const id = data.repositoryOwner?.id
   if (!id) {
     return { code: 'init_owner_not_found', owner }
   }
