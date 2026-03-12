@@ -209,6 +209,37 @@ describe('setLabel', () => {
     }
   })
 
+  it('logs warning when DELETE returns non-2xx status', async () => {
+    const warnCalls: string[] = []
+    const origWarn = console.warn
+    console.warn = (...args: unknown[]) => {
+      warnCalls.push(args.join(' '))
+    }
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (_url: string, options: RequestInit) => {
+      if (options.method === 'GET') {
+        return new Response(
+          JSON.stringify([{ name: 'work-please: dispatched' }]),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        )
+      }
+      if (options.method === 'DELETE') {
+        return new Response('Forbidden', { status: 403 })
+      }
+      return new Response(JSON.stringify({}), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as unknown as typeof fetch
+
+    try {
+      const service = createLabelService(makeGithubConfig('work-please'))!
+      await service.setLabel(makeIssue({ url: 'https://github.com/org/repo/issues/1' }), 'done')
+      expect(warnCalls.some(w => w.includes('failed to remove label') && w.includes('HTTP 403'))).toBe(true)
+    }
+    finally {
+      globalThis.fetch = origFetch
+      console.warn = origWarn
+    }
+  })
+
   it('non-OK GET for existing labels skips DELETE but still adds new label', async () => {
     const calls: Array<{ method: string, url: string }> = []
     const origFetch = globalThis.fetch

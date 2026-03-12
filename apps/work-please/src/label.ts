@@ -126,9 +126,13 @@ async function removeExistingPrefixLabels(
   const toRemove = labels.filter(l => l.name.startsWith(`${prefix}: `))
   for (const label of toRemove) {
     const deleteUrl = `${url}/${encodeURIComponent(label.name)}`
-    await fetchWithTimeout(deleteUrl, { method: 'DELETE', headers }).catch((err) => {
+    const deleteResponse = await fetchWithTimeout(deleteUrl, { method: 'DELETE', headers }).catch((err) => {
       console.warn(`[label] failed to remove label "${label.name}" issue_number=${number}: ${err}`)
+      return null
     })
+    if (deleteResponse && !deleteResponse.ok) {
+      console.warn(`[label] failed to remove label "${label.name}" owner=${owner} repo=${repo} issue_number=${number}: HTTP ${deleteResponse.status}`)
+    }
   }
 }
 
