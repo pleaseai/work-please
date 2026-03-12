@@ -1,5 +1,6 @@
 import type { Issue, ServiceConfig } from '../types'
 import type { TrackerAdapter, TrackerError } from './types'
+import { graphql as createGraphql, GraphqlResponseError } from '@octokit/graphql'
 import { normalizeState } from '../config'
 
 const PAGE_SIZE = 50
@@ -8,47 +9,32 @@ const TRAILING_SLASH_RE = /\/$/
 
 export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
   const endpoint = (config.tracker.endpoint ?? 'https://api.github.com').replace(TRAILING_SLASH_RE, '')
-  const graphqlEndpoint = `${endpoint}/graphql`
   const apiKey = config.tracker.api_key ?? ''
   const owner = config.tracker.owner ?? ''
   const projectNumber = config.tracker.project_number ?? 0
   const activeStatuses = config.tracker.active_statuses ?? ['Todo', 'In Progress']
 
-  function headers(): Record<string, string> {
-    return {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    }
-  }
+  const octokit = createGraphql.defaults({
+    baseUrl: endpoint,
+    headers: { authorization: `bearer ${apiKey}` },
+    request: { timeout: NETWORK_TIMEOUT_MS },
+  })
 
-  async function graphql(query: string, variables: Record<string, unknown> = {}): Promise<{ data: unknown } | TrackerError> {
-    let response: Response
+  async function runGraphql(query: string, variables: Record<string, unknown> = {}): Promise<{ data: unknown } | TrackerError> {
     try {
-      const ctrl = new AbortController()
-      const timeout = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS)
-      response = await fetch(graphqlEndpoint, {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ query, variables }),
-        signal: ctrl.signal,
-      })
-      clearTimeout(timeout)
+      const data = await octokit(query, variables)
+      return { data }
     }
-    catch (cause) {
-      return { code: 'github_projects_api_request', cause }
+    catch (err) {
+      if (err instanceof GraphqlResponseError) {
+        return { code: 'github_projects_graphql_errors', errors: err.errors }
+      }
+      const e = err as { status?: number, response?: unknown }
+      if (typeof e.status === 'number' && e.response !== undefined) {
+        return { code: 'github_projects_api_status', status: e.status, body: null }
+      }
+      return { code: 'github_projects_api_request', cause: err }
     }
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null)
-      return { code: 'github_projects_api_status', status: response.status, body }
-    }
-
-    const body = await response.json().catch(() => null) as { errors?: unknown, data?: unknown }
-    if (body?.errors) {
-      return { code: 'github_projects_graphql_errors', errors: body.errors }
-    }
-
-    return { data: body?.data }
   }
 
   const PROJECT_ITEMS_QUERY = `
@@ -143,7 +129,7 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
     let cursor: string | null = null
 
     do {
-      const result = await graphql(PROJECT_ITEMS_QUERY, {
+      const result = await runGraphql(PROJECT_ITEMS_QUERY, {
         owner,
         number: projectNumber,
         cursor,
@@ -210,7 +196,7 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
       if (ids.length === 0)
         return []
 
-      const result = await graphql(ITEMS_BY_IDS_QUERY, { ids })
+      const result = await runGraphql(ITEMS_BY_IDS_QUERY, { ids })
       if ('code' in result)
         return result
 

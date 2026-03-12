@@ -1,13 +1,27 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
+import { runInit } from './init'
 import { Orchestrator } from './orchestrator'
 import { HttpServer } from './server'
 import { WORKFLOW_FILE_NAME } from './workflow'
 
+export interface ParsedArgs {
+  command: 'run' | 'init'
+  workflowPath: string
+  portOverride: number | null
+  initOptions: { owner: string | null, title: string | null, token: string | null } | null
+}
+
 export async function runCli(argv: string[]): Promise<void> {
-  const { workflowPath, portOverride } = parseArgs(argv.slice(2))
-  const resolvedPath = resolve(workflowPath)
+  const parsed = parseArgs(argv.slice(2))
+
+  if (parsed.command === 'init') {
+    await runInit(parsed.initOptions!)
+    return
+  }
+
+  const resolvedPath = resolve(parsed.workflowPath)
 
   if (!existsSync(resolvedPath)) {
     console.error(`Error: workflow file not found: ${resolvedPath}`)
@@ -48,7 +62,7 @@ export async function runCli(argv: string[]): Promise<void> {
 
   // Start optional HTTP server (CLI --port overrides config server.port)
   const config = orchestrator.getConfig()
-  const serverPort = portOverride ?? config.server.port
+  const serverPort = parsed.portOverride ?? config.server.port
   if (serverPort !== null) {
     httpServer = new HttpServer(orchestrator, serverPort)
     const boundPort = httpServer.start()
@@ -56,7 +70,53 @@ export async function runCli(argv: string[]): Promise<void> {
   }
 }
 
-export function parseArgs(args: string[]): { workflowPath: string, portOverride: number | null } {
+export function parseArgs(args: string[]): ParsedArgs {
+  // Check if first positional arg is 'init'
+  if (args[0] === 'init') {
+    return parseInitArgs(args.slice(1))
+  }
+
+  return parseRunArgs(args)
+}
+
+function parseInitArgs(args: string[]): ParsedArgs {
+  let owner: string | null = null
+  let title: string | null = null
+  let token: string | null = null
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--owner' && i + 1 < args.length) {
+      owner = args[i + 1]
+      i++
+    }
+    else if (args[i].startsWith('--owner=')) {
+      owner = args[i].slice(8)
+    }
+    else if (args[i] === '--title' && i + 1 < args.length) {
+      title = args[i + 1]
+      i++
+    }
+    else if (args[i].startsWith('--title=')) {
+      title = args[i].slice(8)
+    }
+    else if (args[i] === '--token' && i + 1 < args.length) {
+      token = args[i + 1]
+      i++
+    }
+    else if (args[i].startsWith('--token=')) {
+      token = args[i].slice(8)
+    }
+  }
+
+  return {
+    command: 'init',
+    workflowPath: WORKFLOW_FILE_NAME,
+    portOverride: null,
+    initOptions: { owner, title, token },
+  }
+}
+
+function parseRunArgs(args: string[]): ParsedArgs {
   let portOverride: number | null = null
   const positional: string[] = []
 
@@ -78,7 +138,9 @@ export function parseArgs(args: string[]): { workflowPath: string, portOverride:
   }
 
   return {
+    command: 'run',
     workflowPath: positional[0] ?? WORKFLOW_FILE_NAME,
     portOverride,
+    initOptions: null,
   }
 }

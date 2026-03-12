@@ -1,7 +1,80 @@
-import { describe, expect, it } from 'bun:test'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { describe, expect, it } from 'bun:test'
 import { parseArgs } from './cli'
+
+describe('parseArgs - init subcommand', () => {
+  it('detects init as first positional arg and sets command to init', () => {
+    const result = parseArgs(['init'])
+    expect(result.command).toBe('init')
+    expect(result.initOptions).not.toBeNull()
+  })
+
+  it('parses --owner flag with space separator', () => {
+    const result = parseArgs(['init', '--owner', 'myorg'])
+    expect(result.command).toBe('init')
+    expect(result.initOptions?.owner).toBe('myorg')
+  })
+
+  it('parses --owner= flag with equals separator', () => {
+    const result = parseArgs(['init', '--owner=myorg'])
+    expect(result.command).toBe('init')
+    expect(result.initOptions?.owner).toBe('myorg')
+  })
+
+  it('parses --title flag', () => {
+    const result = parseArgs(['init', '--title', 'My Project'])
+    expect(result.initOptions?.title).toBe('My Project')
+  })
+
+  it('parses --title= flag with equals separator', () => {
+    const result = parseArgs(['init', '--title=My Project'])
+    expect(result.initOptions?.title).toBe('My Project')
+  })
+
+  it('parses --token flag', () => {
+    const result = parseArgs(['init', '--token', 'ghp_xxx'])
+    expect(result.initOptions?.token).toBe('ghp_xxx')
+  })
+
+  it('parses --token= flag with equals separator', () => {
+    const result = parseArgs(['init', '--token=ghp_xxx'])
+    expect(result.initOptions?.token).toBe('ghp_xxx')
+  })
+
+  it('parses multiple init flags together', () => {
+    const result = parseArgs(['init', '--owner', 'myorg', '--title', 'My Board', '--token', 'tok123'])
+    expect(result.command).toBe('init')
+    expect(result.initOptions?.owner).toBe('myorg')
+    expect(result.initOptions?.title).toBe('My Board')
+    expect(result.initOptions?.token).toBe('tok123')
+  })
+
+  it('defaults all init option fields to null when no flags provided', () => {
+    const result = parseArgs(['init'])
+    expect(result.initOptions?.owner).toBeNull()
+    expect(result.initOptions?.title).toBeNull()
+    expect(result.initOptions?.token).toBeNull()
+  })
+
+  it('defaults command to run when no init subcommand', () => {
+    const result = parseArgs([])
+    expect(result.command).toBe('run')
+    expect(result.initOptions).toBeNull()
+  })
+
+  it('defaults command to run when workflow path is provided', () => {
+    const result = parseArgs(['my.md'])
+    expect(result.command).toBe('run')
+    expect(result.workflowPath).toBe('my.md')
+    expect(result.initOptions).toBeNull()
+  })
+
+  it('does not treat --owner flag without init as init command', () => {
+    const result = parseArgs(['--owner', 'myorg'])
+    expect(result.command).toBe('run')
+  })
+})
 
 describe('parseArgs - workflow path', () => {
   it('uses WORKFLOW.md default when no positional arg is provided', () => {

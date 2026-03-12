@@ -1,8 +1,8 @@
 import type { Issue, RunningEntry } from './types'
-import { describe, expect, it } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { describe, expect, it } from 'bun:test'
 import { normalizeState } from './config'
 import { Orchestrator } from './orchestrator'
 

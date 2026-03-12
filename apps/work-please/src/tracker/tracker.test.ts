@@ -57,21 +57,18 @@ describe('fetchCandidateIssues - uses active states (Section 17.3)', () => {
     const origFetch = globalThis.fetch
     globalThis.fetch = mock(async () => {
       fetchCalled = true
-      return {
-        ok: true,
-        json: async () => ({
-          data: {
-            organization: {
-              projectV2: {
-                items: {
-                  nodes: [],
-                  pageInfo: { hasNextPage: false, endCursor: null },
-                },
+      return new Response(JSON.stringify({
+        data: {
+          organization: {
+            projectV2: {
+              items: {
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: null },
               },
             },
           },
-        }),
-      } as unknown as Response
+        },
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
     }) as unknown as typeof fetch
 
     try {
@@ -95,49 +92,43 @@ describe('github_projects pagination', () => {
     globalThis.fetch = mock(async () => {
       callCount++
       if (callCount === 1) {
-        return {
-          ok: true,
-          json: async () => ({
-            data: {
-              organization: {
-                projectV2: {
-                  items: {
-                    nodes: [
-                      {
-                        id: 'PVTI_1',
-                        fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
-                        content: { number: 1, title: 'Issue One' },
-                      },
-                    ],
-                    pageInfo: { hasNextPage: true, endCursor: 'cursor1' },
-                  },
-                },
-              },
-            },
-          }),
-        } as unknown as Response
-      }
-      return {
-        ok: true,
-        json: async () => ({
+        return new Response(JSON.stringify({
           data: {
             organization: {
               projectV2: {
                 items: {
                   nodes: [
                     {
-                      id: 'PVTI_2',
+                      id: 'PVTI_1',
                       fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
-                      content: { number: 2, title: 'Issue Two' },
+                      content: { number: 1, title: 'Issue One' },
                     },
                   ],
-                  pageInfo: { hasNextPage: false, endCursor: null },
+                  pageInfo: { hasNextPage: true, endCursor: 'cursor1' },
                 },
               },
             },
           },
-        }),
-      } as unknown as Response
+        }), { status: 200, headers: { 'content-type': 'application/json' } })
+      }
+      return new Response(JSON.stringify({
+        data: {
+          organization: {
+            projectV2: {
+              items: {
+                nodes: [
+                  {
+                    id: 'PVTI_2',
+                    fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
+                    content: { number: 2, title: 'Issue Two' },
+                  },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+          },
+        },
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
     }) as unknown as typeof fetch
 
     try {
@@ -302,10 +293,10 @@ describe('github_projects fetchIssueStatesByIds', () => {
     const origFetch = globalThis.fetch
     globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
       capturedBody = typeof init?.body === 'string' ? init.body : null
-      return {
-        ok: true,
-        json: async () => ({ data: { nodes: [] } }),
-      }
+      return new Response(JSON.stringify({ data: { nodes: [] } }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
     }) as unknown as typeof fetch
 
     try {
@@ -324,24 +315,21 @@ describe('github_projects fetchIssueStatesByIds', () => {
     const adapter = createGitHubAdapter(config)
 
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => ({
-      ok: true,
-      json: async () => ({
-        data: {
-          nodes: [
-            {
-              id: 'PVTI_abc',
-              fieldValues: {
-                nodes: [
-                  { name: 'In Progress', field: { name: 'Status' } },
-                ],
-              },
-              content: { number: 42, title: 'Test Issue' },
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        nodes: [
+          {
+            id: 'PVTI_abc',
+            fieldValues: {
+              nodes: [
+                { name: 'In Progress', field: { name: 'Status' } },
+              ],
             },
-          ],
-        },
-      }),
-    })) as unknown as typeof fetch
+            content: { number: 42, title: 'Test Issue' },
+          },
+        ],
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
 
     try {
       const result = await adapter.fetchIssueStatesByIds(['PVTI_abc'])
@@ -364,11 +352,10 @@ describe('github_projects fetchIssueStatesByIds', () => {
     const adapter = createGitHubAdapter(config)
 
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => ({
-      ok: false,
-      status: 401,
-      json: async () => ({ message: 'Unauthorized' }),
-    })) as unknown as typeof fetch
+    globalThis.fetch = mock(async () => new Response(
+      JSON.stringify({ message: 'Unauthorized' }),
+      { status: 401, headers: { 'content-type': 'application/json' } },
+    )) as unknown as typeof fetch
 
     try {
       const result = await adapter.fetchIssueStatesByIds(['some-id'])
@@ -387,13 +374,10 @@ describe('github_projects fetchIssueStatesByIds', () => {
     const adapter = createGitHubAdapter(config)
 
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => ({
-      ok: true,
-      json: async () => ({
-        errors: [{ message: 'Could not resolve to a node' }],
-        data: null,
-      }),
-    })) as unknown as typeof fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      errors: [{ message: 'Could not resolve to a node' }],
+      data: null,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
 
     try {
       const result = await adapter.fetchIssueStatesByIds(['bad-id'])
@@ -487,10 +471,10 @@ describe('tracker malformed payload errors (Section 17.3)', () => {
     const adapter = createGitHubAdapter(config)
 
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => ({
-      ok: true,
-      json: async () => ({ data: { nodes: 'not-an-array' } }), // malformed
-    })) as unknown as typeof fetch
+    globalThis.fetch = mock(async () => new Response(
+      JSON.stringify({ data: { nodes: 'not-an-array' } }), // malformed
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )) as unknown as typeof fetch
 
     try {
       const result = await adapter.fetchIssueStatesByIds(['PVTI_abc'])
@@ -607,33 +591,30 @@ describe('github_projects label normalization (Section 17.3)', () => {
     const adapter = createGitHubAdapter(config)
 
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => ({
-      ok: true,
-      json: async () => ({
-        data: {
-          organization: {
-            projectV2: {
-              items: {
-                nodes: [
-                  {
-                    id: 'PVTI_1',
-                    fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
-                    content: {
-                      number: 1,
-                      title: 'Labeled Issue',
-                      body: null,
-                      url: null,
-                      labels: { nodes: [{ name: 'BUG' }, { name: 'High-Priority' }] },
-                    },
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        organization: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_1',
+                  fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+                  content: {
+                    number: 1,
+                    title: 'Labeled Issue',
+                    body: null,
+                    url: null,
+                    labels: { nodes: [{ name: 'BUG' }, { name: 'High-Priority' }] },
                   },
-                ],
-                pageInfo: { hasNextPage: false, endCursor: null },
-              },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
             },
           },
         },
-      }),
-    })) as unknown as typeof fetch
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
 
     try {
       const result = await adapter.fetchIssuesByStates(['Todo'])
