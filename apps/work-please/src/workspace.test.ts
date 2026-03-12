@@ -1,14 +1,17 @@
 import type { Issue, ServiceConfig } from './types'
+import { Buffer } from 'node:buffer'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { buildConfig } from './config'
 import {
+  _git,
   buildHookEnv,
   createWorkspace,
   extractRepoUrl,
   removeWorkspace,
+  resolveRepoDir,
   runAfterRunHook,
   runBeforeRunHook,
   sanitizeIdentifier,
@@ -415,7 +418,7 @@ describe('hook env var injection', () => {
     const config = makeConfig(tmpRoot, {
       hooks: { after_create: `printenv WORK_ISSUE_ID > ${envFile}` },
     })
-    const issue = makeIssue()
+    const issue = makeIssue({ url: null })
 
     await createWorkspace(config, 'ENV-1', issue)
     expect(existsSync(envFile)).toBe(true)
@@ -427,9 +430,20 @@ describe('hook env var injection', () => {
     const config = makeConfig(tmpRoot, {
       hooks: { after_create: `printenv WORK_REPO_URL > ${envFile}` },
     })
-    const issue = makeIssue()
+    const issue = makeIssue() // identifier: '#42', url: 'https://github.com/org/repo/issues/42'
+
+    // Mock git and create worktree dir so the hook CWD exists
+    const spy = spyOn(_git, 'spawnSync').mockImplementation((args: string[]) => {
+      const addIdx = args.indexOf('add')
+      if (args.includes('worktree') && addIdx !== -1) {
+        mkdirSync(args[addIdx + 1], { recursive: true })
+      }
+      return { exitCode: 0, success: true, stdout: Buffer.from(''), stderr: Buffer.from(''), signalCode: null } as unknown as ReturnType<typeof Bun.spawnSync>
+    })
 
     await createWorkspace(config, 'ENV-2', issue)
+    spy.mockRestore()
+
     expect(existsSync(envFile)).toBe(true)
     expect(readFileSync(envFile, 'utf-8').trim()).toBe('https://github.com/org/repo')
   })
@@ -469,7 +483,7 @@ describe('hook env var injection', () => {
     const config = makeConfig(tmpRoot, {
       hooks: { before_remove: `printenv WORK_ISSUE_ID > ${envFile}` },
     })
-    const issue = makeIssue()
+    const issue = makeIssue({ url: null })
 
     await removeWorkspace(config, 'ws-before-remove', issue)
     expect(existsSync(envFile)).toBe(true)
@@ -484,5 +498,234 @@ describe('hook env var injection', () => {
 
     await createWorkspace(config, 'ENV-3')
     expect(existsSync(envFile)).toBe(true)
+  })
+})
+
+describe('resolveRepoDir', () => {
+  it('extracts owner/repo with github- prefix from HTTPS URL', () => {
+    expect(resolveRepoDir('/workspaces', 'https://github.com/owner/repo')).toBe('/workspaces/github-owner-repo')
+  })
+
+  it('strips .git suffix', () => {
+    expect(resolveRepoDir('/workspaces', 'https://github.com/owner/repo.git')).toBe('/workspaces/github-owner-repo')
+  })
+
+  it('handles nested path by taking only first two parts', () => {
+    expect(resolveRepoDir('/workspaces', 'https://github.com/myorg/myrepo/extra')).toBe('/workspaces/github-myorg-myrepo')
+  })
+
+  it('uses workspaceRoot as base', () => {
+    expect(resolveRepoDir('/tmp/ws', 'https://github.com/org/project'))
+      .toBe('/tmp/ws/github-org-project')
+  })
+})
+
+describe('createWorkspace with GitHub issue URL', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-wt-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('calls git clone and worktree add for GitHub issue URL', async () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const issue = makeIssue({ identifier: 'MT-42', url: 'https://github.com/org/repo/issues/42' })
+    const config = makeConfig(tmpRoot)
+
+    const result = await createWorkspace(config, 'MT-42', issue)
+
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    expect(result instanceof Error).toBe(false)
+
+    const repoDir = join(tmpRoot, 'github-org-repo')
+    const cloneCall = calls.find(args => args[0] === 'git' && args[1] === 'clone')
+    const worktreeCall = calls.find(args => args[0] === 'git' && args.includes('worktree'))
+
+    expect(cloneCall).toBeDefined()
+    expect(cloneCall?.[2]).toBe('https://github.com/org/repo')
+    expect(cloneCall?.[3]).toBe(repoDir)
+
+    expect(worktreeCall).toBeDefined()
+    expect(worktreeCall?.includes('add')).toBe(true)
+    expect(worktreeCall?.includes('MT-42')).toBe(true)
+
+    if (!(result instanceof Error)) {
+      expect(result.path).toBe(join(repoDir, '.claude', 'worktrees', 'MT-42'))
+    }
+  })
+
+  it('skips fetch when repo dir does not exist (clone path)', async () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const issue = makeIssue({ identifier: 'MT-10', url: 'https://github.com/org/repo/issues/10' })
+    const config = makeConfig(tmpRoot)
+
+    await createWorkspace(config, 'MT-10', issue)
+
+    const fetchCall = spy.mock.calls.find(args => (args[0] as string[]).includes('fetch'))
+    spy.mockRestore()
+
+    expect(fetchCall).toBeUndefined()
+  })
+
+  it('runs fetch when repo dir already exists', async () => {
+    const repoDir = join(tmpRoot, 'github-org-repo')
+    mkdirSync(repoDir, { recursive: true })
+
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const issue = makeIssue({ identifier: 'MT-11', url: 'https://github.com/org/repo/issues/11' })
+    const config = makeConfig(tmpRoot)
+
+    await createWorkspace(config, 'MT-11', issue)
+
+    const fetchCall = spy.mock.calls.find(
+      args => (args[0] as string[]).includes('fetch') && (args[0] as string[]).includes('origin'),
+    )
+    spy.mockRestore()
+
+    expect(fetchCall).toBeDefined()
+  })
+
+  it('returns error when git clone fails', async () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 1,
+      success: false,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from('repository not found'),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const issue = makeIssue({ identifier: 'MT-99', url: 'https://github.com/org/repo/issues/99' })
+    const config = makeConfig(tmpRoot)
+
+    const result = await createWorkspace(config, 'MT-99', issue)
+    spy.mockRestore()
+
+    expect(result instanceof Error).toBe(true)
+    if (result instanceof Error) {
+      expect(result.message).toContain('git clone failed')
+    }
+  })
+
+  it('falls back to plain workspace when issue has no GitHub URL', async () => {
+    const config = makeConfig(tmpRoot)
+    const issue = makeIssue({ url: null })
+
+    const result = await createWorkspace(config, 'MT-NO-WT', issue)
+    expect(result instanceof Error).toBe(false)
+    if (result instanceof Error)
+      return
+
+    expect(existsSync(result.path)).toBe(true)
+    expect(result.created_now).toBe(true)
+    expect(result.path).toBe(join(tmpRoot, 'MT-NO-WT'))
+  })
+
+  it('skips worktree setup when worktree path already exists', async () => {
+    const repoDir = join(tmpRoot, 'github-org-repo')
+    const wtPath = join(repoDir, '.claude', 'worktrees', 'MT-ALREADY-GIT')
+    mkdirSync(wtPath, { recursive: true })
+
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const issue = makeIssue({ identifier: 'MT-ALREADY-GIT', url: 'https://github.com/org/repo/issues/8' })
+    const config = makeConfig(tmpRoot)
+
+    await createWorkspace(config, 'MT-ALREADY-GIT', issue)
+
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    // Fetch may run (repoDir exists), but worktree add must not be called
+    const worktreeAddCall = calls.find(args => args.includes('worktree') && args.includes('add'))
+    expect(worktreeAddCall).toBeUndefined()
+  })
+})
+
+describe('removeWorkspace with GitHub issue URL', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-rm-wt-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('calls git worktree remove before deleting worktree dir', async () => {
+    const repoDir = join(tmpRoot, 'github-org-repo')
+    const wtPath = join(repoDir, '.claude', 'worktrees', 'MT-REM')
+    mkdirSync(wtPath, { recursive: true })
+
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const issue = makeIssue({ identifier: 'MT-REM', url: 'https://github.com/org/repo/issues/5' })
+    const config = makeConfig(tmpRoot)
+
+    await removeWorkspace(config, 'MT-REM', issue)
+
+    const wtRemoveCall = spy.mock.calls.find(
+      args => (args[0] as string[]).includes('worktree') && (args[0] as string[]).includes('remove'),
+    )
+    spy.mockRestore()
+
+    expect(wtRemoveCall).toBeDefined()
+    expect((wtRemoveCall![0] as string[]).includes(wtPath)).toBe(true)
+    expect((wtRemoveCall![0] as string[]).includes('--force')).toBe(true)
+    expect(existsSync(wtPath)).toBe(false)
+  })
+
+  it('is a no-op when worktree path does not exist', async () => {
+    const spy = spyOn(_git, 'spawnSync')
+    const issue = makeIssue({ identifier: 'MT-NORM', url: 'https://github.com/org/repo/issues/6' })
+    const config = makeConfig(tmpRoot)
+
+    await removeWorkspace(config, 'MT-NORM', issue)
+
+    const wtCall = spy.mock.calls.find(
+      args => (args[0] as string[]).includes('worktree'),
+    )
+    spy.mockRestore()
+
+    expect(wtCall).toBeUndefined()
   })
 })

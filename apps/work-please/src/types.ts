@@ -47,7 +47,9 @@ export interface TrackerConfig {
 export interface ServiceConfig {
   tracker: TrackerConfig
   polling: { interval_ms: number }
-  workspace: { root: string }
+  workspace: {
+    root: string
+  }
   hooks: {
     after_create: string | null
     before_run: string | null

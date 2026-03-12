@@ -15,17 +15,19 @@ polling:
   interval_ms: 30000
 workspace:
   root: ~/workspaces
+  repository_root: ~/.please/repositories
 hooks:
-  after_create: |
-    git clone --depth 1 https://github.com/chatbot-pf/<repo> .
-    # bun install  # uncomment if needed
+  before_run: |
+    set -e
+    git fetch origin
+    git rebase origin/main || git rebase --abort
 agent:
   max_concurrent_agents: 5
   max_turns: 20
 claude:
   permission_mode: bypassPermissions
-# server:
-#   port: 3000
+server:
+  port: 3000
 ---
 
 You are an autonomous task worker for issue `{{ issue.identifier }}`.
