@@ -29,7 +29,7 @@ agent:
   max_turns: 20
 claude:
   permission_mode: bypassPermissions
-  # setting_sources: [project]        # optional: "project" loads CLAUDE.md from workspace, "user" loads global CLAUDE.md, "local" loads .claude/settings.local.json. Default: [] (SDK isolation)
+  # setting_sources: []               # optional: default [project, local, user]; set [] for SDK isolation (no CLAUDE.md or settings files loaded)
 server:
   port: 3000
 ---

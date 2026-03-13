@@ -16,7 +16,7 @@ const DEFAULTS = {
   CLAUDE_COMMAND: 'claude',
   CLAUDE_PERMISSION_MODE: 'bypassPermissions',
   CLAUDE_ALLOWED_TOOLS: [] as string[],
-  CLAUDE_SETTING_SOURCES: [] as SettingSource[],
+  CLAUDE_SETTING_SOURCES: ['project', 'local', 'user'] as SettingSource[],
   CLAUDE_TURN_TIMEOUT_MS: 3_600_000,
   CLAUDE_READ_TIMEOUT_MS: 5_000,
   CLAUDE_STALL_TIMEOUT_MS: 300_000,
