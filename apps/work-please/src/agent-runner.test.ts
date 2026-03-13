@@ -795,7 +795,8 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     if (session instanceof Error)
       return
 
-    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    const result = await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(result instanceof Error).toBe(false)
     expect(capturedSettingSources).toBeUndefined()
   })
 
@@ -826,5 +827,35 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
 
     await client.runTurn(session, 'hello', makeIssue(), () => {})
     expect(capturedSettingSources).toEqual(['project'])
+  })
+
+  it('passes all three setting sources verbatim when all are configured', async () => {
+    const sessionId = 'sdk-all-setting-sources'
+    let capturedSettingSources: unknown
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: 'claude', read_timeout_ms: 2000, turn_timeout_ms: 5000, setting_sources: ['project', 'user', 'local'] },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedSettingSources = options?.settingSources
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    const result = await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(result instanceof Error).toBe(false)
+    expect(capturedSettingSources).toEqual(['project', 'user', 'local'])
   })
 })

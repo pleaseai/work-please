@@ -62,6 +62,8 @@ export interface TrackerConfig {
   filter: IssueFilter
 }
 
+export type SettingSource = 'user' | 'project' | 'local'
+
 export interface ServiceConfig {
   tracker: TrackerConfig
   polling: { interval_ms: number }
@@ -87,7 +89,7 @@ export interface ServiceConfig {
     command: string
     permission_mode: string
     allowed_tools: string[]
-    setting_sources: string[]
+    setting_sources: SettingSource[]
     turn_timeout_ms: number
     read_timeout_ms: number
     stall_timeout_ms: number
