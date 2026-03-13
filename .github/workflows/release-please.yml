@@ -27,7 +27,6 @@ jobs:
         id: release
         with:
           token: ${{ steps.app-token.outputs.token }}
-          release-type: node
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
