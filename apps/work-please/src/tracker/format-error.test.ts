@@ -40,20 +40,39 @@ describe('formatTrackerError', () => {
   })
 
   describe('github_projects_api_request', () => {
-    it('includes cause', () => {
+    it('includes cause message for Error', () => {
       const cause = new Error('ECONNREFUSED')
       const result = formatTrackerError({ code: 'github_projects_api_request', cause })
       expect(result).toContain('github_projects_api_request:')
       expect(result).toContain('ECONNREFUSED')
     })
+
+    it('serializes non-Error object cause', () => {
+      const cause = { code: 'ECONNREFUSED', errno: -111 }
+      const result = formatTrackerError({ code: 'github_projects_api_request', cause })
+      expect(result).toContain('github_projects_api_request:')
+      expect(result).toContain('ECONNREFUSED')
+    })
+
+    it('handles string cause', () => {
+      expect(formatTrackerError({ code: 'github_projects_api_request', cause: 'timeout' }))
+        .toBe('github_projects_api_request: timeout')
+    })
   })
 
   describe('asana_api_request', () => {
-    it('includes cause', () => {
+    it('includes cause message for Error', () => {
       const cause = new Error('fetch failed')
       const result = formatTrackerError({ code: 'asana_api_request', cause })
       expect(result).toContain('asana_api_request:')
       expect(result).toContain('fetch failed')
+    })
+
+    it('serializes non-Error object cause', () => {
+      const cause = { type: 'NetworkError' }
+      const result = formatTrackerError({ code: 'asana_api_request', cause })
+      expect(result).toContain('asana_api_request:')
+      expect(result).toContain('NetworkError')
     })
   })
 

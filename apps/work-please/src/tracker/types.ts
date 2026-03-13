@@ -26,6 +26,19 @@ export function isTrackerError(val: unknown): val is TrackerError {
   return typeof val === 'object' && val !== null && 'code' in val
 }
 
+function serializeCause(cause: unknown): string {
+  if (cause instanceof Error)
+    return cause.message
+  if (typeof cause === 'string')
+    return cause
+  try {
+    return JSON.stringify(cause) ?? String(cause)
+  }
+  catch {
+    return String(cause)
+  }
+}
+
 export function formatTrackerError(err: TrackerError): string {
   switch (err.code) {
     case 'github_projects_api_status':
@@ -35,7 +48,7 @@ export function formatTrackerError(err: TrackerError): string {
       return `${err.code}: ${JSON.stringify(err.errors)}`
     case 'github_projects_api_request':
     case 'asana_api_request':
-      return `${err.code}: ${err.cause}`
+      return `${err.code}: ${serializeCause(err.cause)}`
     default:
       return err.code
   }
