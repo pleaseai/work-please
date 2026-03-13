@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/pleaseai/work-please/compare/work-v0.1.1...work-v0.1.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* **build:** prepend shebang to dist/index.js for global install ([#58](https://github.com/pleaseai/work-please/issues/58)) ([39c260c](https://github.com/pleaseai/work-please/commit/39c260c70b839c32db8a3532cb3295ca7d7720a3))
+
 ## [0.1.1](https://github.com/chatbot-pf/work-please/compare/work-v0.1.0...work-v0.1.1) (2026-03-13)
 
 
