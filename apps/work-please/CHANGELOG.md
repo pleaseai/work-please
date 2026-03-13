@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/pleaseai/work-please/compare/work-v0.1.3...work-v0.1.4) (2026-03-13)
+
+
+### Features
+
+* **cli:** add --version / -V flag ([#63](https://github.com/pleaseai/work-please/issues/63)) ([7fc26c6](https://github.com/pleaseai/work-please/commit/7fc26c623195f6988d561b52955030388b3017dc))
+
 ## [0.1.3](https://github.com/pleaseai/work-please/compare/work-v0.1.2...work-v0.1.3) (2026-03-13)
 
 
