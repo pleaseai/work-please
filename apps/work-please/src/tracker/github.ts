@@ -329,9 +329,10 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string): Is
   const prRefNodes = (content?.closedByPullRequestsReferences as { nodes?: Array<Record<string, unknown> | null> })?.nodes
   const pullRequests: LinkedPR[] = Array.isArray(prRefNodes)
     ? prRefNodes
-        .filter((pr): pr is Record<string, unknown> => pr !== null && typeof pr === 'object')
+        .filter((pr): pr is Record<string, unknown> & { number: number } =>
+          pr !== null && typeof pr === 'object' && typeof pr.number === 'number' && pr.number > 0)
         .map(pr => ({
-          number: Number(pr.number ?? 0),
+          number: pr.number,
           title: String(pr.title ?? ''),
           url: pr.url ? String(pr.url) : null,
           state: normalizePrState(pr.state),
