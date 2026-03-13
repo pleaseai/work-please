@@ -8,6 +8,30 @@ instead of supervising coding agents.
 
 > **Warning**: Work Please is an engineering preview for use in trusted environments.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Differences from Symphony](#key-differences-from-symphony)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Install](#install)
+  - [Configure](#configure)
+  - [Run](#run)
+- [WORKFLOW.md Configuration](#workflowmd-configuration)
+  - [Full Front Matter Schema](#full-front-matter-schema)
+  - [Template Variables](#template-variables)
+- [CLI Usage](#cli-usage)
+- [GitHub App Authentication](#github-app-authentication)
+  - [Setting up GitHub App credentials](#setting-up-github-app-credentials)
+  - [Validation](#validation)
+- [Trust and Safety](#trust-and-safety)
+  - [Permission Modes](#permission-modes)
+  - [Workspace Isolation](#workspace-isolation)
+  - [Recommendations](#recommendations)
+- [License](#license)
+
 ## Overview
 
 Work Please is a long-running TypeScript service that:
