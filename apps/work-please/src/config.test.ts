@@ -149,6 +149,47 @@ describe('buildConfig', () => {
     }
   })
 
+  it('defaults claude.system_prompt to preset claude_code when omitted', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.claude.system_prompt).toEqual({ type: 'preset', preset: 'claude_code' })
+  })
+
+  it('defaults claude.system_prompt to preset claude_code when null', () => {
+    const config = buildConfig(makeWorkflow({ claude: { system_prompt: null } }))
+    expect(config.claude.system_prompt).toEqual({ type: 'preset', preset: 'claude_code' })
+  })
+
+  it('parses claude.system_prompt string as custom type', () => {
+    const config = buildConfig(makeWorkflow({ claude: { system_prompt: 'You are a specialized agent.' } }))
+    expect(config.claude.system_prompt).toEqual({ type: 'custom', value: 'You are a specialized agent.' })
+  })
+
+  it('parses claude.system_prompt preset object with append', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { system_prompt: { type: 'preset', preset: 'claude_code', append: 'Extra instructions.' } },
+    }))
+    expect(config.claude.system_prompt).toEqual({ type: 'preset', preset: 'claude_code', append: 'Extra instructions.' })
+  })
+
+  it('parses claude.system_prompt preset object without append', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { system_prompt: { type: 'preset', preset: 'claude_code' } },
+    }))
+    expect(config.claude.system_prompt).toEqual({ type: 'preset', preset: 'claude_code' })
+  })
+
+  it('parses claude.system_prompt custom object form', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { system_prompt: { type: 'custom', value: 'You are a specialized agent.' } },
+    }))
+    expect(config.claude.system_prompt).toEqual({ type: 'custom', value: 'You are a specialized agent.' })
+  })
+
+  it('falls back to default when claude.system_prompt custom object value is blank', () => {
+    const config = buildConfig(makeWorkflow({ claude: { system_prompt: { type: 'custom', value: '   ' } } }))
+    expect(config.claude.system_prompt).toEqual({ type: 'preset', preset: 'claude_code' })
+  })
+
   it('preserves claude.command as shell command string including spaces (Section 17.1)', () => {
     const config = buildConfig(makeWorkflow({
       claude: { command: 'claude --permission-mode full --no-ansi' },

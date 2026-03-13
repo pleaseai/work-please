@@ -777,4 +777,88 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     await client.runTurn(session, 'hello', makeIssue(), () => {})
     expect(capturedModel).toBeUndefined()
   })
+
+  it('passes default preset systemPrompt to SDK options', async () => {
+    const sessionId = 'sdk-system-prompt-default-session'
+    let capturedSystemPrompt: unknown = 'INITIAL'
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedSystemPrompt = options?.systemPrompt
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedSystemPrompt).toEqual({ type: 'preset', preset: 'claude_code' })
+  })
+
+  it('passes custom string systemPrompt to SDK options', async () => {
+    const sessionId = 'sdk-system-prompt-custom-session'
+    let capturedSystemPrompt: unknown = 'INITIAL'
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: 'claude', system_prompt: 'You are a specialized agent.', read_timeout_ms: 2000, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedSystemPrompt = options?.systemPrompt
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedSystemPrompt).toBe('You are a specialized agent.')
+  })
+
+  it('passes preset with append systemPrompt to SDK options', async () => {
+    const sessionId = 'sdk-system-prompt-preset-append-session'
+    let capturedSystemPrompt: unknown = 'INITIAL'
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: {
+          command: 'claude',
+          system_prompt: { type: 'preset', preset: 'claude_code', append: 'Additional instructions.' },
+          read_timeout_ms: 2000,
+          turn_timeout_ms: 5000,
+        },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedSystemPrompt = options?.systemPrompt
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedSystemPrompt).toEqual({ type: 'preset', preset: 'claude_code', append: 'Additional instructions.' })
+  })
 })

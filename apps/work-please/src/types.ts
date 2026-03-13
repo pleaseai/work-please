@@ -29,6 +29,10 @@ export interface Issue {
   updated_at: Date | null
 }
 
+export type SystemPromptConfig
+  = | { type: 'preset', preset: 'claude_code', append?: string }
+    | { type: 'custom', value: string }
+
 export interface WorkflowDefinition {
   config: Record<string, unknown>
   prompt_template: string
@@ -90,6 +94,7 @@ export interface ServiceConfig {
     turn_timeout_ms: number
     read_timeout_ms: number
     stall_timeout_ms: number
+    system_prompt: SystemPromptConfig
   }
   server: {
     port: number | null

@@ -1,4 +1,4 @@
-import type { IssueFilter, ServiceConfig, WorkflowDefinition } from './types'
+import type { IssueFilter, ServiceConfig, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -67,6 +67,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
       turn_timeout_ms: intValue(claude.turn_timeout_ms, DEFAULTS.CLAUDE_TURN_TIMEOUT_MS),
       read_timeout_ms: intValue(claude.read_timeout_ms, DEFAULTS.CLAUDE_READ_TIMEOUT_MS),
       stall_timeout_ms: intValue(claude.stall_timeout_ms, DEFAULTS.CLAUDE_STALL_TIMEOUT_MS),
+      system_prompt: systemPromptValue(claude.system_prompt),
     },
     server: {
       port: nonNegIntOrNull(server.port),
@@ -213,6 +214,30 @@ export function maxConcurrentForState(config: ServiceConfig, state: string): num
 }
 
 // --- helpers ---
+
+const DEFAULT_SYSTEM_PROMPT: SystemPromptConfig = { type: 'preset', preset: 'claude_code' }
+
+function systemPromptValue(val: unknown): SystemPromptConfig {
+  if (val == null)
+    return DEFAULT_SYSTEM_PROMPT
+  if (typeof val === 'string') {
+    const trimmed = val.trim()
+    return trimmed ? { type: 'custom', value: trimmed } : DEFAULT_SYSTEM_PROMPT
+  }
+  if (typeof val === 'object' && !Array.isArray(val)) {
+    const obj = val as Record<string, unknown>
+    if (obj.type === 'preset' && obj.preset === 'claude_code') {
+      return typeof obj.append === 'string'
+        ? { type: 'preset', preset: 'claude_code', append: obj.append }
+        : { type: 'preset', preset: 'claude_code' }
+    }
+    if (obj.type === 'custom' && typeof obj.value === 'string') {
+      const trimmed = obj.value.trim()
+      return trimmed ? { type: 'custom', value: trimmed } : DEFAULT_SYSTEM_PROMPT
+    }
+  }
+  return DEFAULT_SYSTEM_PROMPT
+}
 
 function sectionMap(raw: Record<string, unknown>, key: string): Record<string, unknown> {
   const val = raw[key]
