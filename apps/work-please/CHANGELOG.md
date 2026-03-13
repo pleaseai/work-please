@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.6](https://github.com/pleaseai/work-please/compare/work-v0.1.5...work-v0.1.6) (2026-03-13)
+
+
+### Features
+
+* **agent:** add setting_sources config for Claude SDK filesystem settings ([#68](https://github.com/pleaseai/work-please/issues/68)) ([3369b01](https://github.com/pleaseai/work-please/commit/3369b01c29e949511b0fc514e3b46e3e4e80b2ef))
+* **config:** add system_prompt to claude configuration ([#70](https://github.com/pleaseai/work-please/issues/70)) ([8aea43c](https://github.com/pleaseai/work-please/commit/8aea43c2b0f31491e75b669e2c7f908e0ca23a81))
+* **workspace:** create .claude/settings.local.json with attribution after workspace setup ([#72](https://github.com/pleaseai/work-please/issues/72)) ([a952ee0](https://github.com/pleaseai/work-please/commit/a952ee03a23f1a0aa36c9f1195f12aec9ddcd57a))
+
 ## [0.1.5](https://github.com/pleaseai/work-please/compare/work-v0.1.4...work-v0.1.5) (2026-03-13)
 
 
