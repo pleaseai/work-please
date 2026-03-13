@@ -440,6 +440,31 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
       expect(result.message).toBe('no_session_started')
   })
 
+  it('emits turn_failed (not startup_failed) when query throws after init received', async () => {
+    const sessionId = 'sdk-throw-after-init'
+
+    async function* mockQuery() {
+      yield makeInitMsg(sessionId, wsPath)
+      throw new Error('mid_turn_crash')
+    }
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, () => mockQuery())
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    const messages: AgentMessage[] = []
+    const result = await client.runTurn(session, 'hello', makeIssue(), msg => messages.push(msg))
+
+    expect(result instanceof Error).toBe(true)
+    const turnFailed = messages.find(m => m.event === 'turn_failed')
+    expect(turnFailed).toBeDefined()
+    expect((turnFailed?.payload as { reason: string })?.reason).toContain('mid_turn_crash')
+    const startupFailed = messages.find(m => m.event === 'startup_failed')
+    expect(startupFailed).toBeUndefined()
+  })
+
   it('emits turn_failed and returns Error when SDKResultError received', async () => {
     const sessionId = 'sdk-error-session'
 

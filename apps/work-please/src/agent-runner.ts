@@ -18,6 +18,7 @@ export interface AgentSession {
 type QueryFn = (params: { prompt: string, options?: Options }) => AsyncIterable<unknown>
 
 const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+const NEWLINE_PATTERN = /[\r\n]/g
 
 // Minimal discriminated shape for SDK messages received in the for-await loop
 interface SdkMsgBase { type: string }
@@ -46,8 +47,10 @@ export class AppServerClient {
     this.assignedSessionId = null
     this.sessionId = null
 
-    if (sessionId !== undefined && !UUID_PATTERN.test(sessionId))
-      return new Error(`invalid_session_id: expected UUID format, got "${sessionId}"`)
+    if (sessionId !== undefined && !UUID_PATTERN.test(sessionId)) {
+      const preview = String(sessionId).slice(0, 64).replace(NEWLINE_PATTERN, ' ')
+      return new Error(`invalid_session_id: expected UUID format, got "${preview}"`)
+    }
 
     const validationErr = this.validateWorkspaceCwd()
     if (validationErr)
@@ -120,6 +123,7 @@ export class AppServerClient {
           const initMsg = msg as SdkMsgInit
           sessionId = initMsg.session_id
           this.sessionId = sessionId
+          this.assignedSessionId = null // SDK confirmed — proposed ID no longer needed
           onMessage({
             event: 'session_started',
             timestamp: new Date(),
@@ -189,9 +193,14 @@ export class AppServerClient {
     catch (err) {
       clearTimeout(timeoutHandle)
       const error = err instanceof Error ? err : new Error(String(err))
-      // If init was never received the session never started — report startup_failed.
-      // If init was already received and the turn was aborted mid-execution, report startup_failed
-      // with the abort reason so callers can distinguish timeout from other failures.
+      // If init was never received, the session never started — report startup_failed
+      // and clear stale resume state so the next runTurn does not retry a poisoned session.
+      // If init was already received and the turn was aborted mid-execution, report turn_failed
+      // so callers can distinguish a startup failure from a mid-turn failure.
+      if (!sessionId) {
+        this.sessionId = null
+        this.assignedSessionId = null
+      }
       onMessage({
         event: sessionId ? 'turn_failed' : 'startup_failed',
         timestamp: new Date(),
