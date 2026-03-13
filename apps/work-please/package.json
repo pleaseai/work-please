@@ -9,14 +9,15 @@
     "url": "https://github.com/chatbot-pf/work-please.git",
     "directory": "apps/work-please"
   },
-  "files": [
-    "dist",
-    "LICENSE"
-  ],
   "bin": {
     "work-please": "./dist/index.js"
   },
+  "files": [
+    "LICENSE",
+    "dist"
+  ],
   "scripts": {
+    "prepublishOnly": "cp ../../LICENSE .",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "dev": "bun run --watch src/index.ts",
     "lint": "eslint .",
