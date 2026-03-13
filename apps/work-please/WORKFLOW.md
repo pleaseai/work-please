@@ -79,6 +79,15 @@ The following issues must be resolved before this one can proceed:
 If any blocker is still open, document it and stop.
 {% endif %}
 
+{% if issue.pull_requests.size > 0 %}
+## Linked pull requests
+
+{% for pr in issue.pull_requests %}
+- PR #{{ pr.number }}: {{ pr.title | escape }} ({{ pr.state }}){% if pr.branch_name %} — branch: `{{ pr.branch_name | escape }}`{% endif %}{% if pr.url %} — {{ pr.url | escape }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
 ## Instructions
 
 You are operating in an unattended session. Follow these rules:

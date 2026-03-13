@@ -410,9 +410,10 @@ Your prompt template goes here. Available variables:
 - {{ issue.description }}  — Issue body/description
 - {{ issue.state }}        — Current tracker state name
 - {{ issue.url }}          — Issue URL
-- {{ issue.assignee }}     — Primary assignee login (GitHub) or email (Asana), or null if unassigned
+- {{ issue.assignees }}     — Array of assignee logins (GitHub) or emails (Asana)
 - {{ issue.labels }}       — Array of label strings (normalized to lowercase)
 - {{ issue.blocked_by }}   — Array of blocker refs (each has id, identifier, state)
+- {{ issue.pull_requests }} — Array of linked PRs (each has number, title, url, state, branch_name)
 - {{ issue.priority }}     — Numeric priority or null
 - {{ issue.created_at }}   — ISO-8601 creation timestamp
 - {{ issue.updated_at }}   — ISO-8601 last-updated timestamp
@@ -434,6 +435,14 @@ State: {{ issue.state }}
 Blocked by:
 {% for blocker in issue.blocked_by %}
 - {{ blocker.identifier }} ({{ blocker.state }})
+{% endfor %}
+{% endif %}
+
+{% if issue.pull_requests.size > 0 %}
+Linked pull requests:
+{% for pr in issue.pull_requests %}
+- PR #{{ pr.number }}: {{ pr.title }} ({{ pr.state }}){% if pr.branch_name %} — branch: {{ pr.branch_name }}{% endif %}{% if pr.url %} — {{ pr.url }}{% endif %}
+
 {% endfor %}
 {% endif %}
 
