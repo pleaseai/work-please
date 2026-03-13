@@ -206,6 +206,13 @@ agent:
   max_turns: 20
 claude:
   permission_mode: bypassPermissions
+# claude.settings controls the attribution text written into .claude/settings.local.json
+# of each workspace. Omit to use the default Work Please attribution.
+# claude:
+#   settings:
+#     attribution:
+#       commit: "🙏 Generated with Work Please"
+#       pr: "🙏 Generated with Work Please"
 # server:
 #   port: 3000
 ---

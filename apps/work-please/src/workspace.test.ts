@@ -9,7 +9,9 @@ import {
   _git,
   buildHookEnv,
   createWorkspace,
+  ensureClaudeSettings,
   extractRepoUrl,
+  generateClaudeSettings,
   removeWorkspace,
   resolveRepoDir,
   runAfterRunHook,
@@ -49,6 +51,130 @@ function makeConfig(root: string, extra: Record<string, unknown> = {}): ServiceC
     prompt_template: '',
   })
 }
+
+describe('generateClaudeSettings', () => {
+  it('produces valid JSON with attribution fields', () => {
+    const content = generateClaudeSettings()
+    const parsed = JSON.parse(content)
+    expect(parsed.attribution).toBeDefined()
+    expect(typeof parsed.attribution.commit).toBe('string')
+    expect(typeof parsed.attribution.pr).toBe('string')
+  })
+
+  it('includes Work Please link in commit attribution', () => {
+    const content = generateClaudeSettings()
+    expect(content).toContain('Work Please')
+    expect(content).toContain('github.com/pleaseai/work-please')
+  })
+
+  it('includes Work Please link in pr attribution', () => {
+    const parsed = JSON.parse(generateClaudeSettings())
+    expect(parsed.attribution.pr).toContain('github.com/pleaseai/work-please')
+  })
+
+  it('uses provided attribution values instead of defaults', () => {
+    const parsed = JSON.parse(generateClaudeSettings({ commit: 'My commit', pr: 'My PR' }))
+    expect(parsed.attribution.commit).toBe('My commit')
+    expect(parsed.attribution.pr).toBe('My PR')
+  })
+
+  it('falls back to default when attribution value is null', () => {
+    const parsed = JSON.parse(generateClaudeSettings({ commit: null }))
+    expect(parsed.attribution.commit).toContain('Work Please')
+  })
+})
+
+describe('ensureClaudeSettings', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-settings-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('creates .claude/settings.local.json when it does not exist', () => {
+    ensureClaudeSettings(tmpRoot)
+    const settingsPath = join(tmpRoot, '.claude', 'settings.local.json')
+    expect(existsSync(settingsPath)).toBe(true)
+    const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    expect(parsed.attribution.commit).toContain('Work Please')
+  })
+
+  it('does not overwrite existing .claude/settings.local.json', () => {
+    const claudeDir = join(tmpRoot, '.claude')
+    mkdirSync(claudeDir, { recursive: true })
+    const settingsPath = join(claudeDir, 'settings.local.json')
+    writeFileSync(settingsPath, '{"custom":true}', 'utf-8')
+
+    ensureClaudeSettings(tmpRoot)
+    const content = readFileSync(settingsPath, 'utf-8')
+    expect(JSON.parse(content)).toEqual({ custom: true })
+  })
+})
+
+describe('createWorkspace creates attribution settings', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-attr-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('creates .claude/settings.local.json in newly created workspace', async () => {
+    const config = makeConfig(tmpRoot)
+    const result = await createWorkspace(config, 'MT-ATTR')
+    expect(result instanceof Error).toBe(false)
+    if (result instanceof Error)
+      return
+
+    const settingsPath = join(result.path, '.claude', 'settings.local.json')
+    expect(existsSync(settingsPath)).toBe(true)
+    const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    expect(parsed.attribution.commit).toContain('Work Please')
+    expect(parsed.attribution.pr).toContain('Work Please')
+  })
+
+  it('creates .claude/settings.local.json for reused workspace if missing', async () => {
+    const config = makeConfig(tmpRoot)
+    mkdirSync(join(tmpRoot, 'MT-REUSE'))
+
+    const result = await createWorkspace(config, 'MT-REUSE')
+    expect(result instanceof Error).toBe(false)
+    if (result instanceof Error)
+      return
+
+    const settingsPath = join(result.path, '.claude', 'settings.local.json')
+    expect(existsSync(settingsPath)).toBe(true)
+    const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    expect(parsed.attribution.commit).toContain('Work Please')
+    expect(parsed.attribution.pr).toContain('Work Please')
+  })
+
+  it('uses custom attribution from config when generating settings', async () => {
+    const config = makeConfig(tmpRoot, {
+      claude: {
+        settings: {
+          attribution: { commit: 'Custom commit text', pr: 'Custom PR text' },
+        },
+      },
+    })
+    const result = await createWorkspace(config, 'MT-CUSTOM')
+    expect(result instanceof Error).toBe(false)
+    if (result instanceof Error)
+      return
+
+    const settingsPath = join(result.path, '.claude', 'settings.local.json')
+    const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    expect(parsed.attribution.commit).toBe('Custom commit text')
+    expect(parsed.attribution.pr).toBe('Custom PR text')
+  })
+})
 
 describe('sanitizeIdentifier', () => {
   it('replaces non-alphanumeric characters with underscore', () => {

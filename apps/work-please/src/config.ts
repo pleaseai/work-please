@@ -59,18 +59,30 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
       max_retry_backoff_ms: posIntValue(agent.max_retry_backoff_ms, DEFAULTS.MAX_RETRY_BACKOFF_MS),
       max_concurrent_agents_by_state: stateLimitsValue(agent.max_concurrent_agents_by_state),
     },
-    claude: {
-      model: stringValue(claude.model),
-      command: commandValue(claude.command) ?? DEFAULTS.CLAUDE_COMMAND,
-      permission_mode: stringValue(claude.permission_mode) ?? DEFAULTS.CLAUDE_PERMISSION_MODE,
-      allowed_tools: stringArrayValue(claude.allowed_tools, DEFAULTS.CLAUDE_ALLOWED_TOOLS),
-      turn_timeout_ms: intValue(claude.turn_timeout_ms, DEFAULTS.CLAUDE_TURN_TIMEOUT_MS),
-      read_timeout_ms: intValue(claude.read_timeout_ms, DEFAULTS.CLAUDE_READ_TIMEOUT_MS),
-      stall_timeout_ms: intValue(claude.stall_timeout_ms, DEFAULTS.CLAUDE_STALL_TIMEOUT_MS),
-      system_prompt: systemPromptValue(claude.system_prompt),
-    },
+    claude: buildClaudeConfig(claude),
     server: {
       port: nonNegIntOrNull(server.port),
+    },
+  }
+}
+
+function buildClaudeConfig(claude: Record<string, unknown>): ServiceConfig['claude'] {
+  const settingsSec = sectionMap(claude, 'settings')
+  const attributionSec = sectionMap(settingsSec, 'attribution')
+  return {
+    model: stringValue(claude.model),
+    command: commandValue(claude.command) ?? DEFAULTS.CLAUDE_COMMAND,
+    permission_mode: stringValue(claude.permission_mode) ?? DEFAULTS.CLAUDE_PERMISSION_MODE,
+    allowed_tools: stringArrayValue(claude.allowed_tools, DEFAULTS.CLAUDE_ALLOWED_TOOLS),
+    turn_timeout_ms: intValue(claude.turn_timeout_ms, DEFAULTS.CLAUDE_TURN_TIMEOUT_MS),
+    read_timeout_ms: intValue(claude.read_timeout_ms, DEFAULTS.CLAUDE_READ_TIMEOUT_MS),
+    stall_timeout_ms: intValue(claude.stall_timeout_ms, DEFAULTS.CLAUDE_STALL_TIMEOUT_MS),
+    system_prompt: systemPromptValue(claude.system_prompt),
+    settings: {
+      attribution: {
+        commit: stringValue(attributionSec.commit),
+        pr: stringValue(attributionSec.pr),
+      },
     },
   }
 }

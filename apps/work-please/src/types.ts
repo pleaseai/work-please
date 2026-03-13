@@ -95,6 +95,12 @@ export interface ServiceConfig {
     read_timeout_ms: number
     stall_timeout_ms: number
     system_prompt: SystemPromptConfig
+    settings: {
+      attribution: {
+        commit: string | null
+        pr: string | null
+      }
+    }
   }
   server: {
     port: number | null
