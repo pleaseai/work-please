@@ -6,17 +6,19 @@ import { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk'
 import { createToolsMcpServer, getToolSpecs } from './tools'
 
 export interface SessionResult {
-  thread_id: string
   turn_id: string
   session_id: string
 }
 
 export interface AgentSession {
-  threadId: string
+  sessionId: string
   workspace: string
 }
 
 type QueryFn = (params: { prompt: string, options?: Options }) => AsyncIterable<unknown>
+
+const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+const NEWLINE_PATTERN = /[\r\n]/g
 
 // Minimal discriminated shape for SDK messages received in the for-await loop
 interface SdkMsgBase { type: string }
@@ -27,6 +29,7 @@ interface SdkMsgRateLimit extends SdkMsgBase { type: 'rate_limit_event', rate_li
 type SdkMsg = SdkMsgInit | SdkMsgSuccess | SdkMsgError | SdkMsgRateLimit | SdkMsgBase
 
 export class AppServerClient {
+  private assignedSessionId: string | null = null
   private sessionId: string | null = null
   private abortController: AbortController | null = null
   private workspace: string
@@ -39,11 +42,26 @@ export class AppServerClient {
     this.queryFn = queryFn
   }
 
-  async startSession(): Promise<AgentSession | Error> {
+  async startSession(sessionId?: string): Promise<AgentSession | Error> {
+    // Reset state unconditionally to prevent stale fields on instance reuse or retry
+    this.assignedSessionId = null
+    this.sessionId = null
+
+    if (sessionId !== undefined && !UUID_PATTERN.test(sessionId)) {
+      const preview = String(sessionId).slice(0, 64).replace(NEWLINE_PATTERN, ' ')
+      return new Error(`invalid_session_id: expected UUID format, got "${preview}"`)
+    }
+
     const validationErr = this.validateWorkspaceCwd()
     if (validationErr)
       return validationErr
-    return { threadId: randomUUID(), workspace: this.workspace }
+
+    const id = sessionId ?? randomUUID()
+    this.assignedSessionId = id
+    // Set sessionId immediately so runTurn uses options.resume (cross-restart resume path).
+    // The SDK has NOT confirmed this session — it may reject if the session no longer exists.
+    this.sessionId = sessionId ?? null
+    return { sessionId: id, workspace: this.workspace }
   }
 
   async runTurn(
@@ -76,6 +94,9 @@ export class AppServerClient {
 
     if (this.sessionId) {
       options.resume = this.sessionId
+    }
+    else if (this.assignedSessionId) {
+      options.sessionId = this.assignedSessionId as `${string}-${string}-${string}-${string}-${string}`
     }
 
     if (this.config.claude.command !== 'claude') {
@@ -114,11 +135,11 @@ export class AppServerClient {
           const initMsg = msg as SdkMsgInit
           sessionId = initMsg.session_id
           this.sessionId = sessionId
+          this.assignedSessionId = null // SDK confirmed — proposed ID no longer needed
           onMessage({
             event: 'session_started',
             timestamp: new Date(),
             session_id: sessionId,
-            thread_id: session.threadId,
             turn_id: turnId,
           })
         }
@@ -179,13 +200,25 @@ export class AppServerClient {
         return err
       }
 
-      return { thread_id: session.threadId, turn_id: turnId, session_id: sessionId }
+      return { turn_id: turnId, session_id: sessionId }
     }
     catch (err) {
       clearTimeout(timeoutHandle)
       const error = err instanceof Error ? err : new Error(String(err))
+      // If init was never received, the session never started — report startup_failed
+      // and clear stale resume state so the next runTurn does not retry a poisoned session.
+      // If init was already received and the turn was aborted mid-execution, report turn_failed
+      // so callers can distinguish a startup failure from a mid-turn failure.
+      if (!sessionId) {
+        // Preserve resume state on transient pre-init failures so the next turn can retry.
+        // Only clear state for new sessions where no session was ever confirmed.
+        if (!options.resume) {
+          this.sessionId = null
+          this.assignedSessionId = null
+        }
+      }
       onMessage({
-        event: 'startup_failed',
+        event: sessionId ? 'turn_failed' : 'startup_failed',
         timestamp: new Date(),
         payload: { reason: error.message },
       })
@@ -195,6 +228,7 @@ export class AppServerClient {
 
   stopSession(): void {
     this.abortController?.abort()
+    this.assignedSessionId = null
     this.sessionId = null
     this.abortController = null
   }

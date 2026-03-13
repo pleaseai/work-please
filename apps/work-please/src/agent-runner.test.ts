@@ -271,7 +271,7 @@ describe('AppServerClient - startSession workspace validation (Section 17.5)', (
       expect(result.message).toContain('outside_workspace_root')
   })
 
-  it('returns AgentSession with UUID threadId on valid workspace', async () => {
+  it('returns AgentSession with UUID sessionId on valid workspace', async () => {
     const wsPath = join(tmpRoot, 'ws')
     mkdirSync(wsPath)
 
@@ -289,9 +289,50 @@ describe('AppServerClient - startSession workspace validation (Section 17.5)', (
     expect(result instanceof Error).toBe(false)
     if (result instanceof Error)
       return
-    expect(typeof result.threadId).toBe('string')
-    expect(result.threadId.length).toBeGreaterThan(0)
+    expect(result.sessionId).toMatch(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i)
     expect(result.workspace).toBe(wsPath)
+  })
+
+  it('returns Error when provided sessionId is not a valid UUID', async () => {
+    const wsPath = join(tmpRoot, 'ws-invalid')
+    mkdirSync(wsPath)
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: 'claude', read_timeout_ms: 2000, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath)
+    const result = await client.startSession('not-a-uuid')
+    expect(result instanceof Error).toBe(true)
+    if (result instanceof Error)
+      expect(result.message).toContain('invalid_session_id')
+  })
+
+  it('uses provided sessionId when given to startSession', async () => {
+    const wsPath = join(tmpRoot, 'ws2')
+    mkdirSync(wsPath)
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: 'claude', read_timeout_ms: 2000, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const existingId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+    const client = new AppServerClient(config, wsPath)
+    const result = await client.startSession(existingId)
+    expect(result instanceof Error).toBe(false)
+    if (result instanceof Error)
+      return
+    expect(result.sessionId).toBe(existingId)
   })
 })
 
@@ -343,7 +384,6 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     const sessionStarted = messages.find(m => m.event === 'session_started')
     expect(sessionStarted).toBeDefined()
     expect(sessionStarted?.session_id).toBe(sessionId)
-    expect(sessionStarted?.thread_id).toBe(session.threadId)
 
     const turnCompleted = messages.find(m => m.event === 'turn_completed')
     expect(turnCompleted).toBeDefined()
@@ -353,7 +393,6 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     if (result instanceof Error)
       return
     expect(result.session_id).toBe(sessionId)
-    expect(result.thread_id).toBe(session.threadId)
     expect(typeof result.turn_id).toBe('string')
   })
 
@@ -400,6 +439,31 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     expect(startupFailed).toBeDefined()
     if (result instanceof Error)
       expect(result.message).toBe('no_session_started')
+  })
+
+  it('emits turn_failed (not startup_failed) when query throws after init received', async () => {
+    const sessionId = 'sdk-throw-after-init'
+
+    async function* mockQuery() {
+      yield makeInitMsg(sessionId, wsPath)
+      throw new Error('mid_turn_crash')
+    }
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, () => mockQuery())
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    const messages: AgentMessage[] = []
+    const result = await client.runTurn(session, 'hello', makeIssue(), msg => messages.push(msg))
+
+    expect(result instanceof Error).toBe(true)
+    const turnFailed = messages.find(m => m.event === 'turn_failed')
+    expect(turnFailed).toBeDefined()
+    expect((turnFailed?.payload as { reason: string })?.reason).toContain('mid_turn_crash')
+    const startupFailed = messages.find(m => m.event === 'startup_failed')
+    expect(startupFailed).toBeUndefined()
   })
 
   it('emits turn_failed and returns Error when SDKResultError received', async () => {
@@ -522,13 +586,34 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     expect(result instanceof Error).toBe(true)
   })
 
-  it('resumes previous session on 2nd turn (passes resume option)', async () => {
-    const sessionId = 'sdk-resume-session'
-    const capturedOptions: { resume?: string }[] = []
+  it('passes options.sessionId (not resume) on first turn of a new session', async () => {
+    const capturedOptions: { sessionId?: string, resume?: string }[] = []
 
     const config = makeConfig()
     const client = new AppServerClient(config, wsPath, ({ options }) => {
-      capturedOptions.push({ resume: options?.resume })
+      capturedOptions.push({ sessionId: options?.sessionId, resume: options?.resume })
+      return (async function* () {
+        yield makeInitMsg('new-session-id', wsPath)
+        yield makeSuccessMsg('new-session-id')
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'turn 1', makeIssue(), () => {})
+    expect(capturedOptions[0]?.resume).toBeUndefined()
+    expect(capturedOptions[0]?.sessionId).toBe(session.sessionId)
+  })
+
+  it('resumes previous session on 2nd turn (passes resume option)', async () => {
+    const sessionId = 'sdk-resume-session'
+    const capturedOptions: { sessionId?: string | undefined, resume?: string }[] = []
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedOptions.push({ sessionId: options?.sessionId, resume: options?.resume })
       return (async function* () {
         yield makeInitMsg(sessionId, wsPath)
         yield makeSuccessMsg(sessionId)
@@ -539,13 +624,125 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     if (session instanceof Error)
       return
 
-    // First turn — no resume
+    // First turn — no resume (uses options.sessionId instead)
     await client.runTurn(session, 'turn 1', makeIssue(), () => {})
     expect(capturedOptions[0]?.resume).toBeUndefined()
 
-    // Second turn — should resume previous session
+    // Second turn — should resume previous session; options.sessionId must be absent
     await client.runTurn(session, 'turn 2', makeIssue(), () => {})
     expect(capturedOptions[1]?.resume).toBe(sessionId)
+    expect(capturedOptions[1]?.sessionId).toBeUndefined()
+  })
+
+  it('stopSession then startSession uses fresh options.sessionId (not resume from previous)', async () => {
+    const firstSdkSessionId = 'first-sdk-session'
+    const capturedOptions: { sessionId?: string | undefined, resume?: string }[] = []
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedOptions.push({ sessionId: options?.sessionId, resume: options?.resume })
+      return (async function* () {
+        yield makeInitMsg(firstSdkSessionId, wsPath)
+        yield makeSuccessMsg(firstSdkSessionId)
+      })()
+    })
+
+    // First session
+    const session1 = await client.startSession()
+    if (session1 instanceof Error)
+      return
+    await client.runTurn(session1, 'turn 1', makeIssue(), () => {})
+    client.stopSession()
+
+    // Second session — must get a fresh options.sessionId, not resume the first
+    const session2 = await client.startSession()
+    if (session2 instanceof Error)
+      return
+    await client.runTurn(session2, 'turn 2', makeIssue(), () => {})
+
+    expect(capturedOptions[0]?.resume).toBeUndefined()
+    expect(capturedOptions[1]?.resume).toBeUndefined()
+    expect(capturedOptions[1]?.sessionId).toBe(session2.sessionId)
+    expect(session2.sessionId).not.toBe(session1.sessionId)
+  })
+
+  it('passes options.resume on first turn when sessionId provided to startSession (cross-restart resume)', async () => {
+    const existingId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+    const capturedOptions: { sessionId?: string, resume?: string }[] = []
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedOptions.push({ sessionId: options?.sessionId, resume: options?.resume })
+      return (async function* () {
+        yield makeInitMsg(existingId, wsPath)
+        yield makeSuccessMsg(existingId)
+      })()
+    })
+
+    const session = await client.startSession(existingId)
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'resume turn', makeIssue(), () => {})
+    expect(capturedOptions[0]?.resume).toBe(existingId)
+    expect(capturedOptions[0]?.sessionId).toBeUndefined()
+  })
+
+  it('preserves resume session ID on pre-init failure so next turn can retry', async () => {
+    const existingId = 'aaaaaaaa-bbbb-cccc-dddd-ffffffffffff'
+    const capturedOptions: { resume?: string }[] = []
+    let callCount = 0
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedOptions.push({ resume: options?.resume })
+      callCount++
+      if (callCount === 1) {
+        // First turn: transient error before system/init
+        return (async function* () {
+          throw new Error('transient_network_error')
+          // unreachable but satisfies generator return type
+          yield makeInitMsg(existingId, wsPath)
+        })()
+      }
+      // Second turn: succeeds
+      return (async function* () {
+        yield makeInitMsg(existingId, wsPath)
+        yield makeSuccessMsg(existingId)
+      })()
+    })
+
+    const session = await client.startSession(existingId)
+    if (session instanceof Error)
+      return
+
+    // First turn fails before init
+    const result1 = await client.runTurn(session, 'try 1', makeIssue(), () => {})
+    expect(result1 instanceof Error).toBe(true)
+    expect(capturedOptions[0]?.resume).toBe(existingId)
+
+    // Second turn should still pass resume (session ID preserved after pre-init failure)
+    const result2 = await client.runTurn(session, 'try 2', makeIssue(), () => {})
+    expect(result2 instanceof Error).toBe(false)
+    expect(capturedOptions[1]?.resume).toBe(existingId)
+  })
+
+  it('sessionId on AgentSession remains stable across turns', async () => {
+    const sdkSessionId = 'stable-session-id'
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, () => (async function* () {
+      yield makeInitMsg(sdkSessionId, wsPath)
+      yield makeSuccessMsg(sdkSessionId)
+    })())
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    const idBeforeTurn = session.sessionId
+    await client.runTurn(session, 'turn 1', makeIssue(), () => {})
+    expect(session.sessionId).toBe(idBeforeTurn)
   })
 
   it('passes bypassPermissions and allowDangerouslySkipPermissions when configured', async () => {

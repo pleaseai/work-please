@@ -109,7 +109,6 @@ export interface Workspace {
 
 export interface LiveSession {
   session_id: string
-  thread_id: string
   turn_id: string
   agent_app_server_pid: string | null
   last_agent_event: string | null
@@ -203,7 +202,6 @@ export interface AgentMessage {
   }
   rate_limits?: unknown
   session_id?: string
-  thread_id?: string
   turn_id?: string
   payload?: unknown
   raw?: string
