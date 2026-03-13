@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/pleaseai/work-please/compare/work-v0.1.2...work-v0.1.3) (2026-03-13)
+
+
+### Features
+
+* **tracker:** add formatTrackerError with full error details ([#61](https://github.com/pleaseai/work-please/issues/61)) ([52dd0f7](https://github.com/pleaseai/work-please/commit/52dd0f72d19ebc51eb3da6724387e3feffdb9289))
+
 ## [0.1.2](https://github.com/pleaseai/work-please/compare/work-v0.1.1...work-v0.1.2) (2026-03-13)
 
 
