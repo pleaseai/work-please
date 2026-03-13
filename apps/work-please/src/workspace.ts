@@ -7,16 +7,21 @@ const CLAUDE_SETTINGS_PATH = '.claude/settings.local.json'
 const WORK_PLEASE_URL = 'https://github.com/pleaseai/work-please'
 const ATTRIBUTION_TEXT = `🙏 Generated with [Work Please](${WORK_PLEASE_URL})`
 
-export function generateClaudeSettings(): string {
-  return `${JSON.stringify({ attribution: { commit: ATTRIBUTION_TEXT, pr: ATTRIBUTION_TEXT } }, null, 2)}\n`
+export function generateClaudeSettings(attribution?: { commit?: string | null, pr?: string | null }): string {
+  return `${JSON.stringify({
+    attribution: {
+      commit: attribution?.commit ?? ATTRIBUTION_TEXT,
+      pr: attribution?.pr ?? ATTRIBUTION_TEXT,
+    },
+  }, null, 2)}\n`
 }
 
-export function ensureClaudeSettings(wsPath: string): void {
+export function ensureClaudeSettings(wsPath: string, attribution?: { commit?: string | null, pr?: string | null }): void {
   const settingsPath = join(wsPath, CLAUDE_SETTINGS_PATH)
   if (existsSync(settingsPath))
     return
   mkdirSync(dirname(settingsPath), { recursive: true })
-  writeFileSync(settingsPath, generateClaudeSettings(), 'utf-8')
+  writeFileSync(settingsPath, generateClaudeSettings(attribution), 'utf-8')
 }
 
 // Thin wrapper around Bun.spawnSync — replaced by spyOn(_git, 'spawnSync') in unit tests
@@ -186,7 +191,7 @@ export async function createWorkspace(
         if (hookErr)
           return hookErr
       }
-      ensureClaudeSettings(wtPath)
+      ensureClaudeSettings(wtPath, config.claude.settings.attribution)
       return { path: wtPath, workspace_key: key, created_now: createdNow }
     }
   }
@@ -226,7 +231,7 @@ export async function createWorkspace(
       return hookErr
   }
 
-  ensureClaudeSettings(wsPath)
+  ensureClaudeSettings(wsPath, config.claude.settings.attribution)
   return workspace
 }
 

@@ -71,6 +71,17 @@ describe('generateClaudeSettings', () => {
     const parsed = JSON.parse(generateClaudeSettings())
     expect(parsed.attribution.pr).toContain('github.com/pleaseai/work-please')
   })
+
+  it('uses provided attribution values instead of defaults', () => {
+    const parsed = JSON.parse(generateClaudeSettings({ commit: 'My commit', pr: 'My PR' }))
+    expect(parsed.attribution.commit).toBe('My commit')
+    expect(parsed.attribution.pr).toBe('My PR')
+  })
+
+  it('falls back to default when attribution value is null', () => {
+    const parsed = JSON.parse(generateClaudeSettings({ commit: null }))
+    expect(parsed.attribution.commit).toContain('Work Please')
+  })
 })
 
 describe('ensureClaudeSettings', () => {
@@ -140,6 +151,25 @@ describe('createWorkspace creates attribution settings', () => {
 
     const settingsPath = join(result.path, '.claude', 'settings.local.json')
     expect(existsSync(settingsPath)).toBe(true)
+  })
+
+  it('uses custom attribution from config when generating settings', async () => {
+    const config = makeConfig(tmpRoot, {
+      claude: {
+        settings: {
+          attribution: { commit: 'Custom commit text', pr: 'Custom PR text' },
+        },
+      },
+    })
+    const result = await createWorkspace(config, 'MT-CUSTOM')
+    expect(result instanceof Error).toBe(false)
+    if (result instanceof Error)
+      return
+
+    const settingsPath = join(result.path, '.claude', 'settings.local.json')
+    const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    expect(parsed.attribution.commit).toBe('Custom commit text')
+    expect(parsed.attribution.pr).toBe('Custom PR text')
   })
 })
 

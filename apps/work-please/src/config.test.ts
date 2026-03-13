@@ -207,6 +207,46 @@ describe('buildConfig', () => {
   })
 })
 
+describe('buildConfig - claude.settings.attribution', () => {
+  it('defaults attribution to null when not configured', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.claude.settings.attribution.commit).toBeNull()
+    expect(config.claude.settings.attribution.pr).toBeNull()
+  })
+
+  it('parses commit attribution from claude.settings.attribution', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { settings: { attribution: { commit: 'Made with My Bot' } } },
+    }))
+    expect(config.claude.settings.attribution.commit).toBe('Made with My Bot')
+    expect(config.claude.settings.attribution.pr).toBeNull()
+  })
+
+  it('parses pr attribution from claude.settings.attribution', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { settings: { attribution: { pr: 'PR by My Bot' } } },
+    }))
+    expect(config.claude.settings.attribution.pr).toBe('PR by My Bot')
+    expect(config.claude.settings.attribution.commit).toBeNull()
+  })
+
+  it('parses both commit and pr attribution together', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { settings: { attribution: { commit: 'commit text', pr: 'pr text' } } },
+    }))
+    expect(config.claude.settings.attribution.commit).toBe('commit text')
+    expect(config.claude.settings.attribution.pr).toBe('pr text')
+  })
+
+  it('coerces empty attribution string to null', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { settings: { attribution: { commit: '', pr: '   ' } } },
+    }))
+    expect(config.claude.settings.attribution.commit).toBeNull()
+    expect(config.claude.settings.attribution.pr).toBeNull()
+  })
+})
+
 describe('buildConfig - github app auth fields', () => {
   it('parses app_id, private_key, and installation_id from YAML', () => {
     const config = buildConfig(makeWorkflow({

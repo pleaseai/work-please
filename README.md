@@ -397,6 +397,10 @@ claude:
   turn_timeout_ms: 3600000            # Optional: per-turn timeout in ms, default 3600000
   read_timeout_ms: 5000               # Optional: initial subprocess read timeout in ms, default 5000
   stall_timeout_ms: 300000            # Optional: stall detection timeout, default 300000
+  settings:
+    attribution:
+      commit: "🙏 Generated with Work Please"  # Optional: appended to git commit messages. Defaults to Work Please link.
+      pr: "🙏 Generated with Work Please"      # Optional: appended to PR descriptions. Defaults to Work Please link.
 
 server:
   port: 3000                          # Optional: enable HTTP dashboard on this port
