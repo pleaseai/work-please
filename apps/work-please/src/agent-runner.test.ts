@@ -1168,4 +1168,33 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     expect(result instanceof Error).toBe(false)
     expect(capturedSettingSources).toEqual(['project', 'user', 'local'])
   })
+
+  it('passes effort to SDK options when configured', async () => {
+    const sessionId = 'sdk-effort-session'
+    let capturedEffort: string | undefined
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: 'claude', effort: 'low', read_timeout_ms: 2000, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedEffort = (options as Record<string, unknown>)?.effort as string | undefined
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedEffort).toBe('low')
+  })
 })

@@ -28,6 +28,7 @@ agent:
   max_concurrent_agents: 5
   max_turns: 20
 claude:
+  # effort: high                     # default: high; controls reasoning depth ('low', 'medium', 'high', 'max')
   permission_mode: bypassPermissions
   # setting_sources: []               # optional: default [project, local, user]; set [] for SDK isolation (no CLAUDE.md or settings files loaded)
 server:

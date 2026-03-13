@@ -1,3 +1,5 @@
+export type ClaudeEffort = 'low' | 'medium' | 'high' | 'max'
+
 export interface BlockerRef {
   id: string | null
   identifier: string | null
@@ -90,6 +92,7 @@ export interface ServiceConfig {
   claude: {
     /** null = use the Claude CLI default model */
     model: string | null
+    effort: ClaudeEffort
     command: string
     permission_mode: string
     allowed_tools: string[]

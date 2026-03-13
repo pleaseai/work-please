@@ -1,4 +1,4 @@
-import type { IssueFilter, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { ClaudeEffort, IssueFilter, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -13,6 +13,7 @@ const DEFAULTS = {
   MAX_CONCURRENT_AGENTS: 10,
   AGENT_MAX_TURNS: 20,
   MAX_RETRY_BACKOFF_MS: 300_000,
+  CLAUDE_EFFORT: 'high' as ClaudeEffort,
   CLAUDE_COMMAND: 'claude',
   CLAUDE_PERMISSION_MODE: 'bypassPermissions',
   CLAUDE_ALLOWED_TOOLS: [] as string[],
@@ -73,6 +74,7 @@ function buildClaudeConfig(claude: Record<string, unknown>): ServiceConfig['clau
   const attributionSec = sectionMap(settingsSec, 'attribution')
   return {
     model: stringValue(claude.model),
+    effort: effortValue(claude.effort, DEFAULTS.CLAUDE_EFFORT),
     command: commandValue(claude.command) ?? DEFAULTS.CLAUDE_COMMAND,
     permission_mode: stringValue(claude.permission_mode) ?? DEFAULTS.CLAUDE_PERMISSION_MODE,
     allowed_tools: stringArrayValue(claude.allowed_tools, DEFAULTS.CLAUDE_ALLOWED_TOOLS),
@@ -300,6 +302,19 @@ function hookScriptValue(val: unknown): string | null {
     return null
   const trimmed = val.trimEnd()
   return trimmed === '' ? null : trimmed
+}
+
+function effortValue(val: unknown, fallback: ClaudeEffort): ClaudeEffort {
+  const s = typeof val === 'string' ? val.trim() : val
+  switch (s) {
+    case 'low':
+    case 'medium':
+    case 'high':
+    case 'max':
+      return s
+    default:
+      return fallback
+  }
 }
 
 function commandValue(val: unknown): string | null {

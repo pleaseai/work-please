@@ -191,6 +191,23 @@ describe('buildConfig', () => {
     expect(config.claude.system_prompt).toEqual({ type: 'preset', preset: 'claude_code' })
   })
 
+  it('defaults claude.effort to "high" when not specified', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.claude.effort).toBe('high')
+  })
+
+  it('parses valid effort values', () => {
+    for (const effort of ['low', 'medium', 'high', 'max'] as const) {
+      const config = buildConfig(makeWorkflow({ claude: { effort } }))
+      expect(config.claude.effort).toBe(effort)
+    }
+  })
+
+  it('falls back to "high" for invalid effort value', () => {
+    const config = buildConfig(makeWorkflow({ claude: { effort: 'turbo' } }))
+    expect(config.claude.effort).toBe('high')
+  })
+
   it('preserves claude.command as shell command string including spaces (Section 17.1)', () => {
     const config = buildConfig(makeWorkflow({
       claude: { command: 'claude --permission-mode full --no-ansi' },

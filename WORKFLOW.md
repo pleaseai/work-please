@@ -27,6 +27,7 @@ agent:
   max_turns: 20
 claude:
   # command: claude                  # default; override for custom path
+  # effort: high                     # default: high; controls reasoning depth ('low', 'medium', 'high', 'max')
   permission_mode: bypassPermissions # default
   # allowed_tools: []               # default: all tools allowed
   # setting_sources: []             # optional: default [project, local, user]; set [] for SDK isolation (no CLAUDE.md or settings files loaded)

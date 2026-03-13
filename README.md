@@ -392,6 +392,7 @@ agent:
 
 claude:
   command: claude                     # Optional: Claude Code CLI command, default "claude"
+  effort: high                        # Optional: reasoning depth — 'low', 'medium', 'high', or 'max'. Default 'high'.
   permission_mode: acceptEdits        # Optional: one of 'default', 'acceptEdits', 'bypassPermissions'. Defaults to 'bypassPermissions'.
   allowed_tools:                      # Optional: restrict available tools
     - Read

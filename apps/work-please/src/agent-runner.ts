@@ -115,6 +115,8 @@ export class AppServerClient {
       options.systemPrompt = sp
     }
 
+    options.effort = this.config.claude.effort
+
     const toolSpecs = getToolSpecs(this.config)
     if (toolSpecs.length > 0) {
       options.mcpServers = {
