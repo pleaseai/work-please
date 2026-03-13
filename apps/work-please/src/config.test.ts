@@ -220,6 +220,20 @@ describe('buildConfig', () => {
     }))
     expect(config.claude.setting_sources).toEqual(['project', 'local'])
   })
+
+  it('filters out invalid string values from setting_sources', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { setting_sources: ['project', 'invalid', 'user', 'enterprise'] },
+    }))
+    expect(config.claude.setting_sources).toEqual(['project', 'user'])
+  })
+
+  it('defaults setting_sources to [] when explicitly set to null', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { setting_sources: null },
+    }))
+    expect(config.claude.setting_sources).toEqual([])
+  })
 })
 
 describe('buildConfig - claude.settings.attribution', () => {

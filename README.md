@@ -395,7 +395,7 @@ claude:
     - Write
     - Bash
   setting_sources:                    # Optional: filesystem settings to load (default [] = SDK isolation mode)
-    - project                         # "project" loads CLAUDE.md; "user" loads user settings; "local" loads .claude/settings.local.json
+    - project                         # "project" loads .claude/settings.json and CLAUDE.md; "user" loads ~/.claude/settings.json; "local" loads .claude/settings.local.json
   turn_timeout_ms: 3600000            # Optional: per-turn timeout in ms, default 3600000
   read_timeout_ms: 5000               # Optional: initial subprocess read timeout in ms, default 5000
   stall_timeout_ms: 300000            # Optional: stall detection timeout, default 300000

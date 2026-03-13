@@ -29,7 +29,7 @@ claude:
   # command: claude                  # default; override for custom path
   permission_mode: bypassPermissions # default
   # allowed_tools: []               # default: all tools allowed
-  # setting_sources: [project]      # optional: load CLAUDE.md ("project"), user settings ("user"), or local settings ("local"). Default: [] (SDK isolation)
+  # setting_sources: [project]      # optional: load .claude/settings.json + CLAUDE.md ("project"), user settings ("user"), or local settings ("local"). Default: [] (SDK isolation)
   # turn_timeout_ms: 3600000        # default: 1 hour
 # server:
 #   port: 3000                      # optional HTTP dashboard

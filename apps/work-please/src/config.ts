@@ -1,9 +1,10 @@
-import type { IssueFilter, ServiceConfig, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { IssueFilter, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
 
 const ENV_VAR_RE = /^\$([A-Z_]\w*)$/i
+const VALID_SETTING_SOURCES = new Set<string>(['user', 'project', 'local'])
 
 const DEFAULTS = {
   POLL_INTERVAL_MS: 30_000,
@@ -75,7 +76,8 @@ function buildClaudeConfig(claude: Record<string, unknown>): ServiceConfig['clau
     command: commandValue(claude.command) ?? DEFAULTS.CLAUDE_COMMAND,
     permission_mode: stringValue(claude.permission_mode) ?? DEFAULTS.CLAUDE_PERMISSION_MODE,
     allowed_tools: stringArrayValue(claude.allowed_tools, DEFAULTS.CLAUDE_ALLOWED_TOOLS),
-    setting_sources: stringArrayValue(claude.setting_sources, DEFAULTS.CLAUDE_SETTING_SOURCES),
+    setting_sources: stringArrayValue(claude.setting_sources, DEFAULTS.CLAUDE_SETTING_SOURCES)
+      .filter((s): s is SettingSource => VALID_SETTING_SOURCES.has(s)),
     turn_timeout_ms: intValue(claude.turn_timeout_ms, DEFAULTS.CLAUDE_TURN_TIMEOUT_MS),
     read_timeout_ms: intValue(claude.read_timeout_ms, DEFAULTS.CLAUDE_READ_TIMEOUT_MS),
     stall_timeout_ms: intValue(claude.stall_timeout_ms, DEFAULTS.CLAUDE_STALL_TIMEOUT_MS),
@@ -325,7 +327,7 @@ function csvValue(val: unknown): string[] | null {
 function stringArrayValue(val: unknown, fallback: string[]): string[] {
   if (!Array.isArray(val))
     return fallback
-  return val.filter(v => typeof v === 'string')
+  return val.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
 }
 
 function stateLimitsValue(val: unknown): Record<string, number> {

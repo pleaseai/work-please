@@ -123,7 +123,7 @@ export class AppServerClient {
     }
 
     if (this.config.claude.setting_sources.length > 0) {
-      options.settingSources = this.config.claude.setting_sources as Options['settingSources']
+      options.settingSources = this.config.claude.setting_sources
     }
 
     const turnId = randomUUID()
