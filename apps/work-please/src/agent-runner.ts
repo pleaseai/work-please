@@ -90,11 +90,8 @@ export class AppServerClient {
     if (sp.type === 'custom') {
       options.systemPrompt = sp.value
     }
-    else if (sp.append) {
-      options.systemPrompt = { type: 'preset', preset: sp.preset, append: sp.append }
-    }
     else {
-      options.systemPrompt = { type: 'preset', preset: sp.preset }
+      options.systemPrompt = sp
     }
 
     const toolSpecs = getToolSpecs(this.config)

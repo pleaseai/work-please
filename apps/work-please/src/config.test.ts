@@ -185,6 +185,11 @@ describe('buildConfig', () => {
     expect(config.claude.system_prompt).toEqual({ type: 'custom', value: 'You are a specialized agent.' })
   })
 
+  it('falls back to default when claude.system_prompt custom object value is blank', () => {
+    const config = buildConfig(makeWorkflow({ claude: { system_prompt: { type: 'custom', value: '   ' } } }))
+    expect(config.claude.system_prompt).toEqual({ type: 'preset', preset: 'claude_code' })
+  })
+
   it('preserves claude.command as shell command string including spaces (Section 17.1)', () => {
     const config = buildConfig(makeWorkflow({
       claude: { command: 'claude --permission-mode full --no-ansi' },

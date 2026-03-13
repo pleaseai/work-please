@@ -227,11 +227,13 @@ function systemPromptValue(val: unknown): SystemPromptConfig {
   if (typeof val === 'object' && !Array.isArray(val)) {
     const obj = val as Record<string, unknown>
     if (obj.type === 'preset' && obj.preset === 'claude_code') {
-      const append = typeof obj.append === 'string' ? obj.append : undefined
-      return append !== undefined ? { type: 'preset', preset: 'claude_code', append } : { type: 'preset', preset: 'claude_code' }
+      return typeof obj.append === 'string'
+        ? { type: 'preset', preset: 'claude_code', append: obj.append }
+        : { type: 'preset', preset: 'claude_code' }
     }
     if (obj.type === 'custom' && typeof obj.value === 'string') {
-      return { type: 'custom', value: obj.value }
+      const trimmed = obj.value.trim()
+      return trimmed ? { type: 'custom', value: trimmed } : DEFAULT_SYSTEM_PROMPT
     }
   }
   return DEFAULT_SYSTEM_PROMPT
