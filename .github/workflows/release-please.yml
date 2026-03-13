@@ -56,5 +56,5 @@ jobs:
       - name: Copy root files into package directory
         run: cp LICENSE README.md apps/work-please/
 
-      - run: npm publish --provenance --access public
+      - run: npm publish --access public
         working-directory: apps/work-please

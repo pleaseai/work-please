@@ -152,6 +152,10 @@ Red → Green → Refactor → Commit → repeat
 
 Only commit when **all tests pass** and **all lint/type errors are resolved**.
 
+## CI / Release
+
+- npm publish uses **OIDC trusted publishing** (`id-token: write` required for OIDC auth) — do not add `--provenance` flag; private source repos cannot generate provenance (GitHub limitation) and the flag causes a 422 error
+
 ## Key Implementation Notes
 
 - The service is a **scheduler/runner only** — it does not write to the issue tracker itself. Ticket state transitions
