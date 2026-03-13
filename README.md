@@ -36,13 +36,13 @@ instead of supervising coding agents.
 
 Work Please is a long-running TypeScript service that:
 
-1. Polls an issue tracker (Asana or GitHub Projects v2) for tasks in configured active states.
+1. Polls an issue tracker (GitHub Projects v2 or Asana) for tasks in configured active states.
 2. Creates an isolated workspace directory for each eligible issue.
 3. Launches a Claude Code agent session inside that workspace with a rendered prompt.
 4. Monitors the session, handles retries, and reconciles issue state on each poll cycle.
 
 It is a TypeScript implementation of the [Symphony specification](vendor/symphony/SPEC.md),
-adapted for Asana / GitHub Projects v2 and Claude Code instead of Linear and Codex.
+adapted for GitHub Projects v2 / Asana and Claude Code instead of Linear and Codex.
 
 For full technical details, see [SPEC.md](SPEC.md).
 
@@ -50,18 +50,18 @@ For full technical details, see [SPEC.md](SPEC.md).
 
 | | Symphony (reference) | Work Please |
 |---|---|---|
-| Issue Tracker | Linear | Asana & GitHub Projects v2 |
+| Issue Tracker | Linear | GitHub Projects v2 & Asana (under development) |
 | Coding Agent | Codex (app-server mode) | Claude Code CLI |
 | Language | Elixir/OTP | TypeScript + Bun |
-| Tracker Auth | `LINEAR_API_KEY` | `ASANA_ACCESS_TOKEN`, `GITHUB_TOKEN`, or GitHub App credentials |
-| Project Config | `project_slug` | `project_gid` (Asana) or `owner` + `project_number` (GitHub Projects v2) |
-| Issue States | Linear workflow states | Asana sections / GitHub Projects v2 Status field |
+| Tracker Auth | `LINEAR_API_KEY` | `GITHUB_TOKEN`, GitHub App credentials, or `ASANA_ACCESS_TOKEN` |
+| Project Config | `project_slug` | `owner` + `project_number` (GitHub Projects v2) or `project_gid` (Asana) |
+| Issue States | Linear workflow states | GitHub Projects v2 Status field / Asana sections |
 | Agent Protocol | JSON-RPC over stdio | `@anthropic-ai/claude-agent-sdk` |
 | Permission Model | Codex approval/sandbox policies | Claude Code `--permission-mode` |
 
 ## Features
 
-- **Multi-tracker support** — Dispatch work from Asana tasks or GitHub Projects v2 items on a
+- **Multi-tracker support** — Dispatch work from GitHub Projects v2 items or Asana tasks (under development) on a
   fixed cadence.
 - **GitHub App authentication** — Authenticate the GitHub tracker with a GitHub App installation
   token (`app_id` + `private_key` + `installation_id`) instead of a PAT, for fine-grained
@@ -90,8 +90,8 @@ Config Layer ──> Orchestrator ──> Workspace Manager ──> Agent Runner
                      |                                         |
                      v                                         v
            Issue Tracker Client                       Isolated workspace/
-          (Asana REST API or                          per-issue directory
-          GitHub GraphQL API,
+          (GitHub GraphQL API or                      per-issue directory
+          Asana REST API,
           polling + reconciliation)
                      |
                      v
@@ -103,7 +103,7 @@ Components:
 - **Workflow Loader** — Parses `WORKFLOW.md` YAML front matter and prompt template body.
 - **Config Layer** — Typed getters with env-var indirection and built-in defaults.
 - **Issue Tracker Client** — Fetches candidate issues, reconciles running-issue states. Supports
-  Asana (REST API) and GitHub Projects v2 (GraphQL API) adapters.
+  GitHub Projects v2 (GraphQL API) and Asana (REST API) adapters.
 - **Orchestrator** — Owns in-memory state; drives the poll/dispatch/retry loop.
 - **Workspace Manager** — Creates, reuses, and cleans per-issue workspaces; runs hooks.
 - **Agent Runner** — Launches Claude Code, streams events back to the orchestrator.
@@ -117,9 +117,9 @@ See [SPEC.md](SPEC.md) for the full specification.
 
 - **Bun** (see [bun.sh](https://bun.sh) for installation)
 - **Claude Code CLI** (see the [official installation guide](https://docs.anthropic.com/en/docs/claude-code))
-- **Asana access token** (`ASANA_ACCESS_TOKEN`) **or** **GitHub token** (`GITHUB_TOKEN`) with
-  access to the target project, **or** **GitHub App credentials** (`GITHUB_APP_ID`,
-  `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID`) — see [GitHub App Authentication](#github-app-authentication)
+- **GitHub token** (`GITHUB_TOKEN`) with access to the target project, **or** **GitHub App credentials**
+  (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID`) — see [GitHub App Authentication](#github-app-authentication),
+  **or** **Asana access token** (`ASANA_ACCESS_TOKEN`) (under development)
 
 ### Install
 
@@ -133,67 +133,11 @@ bun run build
 ### Configure
 
 Create a `WORKFLOW.md` in your target repository. Two examples are shown below.
-
-#### Asana
-
-```markdown
----
-tracker:
-  kind: asana
-  api_key: $ASANA_ACCESS_TOKEN
-  project_gid: "1234567890123456"
-  active_sections:
-    - In Progress
-  terminal_sections:
-    - Done
-    - Cancelled
-
-polling:
-  interval_ms: 30000
-
-workspace:
-  root: ~/work-please_workspaces
-
-hooks:
-  after_create: |
-    git clone https://github.com/your-org/your-repo.git .
-    bun install
-
-agent:
-  max_concurrent_agents: 3
-  max_turns: 20
-
-claude:
-  permission_mode: acceptEdits
-  # setting_sources: []               # default: [project, local, user]; set [] for SDK isolation mode
-  turn_timeout_ms: 3600000
----
-
-You are working on an Asana task for the project.
-
-Task: {{ issue.title }}
-
-{{ issue.description }}
-
-{% if issue.blocked_by.size > 0 %}
-Blocked by:
-{% for blocker in issue.blocked_by %}
-- {{ blocker.identifier }} ({{ blocker.state }})
-{% endfor %}
-{% endif %}
-
-{% if attempt %}
-This is attempt #{{ attempt }}. Review any prior work in the workspace before continuing.
-{% endif %}
-
-Your task:
-1. Understand the task requirements.
-2. Implement the requested changes.
-3. Write or update tests as needed.
-4. Open a pull request and move this task to the review section.
-```
+See also the [example WORKFLOW.md](https://github.com/pleaseai/workflow/blob/main/WORKFLOW.md) for a real-world reference.
 
 #### GitHub Projects v2 (PAT)
+
+See also the [example GitHub Project](https://github.com/orgs/pleaseai/projects/2) for a real-world reference.
 
 ```markdown
 ---
@@ -298,19 +242,97 @@ You are working on a GitHub issue for the repository `your-org/your-repo`.
 Issue {{ issue.identifier }}: {{ issue.title }}
 
 {{ issue.description }}
+
+{% if issue.blocked_by.size > 0 %}
+Blocked by:
+{% for blocker in issue.blocked_by %}
+- {{ blocker.identifier }} ({{ blocker.state }})
+{% endfor %}
+{% endif %}
+
+{% if attempt %}
+This is attempt #{{ attempt }}. Review any prior work in the workspace before continuing.
+{% endif %}
+
+Your task:
+1. Understand the issue requirements.
+2. Implement the requested changes.
+3. Write or update tests as needed.
+4. Open a pull request and move this issue to the review status.
+```
+
+#### Asana (under development)
+
+> **Note**: Asana support is under development. The configuration below is a preview and may change.
+
+```markdown
+---
+tracker:
+  kind: asana
+  api_key: $ASANA_ACCESS_TOKEN
+  project_gid: "1234567890123456"
+  active_sections:
+    - In Progress
+  terminal_sections:
+    - Done
+    - Cancelled
+
+polling:
+  interval_ms: 30000
+
+workspace:
+  root: ~/work-please_workspaces
+
+hooks:
+  after_create: |
+    git clone https://github.com/your-org/your-repo.git .
+    bun install
+
+agent:
+  max_concurrent_agents: 3
+  max_turns: 20
+
+claude:
+  permission_mode: acceptEdits
+  # setting_sources: []               # default: [project, local, user]; set [] for SDK isolation mode
+  turn_timeout_ms: 3600000
+---
+
+You are working on an Asana task for the project.
+
+Task: {{ issue.title }}
+
+{{ issue.description }}
+
+{% if issue.blocked_by.size > 0 %}
+Blocked by:
+{% for blocker in issue.blocked_by %}
+- {{ blocker.identifier }} ({{ blocker.state }})
+{% endfor %}
+{% endif %}
+
+{% if attempt %}
+This is attempt #{{ attempt }}. Review any prior work in the workspace before continuing.
+{% endif %}
+
+Your task:
+1. Understand the task requirements.
+2. Implement the requested changes.
+3. Write or update tests as needed.
+4. Open a pull request and move this task to the review section.
 ```
 
 ### Run
 
 ```bash
-# Set your tracker token
-export ASANA_ACCESS_TOKEN=your_token_here
-# or (GitHub PAT)
+# Set your tracker token (GitHub PAT)
 export GITHUB_TOKEN=ghp_your_token_here
 # or (GitHub App)
 export GITHUB_APP_ID=12345
 export GITHUB_APP_PRIVATE_KEY="$(cat path/to/private-key.pem)"
 export GITHUB_APP_INSTALLATION_ID=67890
+# or (Asana — under development)
+export ASANA_ACCESS_TOKEN=your_token_here
 
 # Run Work Please against a WORKFLOW.md in the current directory
 bunx work-please
@@ -332,33 +354,33 @@ front matter configuration block with a Markdown prompt template body.
 ```yaml
 ---
 tracker:
-  kind: asana                         # Required: "asana" or "github_projects"
-
-  # --- Asana fields (when kind == "asana") ---
-  api_key: $ASANA_ACCESS_TOKEN        # Required: token or $ENV_VAR
-  endpoint: https://app.asana.com/api/1.0  # Optional: override Asana API base URL
-  project_gid: "1234567890123456"     # Required: Asana project GID
-  active_sections:                    # Optional: default ["To Do", "In Progress"]
-    - In Progress
-  terminal_sections:                  # Optional: default ["Done", "Cancelled"]
-    - Done
-    - Cancelled
+  kind: github_projects               # Required: "github_projects" or "asana"
 
   # --- GitHub Projects v2 fields (when kind == "github_projects") ---
-  # api_key: $GITHUB_TOKEN            # Required: token or $ENV_VAR
-  # endpoint: https://api.github.com  # Optional: override GitHub API base URL
-  # owner: your-org                   # Required: GitHub organization or user login
-  # project_number: 42                # Required: GitHub Projects v2 project number
-  # project_id: PVT_kwDOxxxxx         # Optional: project node ID (bypasses owner+project_number lookup)
-  # active_statuses:                  # Optional: default ["Todo", "In Progress"]
-  #   - In Progress
-  # terminal_statuses:                # Optional: default ["Done", "Cancelled"]
-  #   - Done
-  #   - Cancelled
+  api_key: $GITHUB_TOKEN              # Required: token or $ENV_VAR
+  endpoint: https://api.github.com   # Optional: override GitHub API base URL
+  owner: your-org                     # Required: GitHub organization or user login
+  project_number: 42                  # Required: GitHub Projects v2 project number
+  project_id: PVT_kwDOxxxxx          # Optional: project node ID (bypasses owner+project_number lookup)
+  active_statuses:                    # Optional: default ["Todo", "In Progress"]
+    - In Progress
+  terminal_statuses:                  # Optional: default ["Done", "Cancelled"]
+    - Done
+    - Cancelled
   # GitHub App authentication (alternative to api_key — all three required together):
   # app_id: $GITHUB_APP_ID            # Optional: GitHub App ID (integer or $ENV_VAR)
   # private_key: $GITHUB_APP_PRIVATE_KEY  # Optional: GitHub App private key PEM or $ENV_VAR
   # installation_id: $GITHUB_APP_INSTALLATION_ID  # Optional: installation ID (integer or $ENV_VAR)
+
+  # --- Asana fields (when kind == "asana") --- UNDER DEVELOPMENT
+  # api_key: $ASANA_ACCESS_TOKEN      # Required: token or $ENV_VAR
+  # endpoint: https://app.asana.com/api/1.0  # Optional: override Asana API base URL
+  # project_gid: "1234567890123456"   # Required: Asana project GID
+  # active_sections:                  # Optional: default ["To Do", "In Progress"]
+  #   - In Progress
+  # terminal_sections:                # Optional: default ["Done", "Cancelled"]
+  #   - Done
+  #   - Cancelled
 
   # --- Shared filter fields (both trackers) ---
   # filter:
