@@ -5,7 +5,7 @@ import { AppServerClient } from './agent-runner'
 import { buildConfig, getActiveStates, getTerminalStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 import { createLabelService } from './label'
 import { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
-import { createTrackerAdapter, isTrackerError } from './tracker/index'
+import { createTrackerAdapter, formatTrackerError, isTrackerError } from './tracker/index'
 import { isWorkflowError, loadWorkflow } from './workflow'
 import { createWorkspace, removeWorkspace, runAfterRunHook, runBeforeRunHook } from './workspace'
 
@@ -115,14 +115,14 @@ export class Orchestrator {
     // 3. Fetch candidate issues
     const adapter = createTrackerAdapter(this.config)
     if (isTrackerError(adapter)) {
-      console.error(`[orchestrator] tracker adapter error: ${adapter.code}`)
+      console.error(`[orchestrator] tracker adapter error: ${formatTrackerError(adapter)}`)
       this.scheduleTick(this.state.poll_interval_ms)
       return
     }
 
     const candidatesResult = await adapter.fetchCandidateIssues()
     if (isTrackerError(candidatesResult)) {
-      console.error(`[orchestrator] tracker fetch failed: ${candidatesResult.code}`)
+      console.error(`[orchestrator] tracker fetch failed: ${formatTrackerError(candidatesResult)}`)
       this.scheduleTick(this.state.poll_interval_ms)
       return
     }
@@ -494,7 +494,7 @@ export class Orchestrator {
 
     const refreshed = await adapter.fetchIssueStatesByIds(runningIds)
     if (isTrackerError(refreshed)) {
-      console.warn(`[orchestrator] state refresh failed: ${refreshed.code} — keeping workers running`)
+      console.warn(`[orchestrator] state refresh failed: ${formatTrackerError(refreshed)} — keeping workers running`)
       return
     }
 
@@ -548,13 +548,13 @@ export class Orchestrator {
 
     const adapter = createTrackerAdapter(this.config)
     if (isTrackerError(adapter)) {
-      console.warn(`[orchestrator] startup cleanup: adapter error ${adapter.code}`)
+      console.warn(`[orchestrator] startup cleanup: adapter error ${formatTrackerError(adapter)}`)
       return
     }
 
     const result = await adapter.fetchIssuesByStates(terminalStates)
     if (isTrackerError(result)) {
-      console.warn(`[orchestrator] startup terminal cleanup failed: ${result.code}`)
+      console.warn(`[orchestrator] startup terminal cleanup failed: ${formatTrackerError(result)}`)
       return
     }
 

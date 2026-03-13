@@ -3,7 +3,7 @@ import type { TrackerAdapter, TrackerError } from './types'
 import { createAsanaAdapter } from './asana'
 import { createGitHubAdapter } from './github'
 
-export { isTrackerError } from './types'
+export { formatTrackerError, isTrackerError } from './types'
 export type { TrackerAdapter, TrackerError }
 
 export function createTrackerAdapter(config: ServiceConfig): TrackerAdapter | TrackerError {
