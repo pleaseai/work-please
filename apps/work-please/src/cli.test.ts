@@ -127,6 +127,16 @@ describe('parseArgs - --port flag', () => {
   })
 })
 
+describe('parseArgs - --version / -V flag', () => {
+  it('does not throw when --version is passed', () => {
+    expect(() => parseArgs(['--version'])).not.toThrow()
+  })
+
+  it('does not throw when -V is passed', () => {
+    expect(() => parseArgs(['-V'])).not.toThrow()
+  })
+})
+
 describe('CLI startup - nonexistent workflow path (Section 17.7)', () => {
   it('exits nonzero when explicit workflow path does not exist', () => {
     // Use import.meta.dir (Bun) to find the app root regardless of test cwd

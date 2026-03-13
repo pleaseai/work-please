@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import { Command, CommanderError } from 'commander'
+import pkg from '../package.json'
 import { runInit } from './init'
 import { Orchestrator } from './orchestrator'
 import { HttpServer } from './server'
@@ -102,6 +103,7 @@ export function parseArgs(args: string[]): ParsedArgs {
   }
 
   const program = new Command()
+  program.version(pkg.version)
   program.exitOverride()
   program.allowUnknownOption()
   program.allowExcessArguments(true)
