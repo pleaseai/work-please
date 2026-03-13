@@ -20,7 +20,7 @@
   "scripts": {
     "prepublishOnly": "cp ../../LICENSE ../../README.md .",
     "postpublish": "rm -f LICENSE README.md",
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun && bun run scripts/add-shebang.ts",
     "dev": "bun run --watch src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
