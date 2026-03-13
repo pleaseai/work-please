@@ -305,9 +305,16 @@ function hookScriptValue(val: unknown): string | null {
 }
 
 function effortValue(val: unknown, fallback: ClaudeEffort): ClaudeEffort {
-  if (val === 'low' || val === 'medium' || val === 'high' || val === 'max')
-    return val
-  return fallback
+  const s = typeof val === 'string' ? val.trim() : val
+  switch (s) {
+    case 'low':
+    case 'medium':
+    case 'high':
+    case 'max':
+      return s
+    default:
+      return fallback
+  }
 }
 
 function commandValue(val: unknown): string | null {
