@@ -726,4 +726,54 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     await client.runTurn(session, 'hello', makeIssue(), () => {})
     expect(capturedPath).toBeUndefined()
   })
+
+  it('passes model to SDK options when configured', async () => {
+    const sessionId = 'sdk-model-session'
+    let capturedModel: string | undefined
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: 'claude', model: 'claude-sonnet-4-6', read_timeout_ms: 2000, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedModel = options?.model
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedModel).toBe('claude-sonnet-4-6')
+  })
+
+  it('does not set model when not configured', async () => {
+    const sessionId = 'sdk-no-model-session'
+    let capturedModel: string | undefined = 'INITIAL'
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedModel = options?.model
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedModel).toBeUndefined()
+  })
 })

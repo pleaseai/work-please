@@ -60,6 +60,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
       max_concurrent_agents_by_state: stateLimitsValue(agent.max_concurrent_agents_by_state),
     },
     claude: {
+      model: stringValue(claude.model),
       command: commandValue(claude.command) ?? DEFAULTS.CLAUDE_COMMAND,
       permission_mode: stringValue(claude.permission_mode) ?? DEFAULTS.CLAUDE_PERMISSION_MODE,
       allowed_tools: stringArrayValue(claude.allowed_tools, DEFAULTS.CLAUDE_ALLOWED_TOOLS),

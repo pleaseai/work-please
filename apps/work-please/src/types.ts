@@ -73,6 +73,8 @@ export interface ServiceConfig {
     max_concurrent_agents_by_state: Record<string, number>
   }
   claude: {
+    /** null = use the Claude CLI default model */
+    model: string | null
     command: string
     permission_mode: string
     allowed_tools: string[]

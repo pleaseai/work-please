@@ -14,6 +14,7 @@ describe('buildConfig', () => {
     expect(config.agent.max_concurrent_agents).toBe(10)
     expect(config.agent.max_turns).toBe(20)
     expect(config.agent.max_retry_backoff_ms).toBe(300_000)
+    expect(config.claude.model).toBeNull()
     expect(config.claude.command).toBe('claude')
     expect(config.claude.turn_timeout_ms).toBe(3_600_000)
     expect(config.claude.read_timeout_ms).toBe(5_000)
@@ -119,6 +120,33 @@ describe('buildConfig', () => {
       hooks: { before_run: '  ' },
     }))
     expect(config.hooks.before_run).toBeNull()
+  })
+
+  it('parses claude.model from config (Section 17.1)', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { model: 'claude-sonnet-4-6' },
+    }))
+    expect(config.claude.model).toBe('claude-sonnet-4-6')
+  })
+
+  it('coerces empty or whitespace-only claude.model to null (Section 17.1)', () => {
+    expect(buildConfig(makeWorkflow({ claude: { model: '' } })).claude.model).toBeNull()
+    expect(buildConfig(makeWorkflow({ claude: { model: '   ' } })).claude.model).toBeNull()
+  })
+
+  it('does not resolve $VAR for claude.model (no env expansion for model field)', () => {
+    const orig = process.env.TEST_CLAUDE_MODEL
+    process.env.TEST_CLAUDE_MODEL = 'claude-haiku-4-5'
+    try {
+      const config = buildConfig(makeWorkflow({ claude: { model: '$TEST_CLAUDE_MODEL' } }))
+      expect(config.claude.model).toBe('$TEST_CLAUDE_MODEL')
+    }
+    finally {
+      if (orig !== undefined)
+        process.env.TEST_CLAUDE_MODEL = orig
+      else
+        delete process.env.TEST_CLAUDE_MODEL
+    }
   })
 
   it('preserves claude.command as shell command string including spaces (Section 17.1)', () => {

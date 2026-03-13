@@ -82,6 +82,10 @@ export class AppServerClient {
       options.pathToClaudeCodeExecutable = this.config.claude.command
     }
 
+    if (this.config.claude.model) {
+      options.model = this.config.claude.model
+    }
+
     const toolSpecs = getToolSpecs(this.config)
     if (toolSpecs.length > 0) {
       options.mcpServers = {
