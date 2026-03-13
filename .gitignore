@@ -7,3 +7,7 @@ dist/
 
 # please plugin runtime state
 .please/state/
+
+# npm publish artifacts copied from root (prepublishOnly/postpublish)
+apps/work-please/LICENSE
+apps/work-please/README.md
