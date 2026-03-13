@@ -590,7 +590,7 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
 
     const config = makeConfig()
     const client = new AppServerClient(config, wsPath, ({ options }) => {
-      capturedOptions.push({ sessionId: (options as Record<string, unknown>)?.sessionId as string | undefined, resume: options?.resume })
+      capturedOptions.push({ sessionId: options?.sessionId, resume: options?.resume })
       return (async function* () {
         yield makeInitMsg('new-session-id', wsPath)
         yield makeSuccessMsg('new-session-id')
@@ -612,7 +612,7 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
 
     const config = makeConfig()
     const client = new AppServerClient(config, wsPath, ({ options }) => {
-      capturedOptions.push({ sessionId: (options as Record<string, unknown>)?.sessionId as string | undefined, resume: options?.resume })
+      capturedOptions.push({ sessionId: options?.sessionId, resume: options?.resume })
       return (async function* () {
         yield makeInitMsg(sessionId, wsPath)
         yield makeSuccessMsg(sessionId)
@@ -639,7 +639,7 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
 
     const config = makeConfig()
     const client = new AppServerClient(config, wsPath, ({ options }) => {
-      capturedOptions.push({ sessionId: (options as Record<string, unknown>)?.sessionId as string | undefined, resume: options?.resume })
+      capturedOptions.push({ sessionId: options?.sessionId, resume: options?.resume })
       return (async function* () {
         yield makeInitMsg(firstSdkSessionId, wsPath)
         yield makeSuccessMsg(firstSdkSessionId)
@@ -671,7 +671,7 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
 
     const config = makeConfig()
     const client = new AppServerClient(config, wsPath, ({ options }) => {
-      capturedOptions.push({ sessionId: (options as Record<string, unknown>)?.sessionId as string | undefined, resume: options?.resume })
+      capturedOptions.push({ sessionId: options?.sessionId, resume: options?.resume })
       return (async function* () {
         yield makeInitMsg(existingId, wsPath)
         yield makeSuccessMsg(existingId)
