@@ -117,7 +117,7 @@ See [SPEC.md](SPEC.md) for the full specification.
 
 - **Bun** (see [bun.sh](https://bun.sh) for installation)
 - **Claude Code CLI** (see the [official installation guide](https://docs.anthropic.com/en/docs/claude-code))
-- **Asana access token** (`ASANA_ACCESS_TOKEN`) *(under development)* **or** **GitHub token** (`GITHUB_TOKEN`) with
+- **Asana access token** (`ASANA_ACCESS_TOKEN`) (under development) **or** **GitHub token** (`GITHUB_TOKEN`) with
   access to the target project, **or** **GitHub App credentials** (`GITHUB_APP_ID`,
   `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_INSTALLATION_ID`) — see [GitHub App Authentication](#github-app-authentication)
 
