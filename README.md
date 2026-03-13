@@ -601,7 +601,7 @@ Start with `default` or `acceptEdits` unless you are running in a fully isolated
 
 ## License
 
-Apache License 2.0. See [LICENSE](vendor/symphony/LICENSE) for details.
+Functional Source License 1.1, MIT Future License (FSL-1.1-MIT). See [LICENSE](LICENSE) for details.
 
 Work Please is a TypeScript implementation based on the
 [Symphony specification](vendor/symphony/SPEC.md) by OpenAI (Apache 2.0).
