@@ -72,6 +72,7 @@ describe('generateWorkflow', () => {
     )
     expect(activeStatesBlock).toContain('- Todo')
     expect(activeStatesBlock).toContain('- In Progress')
+    expect(activeStatesBlock).toContain('- Merging')
     expect(activeStatesBlock).toContain('- Rework')
   })
 
@@ -141,12 +142,19 @@ describe('generateWorkflow', () => {
     expect(content).toContain('Human Review')
   })
 
+  it('includes Merging Mode block', () => {
+    const content = generateWorkflow('myorg', 42)
+    expect(content).toContain('Merging Mode')
+    expect(content).toContain('gh pr merge --squash --delete-branch')
+  })
+
   it('includes status map with all states', () => {
     const content = generateWorkflow('myorg', 42)
     expect(content).toContain('Status map')
     expect(content).toContain('`Todo`')
     expect(content).toContain('`In Progress`')
     expect(content).toContain('`Human Review`')
+    expect(content).toContain('`Merging`')
     expect(content).toContain('`Rework`')
     expect(content).toContain('`Done`')
   })

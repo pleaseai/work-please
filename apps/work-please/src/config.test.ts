@@ -487,11 +487,12 @@ describe('getActiveStates / getTerminalStates', () => {
     expect(getActiveStates(config)).toEqual(['In Progress'])
   })
 
-  it('includes "Rework" in default github_projects active_statuses', () => {
+  it('includes "Rework" and "Merging" in default github_projects active_statuses', () => {
     const config = buildConfig(makeWorkflow({
       tracker: { kind: 'github_projects', owner: 'org', project_number: 1 },
     }))
     expect(getActiveStates(config)).toContain('Rework')
+    expect(getActiveStates(config)).toContain('Merging')
   })
 
   it('does not include "Human Review" in default github_projects active_statuses', () => {

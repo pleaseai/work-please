@@ -192,6 +192,7 @@ tracker:
   active_states:
     - Todo
     - In Progress
+    - Merging
     - Rework
   terminal_states:
     - Closed
@@ -277,6 +278,7 @@ If any blocker is still open, document it and stop.
   - Special case: if a PR is already attached, treat as rework loop (run PR feedback sweep, address comments, move to \`Human Review\`).
 - \`In Progress\` — implementation actively underway.
 - \`Human Review\` — PR is attached and validated; waiting on human approval. Do not modify code in this state.
+- \`Merging\` — approved by human; merge the PR via \`gh pr merge --squash\` and move to \`Done\`.
 - \`Rework\` — reviewer requested changes; address review feedback on the existing branch.
 - \`Done\` — terminal state; no further action required.
 
@@ -305,6 +307,17 @@ This issue has an attached PR. Treat as a rework loop:
 3. Run tests and lint — ensure all checks pass.
 4. Commit and push to the existing branch.
 5. Move the issue status to \`Human Review\`.
+{% endif %}
+
+{% if issue.state == "Merging" %}
+## Merging Mode
+
+The PR has been approved by a human reviewer. Land the PR:
+
+1. Ensure the branch is up to date with \`main\`: \`git fetch origin && git merge origin/main\`
+2. Resolve any merge conflicts, run tests, and push.
+3. Merge the PR: \`gh pr merge --squash --delete-branch\`
+4. Move the issue status to \`Done\`.
 {% endif %}
 
 ## Instructions
