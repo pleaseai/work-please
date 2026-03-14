@@ -4,6 +4,7 @@ export interface TrackerAdapter {
   fetchCandidateIssues: () => Promise<Issue[] | TrackerError>
   fetchIssuesByStates: (states: string[]) => Promise<Issue[] | TrackerError>
   fetchIssueStatesByIds: (ids: string[]) => Promise<Issue[] | TrackerError>
+  updateItemStatus?: (itemId: string, targetState: string) => Promise<true | TrackerError>
 }
 
 export type TrackerError
@@ -21,6 +22,8 @@ export type TrackerError
     | { code: 'github_projects_graphql_errors', errors: unknown }
     | { code: 'github_projects_unknown_payload', payload: unknown }
     | { code: 'github_projects_missing_end_cursor' }
+    | { code: 'github_projects_status_update_failed', cause: unknown }
+    | { code: 'tracker_write_not_supported' }
 
 export function isTrackerError(val: unknown): val is TrackerError {
   return typeof val === 'object' && val !== null && 'code' in val
