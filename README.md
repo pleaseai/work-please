@@ -157,6 +157,12 @@ tracker:
     - Canceled
     - Duplicate
     - Done
+  watched_states:
+    - Human Review
+  auto_transitions:
+    human_review_to_rework: true
+    human_review_to_merging: true
+    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -227,6 +233,12 @@ tracker:
     - Canceled
     - Duplicate
     - Done
+  watched_states:
+    - Human Review
+  auto_transitions:
+    human_review_to_rework: true
+    human_review_to_merging: true
+    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -385,6 +397,12 @@ tracker:
     - Canceled
     - Duplicate
     - Done
+  watched_statuses:                   # Optional: states polled but not dispatched. Default ["Human Review"]
+    - Human Review
+  auto_transitions:                   # Optional: auto-transition rules for watched states
+    human_review_to_rework: true      # Move to Rework on CHANGES_REQUESTED or unresolved threads. Default true
+    human_review_to_merging: true     # Move to Merging on APPROVED + no unresolved threads. Default true
+    include_bot_reviews: true         # Whether bot comment threads count as unresolved. Default true
   # GitHub App authentication (alternative to api_key — all three required together):
   # app_id: $GITHUB_APP_ID            # Optional: GitHub App ID (integer or $ENV_VAR)
   # private_key: $GITHUB_APP_PRIVATE_KEY  # Optional: GitHub App private key PEM or $ENV_VAR
@@ -469,6 +487,8 @@ Your prompt template goes here. Available variables:
 - {{ issue.branch_name }}  — PR head branch name (for PullRequest items) or null
 - {{ issue.pull_requests }} — Array of linked PRs (each has number, title, url, state, branch_name)
 - {{ issue.review_decision }} — PR review decision: "approved", "changes_requested", "commented", "review_required", or null
+- {{ issue.has_unresolved_threads }} — Whether the PR has unresolved review threads
+- {{ issue.has_unresolved_human_threads }} — Whether the PR has unresolved non-bot review threads
 - {{ issue.priority }}     — Numeric priority or null
 - {{ issue.created_at }}   — ISO-8601 creation timestamp
 - {{ issue.updated_at }}   — ISO-8601 last-updated timestamp
