@@ -1201,4 +1201,59 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     await client.runTurn(session, 'hello', makeIssue(), () => {})
     expect(capturedEffort).toBe('low')
   })
+
+  it('passes agentEnv as options.env to SDK query when set', async () => {
+    const sessionId = 'sdk-env-session'
+    let capturedEnv: Record<string, string> | undefined
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: 'claude', read_timeout_ms: 2000, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedEnv = (options as Record<string, unknown>)?.env as Record<string, string> | undefined
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    await client.startSession()
+    client.setAgentEnv({ GH_TOKEN: 'test-token', PATH: '/custom' })
+    const session = { sessionId, workspace: wsPath }
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedEnv).toEqual({ GH_TOKEN: 'test-token', PATH: '/custom' })
+  })
+
+  it('does not set options.env when setAgentEnv is not called', async () => {
+    const sessionId = 'sdk-no-env-session'
+    let capturedEnv: unknown = 'SENTINEL'
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: { command: 'claude', read_timeout_ms: 2000, turn_timeout_ms: 5000 },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedEnv = (options as Record<string, unknown>)?.env
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    await client.startSession()
+    const session = { sessionId, workspace: wsPath }
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedEnv).toBeUndefined()
+  })
 })
