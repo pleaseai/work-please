@@ -13,7 +13,6 @@
     "bun@passionfactory": true,
     "claude-code-setup@passionfactory": true,
     "claude-md-management@pleaseai": true,
-    "code-review@pleaseai": true,
     "context@passionfactory": true,
     "dev-tools@passionfactory": true,
     "eslint-lsp@code-intelligence": true,
@@ -21,14 +20,12 @@
     "frontend@passionfactory": true,
     "gardening@passionfactory": true,
     "gatekeeper@pleaseai": true,
-    "genkit@passionfactory": true,
     "github@passionfactory": true,
     "graphql-lsp@code-intelligence": true,
     "graphql@passionfactory": true,
     "markitdown@pleaseai": true,
     "please@passionfactory": true,
     "ralph-loop@claude-plugins-official": true,
-    "reflexion@passionfactory": false,
     "research@passionfactory": true,
     "review@passionfactory": true,
     "spec-kit@pleaseai": true,
@@ -52,13 +49,6 @@
       "source": {
         "source": "github",
         "repo": "pleaseai/claude-code-plugins"
-      },
-      "autoUpdate": true
-    },
-    "mastra-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "amondnet/mastra-agent-skills"
       },
       "autoUpdate": true
     },
