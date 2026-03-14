@@ -159,4 +159,5 @@ Only commit when **all tests pass** and **all lint/type errors are resolved**.
 - `WORKFLOW.md` supports `$ENV_VAR` references in the `api_key` field — the config layer must resolve these at startup.
 - Prompt templates use Liquid-compatible syntax (`{{ issue.title }}`, `{% if %}` blocks).
 - Agent runs use `@anthropic-ai/claude-agent-sdk` (`query()`) to invoke Claude Code programmatically.
+  See the [TypeScript SDK reference](https://platform.claude.com/docs/en/agent-sdk/typescript.md).
 - Workspace paths must be validated against `workspace.root` before launch (path traversal prevention).
