@@ -2,6 +2,7 @@ import { existsSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import { graphql as createGraphql, GraphqlResponseError } from '@octokit/graphql'
+import { generateWorkflowFromContext, runWizard } from './init-wizard'
 
 const GITHUB_API_ENDPOINT = 'https://api.github.com'
 const DEFAULT_TITLE = 'Work Please'
@@ -312,11 +313,99 @@ export async function initProject(
   }
 }
 
+export function formatInitError(error: InitError): string {
+  switch (error.code) {
+    case 'init_workflow_exists':
+      return `Error: ${WORKFLOW_FILE_NAME} already exists at ${error.path}`
+    case 'init_owner_not_found':
+      return `Error: GitHub owner '${error.owner}' not found. Check the --owner value.`
+    case 'init_create_failed':
+      return `Error: Failed to create GitHub Projects v2 board. ${error.cause}`
+    case 'init_graphql_errors':
+      return `Error: GitHub API returned GraphQL errors: ${JSON.stringify(error.errors)}`
+    case 'init_network_error':
+      return `Error: A network error occurred: ${error.cause}`
+    default:
+      return `Error: init failed: ${(error as InitError).code}`
+  }
+}
+
+function isInteractiveTty(): boolean {
+  return process.stdout.isTTY === true
+}
+
+async function runInitWithWizard(options: {
+  owner: string | null
+  title: string | null
+  token: string | null
+}): Promise<void> {
+  const ctx = await runWizard(options)
+  if (!ctx) {
+    process.exit(0)
+  }
+
+  const cwd = process.cwd()
+  const workflowPath = resolve(cwd, WORKFLOW_FILE_NAME)
+
+  if (existsSync(workflowPath)) {
+    console.error(formatInitError({ code: 'init_workflow_exists', path: workflowPath }))
+    process.exit(1)
+  }
+
+  if (ctx.projectNumber === null) {
+    // Create new project
+    const result = await initProject(
+      { owner: ctx.owner, title: ctx.title, token: ctx.token },
+    )
+    if (isInitError(result)) {
+      console.error(formatInitError(result))
+      process.exit(1)
+    }
+
+    // Re-generate WORKFLOW.md with the actual project number from the created project
+    const updatedCtx = { ...ctx, projectNumber: result.projectNumber }
+    const workflowContent = generateWorkflowFromContext(updatedCtx)
+    writeFileSync(result.workflowPath, workflowContent, 'utf-8')
+
+    const projectUrl = `https://github.com/orgs/${ctx.owner}/projects/${result.projectNumber}`
+    let linkText: string
+    try {
+      const terminalLink = (await import('terminal-link')).default
+      linkText = terminalLink(projectUrl, projectUrl)
+    }
+    catch {
+      linkText = projectUrl
+    }
+    console.warn(`[work-please] created GitHub Projects v2 board: #${result.projectNumber}`)
+    console.warn(`[work-please] project URL: ${linkText}`)
+    console.warn(`[work-please] generated ${result.workflowPath}`)
+    if (result.statusConfigured) {
+      console.warn('[work-please] configured Status field: Todo, In Progress, In Review, Done, Cancelled')
+    }
+    else {
+      console.warn('[work-please] warning: could not configure Status field — add "In Review" and "Cancelled" statuses manually')
+    }
+  }
+  else {
+    // Use existing project — just write WORKFLOW.md
+    const workflowContent = generateWorkflowFromContext(ctx)
+    writeFileSync(workflowPath, workflowContent, 'utf-8')
+    console.warn(`[work-please] generated ${workflowPath}`)
+    console.warn(`[work-please] using existing project #${ctx.projectNumber}`)
+  }
+}
+
 export async function runInit(options: {
   owner: string | null
   title: string | null
   token: string | null
 }): Promise<void> {
+  // If owner is missing and stdout is a TTY, launch interactive wizard
+  if (!options.owner && isInteractiveTty()) {
+    await runInitWithWizard(options)
+    return
+  }
+
   const token = options.token ?? process.env.GITHUB_TOKEN ?? null
   if (!token) {
     console.error('Error: --token is required or set GITHUB_TOKEN environment variable')
@@ -324,7 +413,7 @@ export async function runInit(options: {
   }
 
   if (!options.owner) {
-    console.error('Error: --owner is required')
+    console.error('Error: --owner is required (or run in a terminal for interactive mode)')
     process.exit(1)
   }
 
@@ -332,25 +421,7 @@ export async function runInit(options: {
 
   const result = await initProject({ owner: options.owner, title, token })
   if (isInitError(result)) {
-    switch (result.code) {
-      case 'init_workflow_exists':
-        console.error(`Error: ${WORKFLOW_FILE_NAME} already exists at ${result.path}`)
-        break
-      case 'init_owner_not_found':
-        console.error(`Error: GitHub owner '${result.owner}' not found. Check the --owner value.`)
-        break
-      case 'init_create_failed':
-        console.error('Error: Failed to create GitHub Projects v2 board.', result.cause)
-        break
-      case 'init_graphql_errors':
-        console.error('Error: GitHub API returned GraphQL errors:', result.errors)
-        break
-      case 'init_network_error':
-        console.error('Error: A network error occurred:', result.cause)
-        break
-      default:
-        console.error(`Error: init failed: ${result.code}`)
-    }
+    console.error(formatInitError(result))
     process.exit(1)
   }
 
