@@ -43,11 +43,8 @@ export async function resolveAgentEnv(
   }
 
   // Merge: process.env as base, custom env overlay on top
-  const env: Record<string, string> = {}
-  for (const [k, v] of Object.entries(process.env)) {
-    if (v !== undefined)
-      env[k] = v
-  }
-  Object.assign(env, resolved)
-  return env
+  const baseEnv = Object.fromEntries(
+    Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+  )
+  return { ...baseEnv, ...resolved }
 }

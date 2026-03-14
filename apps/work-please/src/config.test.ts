@@ -779,6 +779,7 @@ describe('buildConfig - env section', () => {
   })
 
   it('resolves $VAR references from process.env', () => {
+    const orig = process.env.TEST_ENV_VALUE
     process.env.TEST_ENV_VALUE = 'resolved-val'
     try {
       const config = buildConfig(makeWorkflow({
@@ -787,7 +788,10 @@ describe('buildConfig - env section', () => {
       expect(config.env.MY_VAR).toBe('resolved-val')
     }
     finally {
-      delete process.env.TEST_ENV_VALUE
+      if (orig !== undefined)
+        process.env.TEST_ENV_VALUE = orig
+      else
+        delete process.env.TEST_ENV_VALUE
     }
   })
 
