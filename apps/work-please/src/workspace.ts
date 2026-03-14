@@ -83,7 +83,7 @@ export function createWorktree(repoDir: string, wsPath: string, branchName: stri
     const result = _git.spawnSync(['git', '-C', repoDir, 'worktree', 'add', wsPath, '-b', branchName, 'origin/main'])
     if (!result.success) {
       const output = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048)
-      return new Error(`git worktree add failed: ${output}`)
+      return new Error(`git worktree add failed (new branch ${branchName}): ${output}`)
     }
   }
   catch (err) {
@@ -100,10 +100,10 @@ export function checkoutExistingBranch(repoDir: string, wsPath: string, remoteBr
     return err instanceof Error ? err : new Error(String(err))
   }
   try {
-    const result = _git.spawnSync(['git', '-C', repoDir, 'worktree', 'add', wsPath, `origin/${remoteBranch}`])
+    const result = _git.spawnSync(['git', '-C', repoDir, 'worktree', 'add', wsPath, '-b', remoteBranch, `origin/${remoteBranch}`])
     if (!result.success) {
       const output = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048)
-      return new Error(`git worktree add failed: ${output}`)
+      return new Error(`git worktree checkout failed (existing branch origin/${remoteBranch}): ${output}`)
     }
   }
   catch (err) {

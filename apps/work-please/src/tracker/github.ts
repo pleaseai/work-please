@@ -170,7 +170,7 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
           }
           content {
             ... on Issue { number title }
-            ... on PullRequest { number title }
+            ... on PullRequest { number title headRefName reviewDecision }
           }
         }
       }
@@ -326,7 +326,9 @@ function normalizeReviewDecision(raw: unknown): Issue['review_decision'] {
     case 'CHANGES_REQUESTED': return 'changes_requested'
     case 'COMMENTED': return 'commented'
     case 'REVIEW_REQUIRED': return 'review_required'
-    default: return null
+    default:
+      console.warn(`[github] unknown reviewDecision value: ${s}`)
+      return null
   }
 }
 

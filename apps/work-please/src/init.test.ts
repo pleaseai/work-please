@@ -68,7 +68,11 @@ describe('generateWorkflow', () => {
     const content = generateWorkflow('myorg', 42)
     expect(content).toContain('- Todo')
     expect(content).toContain('- In Progress')
-    expect(content).toContain('- In Review')
+    const activeStatesBlock = content.slice(
+      content.indexOf('active_states:'),
+      content.indexOf('terminal_states:'),
+    )
+    expect(activeStatesBlock).toContain('- In Review')
   })
 
   it('includes standard terminal_states', () => {

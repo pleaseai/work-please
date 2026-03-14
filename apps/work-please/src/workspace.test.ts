@@ -871,7 +871,7 @@ describe('checkoutExistingBranch', () => {
     rmSync(tmpRoot, { recursive: true, force: true })
   })
 
-  it('calls git worktree add without -b flag', () => {
+  it('calls git worktree add with -b flag to create a local tracking branch', () => {
     const spy = spyOn(_git, 'spawnSync').mockReturnValue({
       exitCode: 0,
       success: true,
@@ -889,8 +889,9 @@ describe('checkoutExistingBranch', () => {
     const call = calls[0]
     expect(call).toContain('worktree')
     expect(call).toContain('add')
+    expect(call).toContain('-b')
+    expect(call).toContain('feature/my-branch')
     expect(call).toContain('origin/feature/my-branch')
-    expect(call).not.toContain('-b')
   })
 
   it('returns error when git worktree add fails', () => {
@@ -907,7 +908,7 @@ describe('checkoutExistingBranch', () => {
     spy.mockRestore()
 
     expect(err).not.toBeNull()
-    expect(err?.message).toContain('git worktree add failed')
+    expect(err?.message).toContain('git worktree checkout failed (existing branch origin/feature/broken)')
   })
 })
 
@@ -946,7 +947,8 @@ describe('createWorkspace uses checkoutExistingBranch for PRs', () => {
     const worktreeCall = calls.find(args => args.includes('worktree') && args.includes('add'))
     expect(worktreeCall).toBeDefined()
     expect(worktreeCall).toContain('origin/feature/review-fix')
-    expect(worktreeCall).not.toContain('-b')
+    expect(worktreeCall).toContain('-b')
+    expect(worktreeCall).toContain('feature/review-fix')
   })
 
   it('uses createWorktree when issue has no branch_name', async () => {
