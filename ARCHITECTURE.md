@@ -14,9 +14,11 @@ creates an isolated workspace for each eligible issue, renders a Liquid prompt t
 launches a Claude Code agent session inside that workspace via the
 `@anthropic-ai/claude-agent-sdk`.
 
-The service is a **scheduler/runner and tracker reader only** — it does not write to the issue
-tracker itself. Ticket state transitions, PR creation, and comments are performed by the Claude
-Code agent using tools available in the runtime environment.
+The service is primarily a **scheduler/runner** — it does not perform full ticket management.
+The orchestrator makes two narrow writes: advancing items between watched states (e.g.,
+Human Review → Rework) and applying status labels to GitHub issues. All other state
+transitions, PR creation, and comments are performed by the Claude Code agent using tools
+available in the runtime environment.
 
 ## Entry Points
 
