@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.8](https://github.com/pleaseai/work-please/compare/work-v0.1.7...work-v0.1.8) (2026-03-14)
+
+
+### Features
+
+* **agent:** add env injection via WORKFLOW.md and SDK options.env ([#94](https://github.com/pleaseai/work-please/issues/94)) ([5336a8c](https://github.com/pleaseai/work-please/commit/5336a8c59a0b1f8266847c90dc489481c8fe497c))
+* **tracker:** add PR review lifecycle with Symphony-aligned status map ([#80](https://github.com/pleaseai/work-please/issues/80)) ([b8ab6b6](https://github.com/pleaseai/work-please/commit/b8ab6b63312396fd7baaf033f09afaff3ce5e93e))
+
 ## [0.1.7](https://github.com/pleaseai/work-please/compare/work-v0.1.6...work-v0.1.7) (2026-03-13)
 
 
