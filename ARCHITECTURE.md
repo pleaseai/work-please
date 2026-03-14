@@ -4,7 +4,7 @@ This document provides a bird's-eye view of the Work Please codebase. It is inte
 contributors (human and AI) orient themselves quickly and understand how the pieces fit together.
 
 For the full specification, see [SPEC.md](SPEC.md). For the upstream reference implementation,
-see [vendor/symphony/](vendor/symphony/SPEC.md).
+see [vendor/symphony/SPEC.md](vendor/symphony/SPEC.md).
 
 ## System Purpose
 
@@ -125,7 +125,8 @@ Each poll tick executes in order:
    (path traversal prevention) and assigns a local session UUID. No SDK communication occurs
    yet — the real session is established when `runTurn()` receives a `system/init` event.
 4. `AppServerClient.runTurn()` — Calls `query()` from `@anthropic-ai/claude-agent-sdk` with the
-   rendered prompt. Streams SDK events (`system/init`, `result`, `rate_limit_event`) back to the orchestrator.
+   rendered prompt. Translates SDK messages into orchestrator events (`session_started`,
+   `turn_completed`, `turn_failed`, `notification`).
    Supports multi-turn: after each turn, refreshes issue state; continues if still active and
    under `max_turns`.
 5. `runAfterRunHook()` — Executes the optional `after_run` shell hook.
@@ -159,7 +160,8 @@ These constraints must hold across the codebase. Violating them is a bug.
    `WorkflowError`) instead of throwing. Check for `'code' in result` before proceeding.
 
 6. **Env-var indirection** — Config values matching `$ENV_VAR` are resolved from `process.env` at
-   config build time. Raw secrets never appear in the config object.
+   config build time. The resolved values (including secrets) are stored in the `ServiceConfig`
+   object — `$ENV_VAR` references do not persist past startup.
 
 7. **No vendor modifications** — `vendor/symphony/` is a read-only submodule. It is excluded from
    linting, type-checking, and builds.
