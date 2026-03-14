@@ -261,9 +261,12 @@ When a ticket has an attached PR, run this protocol before moving to `Human Revi
 3. Treat every actionable reviewer comment (human or bot), including inline review comments, as blocking until one of these is true:
    - code/test/docs updated to address it, or
    - explicit, justified pushback reply is posted on that thread.
-4. Update the workpad plan/checklist to include each feedback item and its resolution status.
-5. Re-run validation after feedback-driven changes and push updates.
-6. Repeat this sweep until there are no outstanding actionable comments.
+4. After addressing a comment (code update or pushback reply), reply explaining what was done (`gh api … pulls/<pr>/comments/<id>/replies -f body='…'`).
+   For **bot threads only** (`user.type == "Bot"` in the comment payload), also resolve the thread (`gh api graphql -f query='mutation { resolveReviewThread(input:{threadId:"<id>"}) { thread { id } } }'`).
+   Leave human reviewer threads unresolved — let the reviewer confirm and resolve themselves.
+5. Update the workpad plan/checklist to include each feedback item and its resolution status.
+6. Re-run validation after feedback-driven changes and push updates.
+7. Repeat this sweep until there are no outstanding actionable comments.
 
 ## Blocked-access escape hatch (required behavior)
 
