@@ -155,6 +155,7 @@ export function createAsanaAdapter(config: ServiceConfig): TrackerAdapter {
           pull_requests: [],
           review_decision: null,
           has_unresolved_threads: false,
+          has_unresolved_human_threads: false,
           created_at: null,
           updated_at: null,
         })
@@ -196,6 +197,7 @@ function normalizeAsanaTask(task: Record<string, unknown>, sectionName: string):
     pull_requests: [],
     review_decision: null,
     has_unresolved_threads: false,
+    has_unresolved_human_threads: false,
     created_at: task.created_at ? new Date(String(task.created_at)) : null,
     updated_at: task.modified_at ? new Date(String(task.modified_at)) : null,
   }

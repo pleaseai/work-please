@@ -66,6 +66,17 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                     createdAt updatedAt
                     headRefName
                     reviewDecision
+                    reviewThreads(first: 100) {
+                      nodes {
+                        isResolved
+                        isOutdated
+                        comments(first: 1) {
+                          nodes {
+                            author { login }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -103,6 +114,17 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                     createdAt updatedAt
                     headRefName
                     reviewDecision
+                    reviewThreads(first: 100) {
+                      nodes {
+                        isResolved
+                        isOutdated
+                        comments(first: 1) {
+                          nodes {
+                            author { login }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -146,6 +168,17 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                   createdAt updatedAt
                   headRefName
                   reviewDecision
+                  reviewThreads(first: 100) {
+                    nodes {
+                      isResolved
+                      isOutdated
+                      comments(first: 1) {
+                        nodes {
+                          author { login }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -170,12 +203,107 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
           }
           content {
             ... on Issue { number title }
-            ... on PullRequest { number title headRefName reviewDecision }
+            ... on PullRequest {
+              number title headRefName reviewDecision
+              reviewThreads(first: 100) {
+                nodes {
+                  isResolved
+                  isOutdated
+                  comments(first: 1) {
+                    nodes {
+                      author { login }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     }
   `
+
+  const STATUS_FIELD_QUERY = `
+    query($projectId: ID!) {
+      node(id: $projectId) {
+        ... on ProjectV2 {
+          field(name: "Status") {
+            ... on ProjectV2SingleSelectField {
+              id
+              options { id name }
+            }
+          }
+        }
+      }
+    }
+  `
+
+  const UPDATE_ITEM_STATUS_MUTATION = `
+    mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+      updateProjectV2ItemFieldValue(input: {
+        projectId: $projectId
+        itemId: $itemId
+        fieldId: $fieldId
+        value: { singleSelectOptionId: $optionId }
+      }) {
+        projectV2Item { id }
+      }
+    }
+  `
+
+  const RESOLVE_PROJECT_ID_QUERY = `
+    query($owner: String!, $number: Int!) {
+      repositoryOwner(login: $owner) {
+        ... on Organization { projectV2(number: $number) { id } }
+        ... on User { projectV2(number: $number) { id } }
+      }
+    }
+  `
+
+  // Cached state for updateItemStatus
+  let resolvedProjectId: string | null = projectId
+  let cachedFieldId: string | null = null
+  let cachedOptions: Map<string, string> | null = null
+
+  async function ensureProjectId(): Promise<string | TrackerError> {
+    if (resolvedProjectId)
+      return resolvedProjectId
+
+    const result = await runGraphql(RESOLVE_PROJECT_ID_QUERY, { owner, number: projectNumber })
+    if ('code' in result)
+      return result
+
+    const payload = result.data as Record<string, unknown>
+    const repoOwner = payload.repositoryOwner as Record<string, unknown> | null
+    const project = repoOwner?.projectV2 as { id?: string } | null
+    if (!project?.id) {
+      return { code: 'github_projects_unknown_payload', payload }
+    }
+
+    resolvedProjectId = project.id
+    return resolvedProjectId
+  }
+
+  async function ensureStatusField(pid: string): Promise<{ fieldId: string, options: Map<string, string> } | TrackerError> {
+    if (cachedFieldId && cachedOptions) {
+      return { fieldId: cachedFieldId, options: cachedOptions }
+    }
+
+    const result = await runGraphql(STATUS_FIELD_QUERY, { projectId: pid })
+    if ('code' in result)
+      return result
+
+    const payload = result.data as Record<string, unknown>
+    const node = payload.node as Record<string, unknown> | null
+    const field = node?.field as { id?: string, options?: Array<{ id: string, name: string }> } | null
+    if (!field?.id || !Array.isArray(field.options)) {
+      return { code: 'github_projects_unknown_payload', payload }
+    }
+
+    cachedFieldId = field.id
+    cachedOptions = new Map(field.options.map(o => [o.name, o.id]))
+    return { fieldId: cachedFieldId, options: cachedOptions }
+  }
 
   async function fetchAllItems(statusFilter: string[], search = ''): Promise<Issue[] | TrackerError> {
     const issues: Issue[] = []
@@ -266,6 +394,36 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
           return normalizeProjectItem(n, status)
         })
     },
+
+    async updateItemStatus(itemId: string, targetState: string) {
+      const pidOrError = await ensureProjectId()
+      if (typeof pidOrError !== 'string')
+        return pidOrError
+
+      const fieldOrError = await ensureStatusField(pidOrError)
+      if ('code' in fieldOrError)
+        return fieldOrError
+
+      const { fieldId, options } = fieldOrError
+      const optionId = options.get(targetState)
+      if (!optionId) {
+        return {
+          code: 'github_projects_status_update_failed' as const,
+          cause: new Error(`No option found for status: ${targetState}`),
+        }
+      }
+
+      const result = await runGraphql(UPDATE_ITEM_STATUS_MUTATION, {
+        projectId: pidOrError,
+        itemId,
+        fieldId,
+        optionId,
+      })
+      if ('code' in result)
+        return result
+
+      return true as const
+    },
   }
 }
 
@@ -310,6 +468,38 @@ function buildQueryString(filter: IssueFilter): string {
   if (filter.label.length > 0)
     parts.push(`label:${filter.label.join(',')}`)
   return parts.join(' ')
+}
+
+function isBotLogin(login: string): boolean {
+  return login.endsWith('[bot]')
+}
+
+function extractReviewThreads(content: Record<string, unknown> | null): {
+  hasUnresolvedThreads: boolean
+  hasUnresolvedHumanThreads: boolean
+} {
+  const threadNodes = (content?.reviewThreads as { nodes?: Array<Record<string, unknown>> })?.nodes
+  if (!Array.isArray(threadNodes)) {
+    return { hasUnresolvedThreads: false, hasUnresolvedHumanThreads: false }
+  }
+
+  let hasUnresolvedThreads = false
+  let hasUnresolvedHumanThreads = false
+
+  for (const thread of threadNodes) {
+    if (thread.isResolved === true || thread.isOutdated === true)
+      continue
+
+    hasUnresolvedThreads = true
+
+    const commentNodes = (thread.comments as { nodes?: Array<{ author?: { login?: string } }> })?.nodes
+    const authorLogin = commentNodes?.[0]?.author?.login ?? ''
+    if (!isBotLogin(authorLogin)) {
+      hasUnresolvedHumanThreads = true
+    }
+  }
+
+  return { hasUnresolvedThreads, hasUnresolvedHumanThreads }
 }
 
 function normalizePrState(raw: unknown): LinkedPR['state'] {
@@ -360,6 +550,7 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string): Is
 
   const headRefName = content?.headRefName ? String(content.headRefName) : null
   const reviewDecision = normalizeReviewDecision(content?.reviewDecision)
+  const { hasUnresolvedThreads, hasUnresolvedHumanThreads } = extractReviewThreads(content)
 
   return {
     id: String(node.id ?? ''),
@@ -375,7 +566,8 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string): Is
     blocked_by: [],
     pull_requests: pullRequests,
     review_decision: reviewDecision,
-    has_unresolved_threads: false,
+    has_unresolved_threads: hasUnresolvedThreads,
+    has_unresolved_human_threads: hasUnresolvedHumanThreads,
     created_at: content?.createdAt ? new Date(String(content.createdAt)) : null,
     updated_at: content?.updatedAt ? new Date(String(content.updatedAt)) : null,
   }

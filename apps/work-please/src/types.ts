@@ -29,6 +29,7 @@ export interface Issue {
   pull_requests: LinkedPR[]
   review_decision: 'approved' | 'changes_requested' | 'commented' | 'review_required' | null
   has_unresolved_threads: boolean
+  has_unresolved_human_threads: boolean
   created_at: Date | null
   updated_at: Date | null
 }
