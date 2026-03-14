@@ -830,6 +830,15 @@ describe('buildConfig - env section', () => {
     const config = buildConfig(makeWorkflow({ env: ['a', 'b'] }))
     expect(config.env).toEqual({})
   })
+
+  it('rejects invalid env key names', () => {
+    const config = buildConfig(makeWorkflow({
+      env: { 'VALID_KEY': 'ok', '': 'empty', 'has space': 'bad', '123start': 'bad', 'ALSO_VALID': 'ok' },
+    }))
+    expect(config.env.VALID_KEY).toBe('ok')
+    expect(config.env.ALSO_VALID).toBe('ok')
+    expect(Object.keys(config.env)).toHaveLength(2)
+  })
 })
 
 describe('getAutoTransitions', () => {

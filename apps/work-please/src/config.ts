@@ -4,6 +4,7 @@ import { join, sep } from 'node:path'
 import process from 'node:process'
 
 const ENV_VAR_RE = /^\$([A-Z_]\w*)$/i
+const ENV_KEY_RE = /^[A-Z_]\w*$/i
 const RUNTIME_VAR_RE = /^\$\{\w+\}$/
 const VALID_SETTING_SOURCES = new Set<string>(['user', 'project', 'local'])
 
@@ -460,6 +461,10 @@ function buildEnvConfig(raw: Record<string, unknown>): Record<string, string> {
 
   const result: Record<string, string> = {}
   for (const [key, val] of Object.entries(envSection as Record<string, unknown>)) {
+    if (!ENV_KEY_RE.test(key)) {
+      console.warn(`[config] ignoring invalid env key: ${JSON.stringify(key)}`)
+      continue
+    }
     let str: string | null = null
     if (typeof val === 'string')
       str = val
