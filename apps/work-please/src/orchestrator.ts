@@ -649,16 +649,20 @@ export class Orchestrator {
   }
 
   private buildTokenProvider(): import('./agent-env').TokenProvider | undefined {
-    const { kind, app_id, private_key, installation_id } = this.config.tracker
-    if (kind !== 'github_projects' || !app_id || !private_key || installation_id == null)
+    const { kind, api_key, app_id, private_key, installation_id } = this.config.tracker
+    if (kind !== 'github_projects')
       return undefined
 
-    // If using PAT auth, provide the api_key directly
-    if (this.config.tracker.api_key) {
+    // PAT auth: provide the api_key directly as the token
+    if (api_key) {
       return {
-        installationAccessToken: async () => this.config.tracker.api_key,
+        installationAccessToken: async () => api_key,
       }
     }
+
+    // App auth: requires all three fields
+    if (!app_id || !private_key || installation_id == null)
+      return undefined
 
     return {
       installationAccessToken: async () => {
