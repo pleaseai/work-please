@@ -464,8 +464,8 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string, pro
     has_unresolved_human_threads: hasUnresolvedHumanThreads,
     created_at: content?.createdAt ? new Date(String(content.createdAt)) : null,
     updated_at: content?.updatedAt ? new Date(String(content.updatedAt)) : null,
-    project: projectOwner
-      ? { owner: projectOwner, number: projectNum ?? 0, project_id: null, item_id: String(node.id ?? ''), field_id: null, status_options: [] }
+    project: (projectOwner || projectNum)
+      ? { owner: projectOwner ?? '', number: projectNum ?? 0, project_id: null, item_id: String(node.id ?? ''), field_id: null, status_options: [] }
       : null,
   }
 }
