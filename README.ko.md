@@ -155,7 +155,7 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_states:
+  watched_statuses:
     - Human Review
   auto_transitions:
     human_review_to_rework: true
@@ -231,7 +231,7 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_states:
+  watched_statuses:
     - Human Review
   auto_transitions:
     human_review_to_rework: true

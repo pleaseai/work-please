@@ -78,7 +78,7 @@ Code + Asana/GitHub Projects v2. The reference implementation in Elixir/OTP live
 - `packages/*` — shared libraries (none yet scaffolded)
 - `vendor/symphony/` — upstream Symphony reference (read-only, excluded from ESLint/TS)
 
-**Intended component boundaries** (per SPEC.md — not yet implemented):
+**Intended component boundaries** (per SPEC.md):
 
 | Component            | Responsibility                                                 |
 |----------------------|----------------------------------------------------------------|
@@ -87,7 +87,7 @@ Code + Asana/GitHub Projects v2. The reference implementation in Elixir/OTP live
 | Issue Tracker Client | Asana REST or GitHub Projects v2 GraphQL; poll + reconcile     |
 | Orchestrator         | In-memory state; poll/dispatch/retry loop                      |
 | Workspace Manager    | Create/reuse per-issue directories; run lifecycle hooks        |
-| Agent Runner         | Launch `claude` CLI; stream JSON events back                   |
+| Agent Runner         | Invoke Claude Code via `@anthropic-ai/claude-agent-sdk` (`query()`); stream events back |
 | Status Surface       | Optional HTTP dashboard + structured `key=value` logs          |
 
 **WORKFLOW.md** is a user-created file in a _target repository_ (not this repo). It contains YAML front matter (tracker
@@ -158,7 +158,7 @@ Only commit when **all tests pass** and **all lint/type errors are resolved**.
 
 - The service is primarily a **scheduler/runner** — the orchestrator makes two narrow tracker writes (auto-transition
   state changes and status labels). All other state transitions and PR links are performed by the Claude Code agent.
-- `WORKFLOW.md` supports `$ENV_VAR` references in the `api_key` field — the config layer must resolve these at startup.
+- `WORKFLOW.md` supports `$ENV_VAR` references in the `api_key`, `app_id`, `private_key`, and `installation_id` credential fields — the config layer must resolve these at startup.
 - Prompt templates use Liquid-compatible syntax (`{{ issue.title }}`, `{% if %}` blocks).
 - Agent runs use [`@anthropic-ai/claude-agent-sdk`](https://platform.claude.com/docs/en/agent-sdk/typescript.md) (`query()`) to invoke Claude Code programmatically.
 - Workspace paths must be validated against `workspace.root` before launch (path traversal prevention).

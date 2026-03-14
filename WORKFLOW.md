@@ -4,7 +4,7 @@ tracker:
   owner: "<org-or-user>"
   project_number: 1
   # api_key: $GITHUB_TOKEN          # optional; auto-resolves from GITHUB_TOKEN env
-  active_states:
+  active_statuses:
     - Todo
     - In Progress
     - Merging
@@ -15,7 +15,7 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_states:
+  watched_statuses:
     - Human Review
   auto_transitions:
     human_review_to_rework: true

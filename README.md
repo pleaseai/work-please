@@ -126,7 +126,7 @@ See [SPEC.md](SPEC.md) for the full specification.
 ### Install
 
 ```bash
-git clone https://github.com/chatbot-pf/work-please.git
+git clone https://github.com/pleaseai/work-please.git
 cd work-please
 bun install
 bun run build
@@ -159,7 +159,7 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_states:
+  watched_statuses:
     - Human Review
   auto_transitions:
     human_review_to_rework: true
@@ -235,7 +235,7 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_states:
+  watched_statuses:
     - Human Review
   auto_transitions:
     human_review_to_rework: true
