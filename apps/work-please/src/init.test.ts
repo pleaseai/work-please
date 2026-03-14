@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   configureStatusField,
   createProject,
+  formatInitError,
   generateWorkflow,
   initProject,
   isInitError,
@@ -36,6 +37,50 @@ describe('isInitError', () => {
     expect(isInitError('string')).toBe(false)
     expect(isInitError({ projectId: 'abc' })).toBe(false)
     expect(isInitError(42)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// formatInitError
+// ---------------------------------------------------------------------------
+
+describe('formatInitError', () => {
+  it('formats init_missing_owner', () => {
+    expect(formatInitError({ code: 'init_missing_owner' })).toContain('--owner is required')
+  })
+
+  it('formats init_missing_token', () => {
+    expect(formatInitError({ code: 'init_missing_token' })).toContain('--token is required')
+  })
+
+  it('formats init_workflow_exists with path', () => {
+    const msg = formatInitError({ code: 'init_workflow_exists', path: '/tmp/WORKFLOW.md' })
+    expect(msg).toContain('already exists')
+    expect(msg).toContain('/tmp/WORKFLOW.md')
+  })
+
+  it('formats init_owner_not_found with owner name', () => {
+    const msg = formatInitError({ code: 'init_owner_not_found', owner: 'nobody' })
+    expect(msg).toContain('\'nobody\'')
+    expect(msg).toContain('not found')
+  })
+
+  it('formats init_create_failed with cause', () => {
+    const msg = formatInitError({ code: 'init_create_failed', cause: 'timeout' })
+    expect(msg).toContain('Failed to create')
+    expect(msg).toContain('timeout')
+  })
+
+  it('formats init_graphql_errors with serialized errors', () => {
+    const msg = formatInitError({ code: 'init_graphql_errors', errors: [{ message: 'bad query' }] })
+    expect(msg).toContain('GraphQL errors')
+    expect(msg).toContain('bad query')
+  })
+
+  it('formats init_network_error with cause', () => {
+    const msg = formatInitError({ code: 'init_network_error', cause: 'ECONNREFUSED' })
+    expect(msg).toContain('network error')
+    expect(msg).toContain('ECONNREFUSED')
   })
 })
 
