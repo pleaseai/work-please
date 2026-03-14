@@ -107,17 +107,17 @@ The GitHub adapter caches the Status field ID and option IDs on first use (they 
 
 ## Progress
 
-- [ ] T001 Add watched_states and auto_transitions to config types and parsing
-- [ ] T002 Add has_unresolved_threads and unresolved_thread_authors to Issue type
+- [x] (2026-03-14 18:47 KST) T001 Add watched_states and auto_transitions to config types and parsing
+- [x] (2026-03-14 18:47 KST) T002 Add has_unresolved_threads and unresolved_thread_authors to Issue type
 - [ ] T003 Add reviewThreads to GitHub GraphQL queries and normalize into Issue
-- [ ] T004 Add updateItemStatus to TrackerAdapter interface
+- [x] (2026-03-14 18:44 KST) T004 Add updateItemStatus to TrackerAdapter interface
 - [ ] T005 Implement updateItemStatus for GitHub adapter with field/option ID caching
-- [ ] T006 Implement stub updateItemStatus for Asana adapter
-- [ ] T007 Add getWatchedStates and getAutoTransitions config helpers
+- [x] (2026-03-14 18:52 KST) T006 Implement stub updateItemStatus for Asana adapter
+- [x] (2026-03-14 18:47 KST) T007 Add getWatchedStates and getAutoTransitions config helpers
 - [ ] T008 Implement processWatchedStates in orchestrator tick loop
 - [ ] T009 Update generateWorkflow template with watched_states and auto_transitions
 - [ ] T010 Update WORKFLOW.md and README.md with new config fields
-- [ ] T011 Add config tests for watched_states and auto_transitions parsing
+- [x] (2026-03-14 18:47 KST) T011 Add config tests for watched_states and auto_transitions parsing
 - [ ] T012 Add tracker tests for reviewThreads normalization and updateItemStatus
 - [ ] T013 Add orchestrator tests for processWatchedStates
 
