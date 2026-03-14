@@ -275,13 +275,21 @@ export class Orchestrator {
   private async populateProjectContext(issue: Issue): Promise<void> {
     if (!issue.project)
       return
-    const adapter = createTrackerAdapter(this.config)
-    if (isTrackerError(adapter) || !adapter.resolveStatusField)
-      return
-    const fieldInfo = await adapter.resolveStatusField()
-    if (fieldInfo) {
-      issue.project.field_id = fieldInfo.field_id
-      issue.project.status_options = fieldInfo.options
+    try {
+      const adapter = createTrackerAdapter(this.config)
+      if (isTrackerError(adapter) || !adapter.resolveStatusField) {
+        console.warn(`[orchestrator] cannot resolve project context issue_id=${issue.id}: tracker does not support resolveStatusField`)
+        return
+      }
+      const fieldInfo = await adapter.resolveStatusField()
+      if (fieldInfo) {
+        issue.project.project_id = fieldInfo.project_id
+        issue.project.field_id = fieldInfo.field_id
+        issue.project.status_options = fieldInfo.options
+      }
+    }
+    catch (err) {
+      console.warn(`[orchestrator] failed to populate project context issue_id=${issue.id}: ${err}`)
     }
   }
 

@@ -314,9 +314,10 @@ If any blocker is still open, document it and stop.
 
 Use this information to update the issue status via \`gh project item-edit\` or GitHub MCP / GraphQL.
 
-\`\`\`
+\`\`\`text
 Owner: {{ issue.project.owner }}
 Project number: {{ issue.project.number }}
+{% if issue.project.project_id %}Project ID: {{ issue.project.project_id }}{% endif %}
 Item ID: {{ issue.project.item_id }}
 {% if issue.project.field_id %}Status field ID: {{ issue.project.field_id }}{% endif %}
 {% if issue.project.status_options.size > 0 %}Status options:
@@ -326,14 +327,14 @@ Item ID: {{ issue.project.item_id }}
 
 Example — update status via \`gh\` CLI:
 \`\`\`bash
-gh project item-edit --project-id <PROJECT_ID> --id {{ issue.project.item_id }} --field-id {{ issue.project.field_id }} --single-select-option-id <OPTION_ID>
+gh project item-edit --project-id {{ issue.project.project_id }} --id {{ issue.project.item_id }} --field-id {{ issue.project.field_id }} --single-select-option-id <OPTION_ID>
 \`\`\`
 
 Example — update status via GraphQL:
 \`\`\`graphql
 mutation {
   updateProjectV2ItemFieldValue(input: {
-    projectId: "<PROJECT_ID>"
+    projectId: "{{ issue.project.project_id }}"
     itemId: "{{ issue.project.item_id }}"
     fieldId: "{{ issue.project.field_id }}"
     value: { singleSelectOptionId: "<OPTION_ID>" }

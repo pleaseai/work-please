@@ -129,14 +129,19 @@ export function createStatusUpdateContext(
 
     async resolveStatusField(): Promise<StatusFieldInfo | null> {
       const pidOrError = await ensureProjectId()
-      if (typeof pidOrError !== 'string')
+      if (typeof pidOrError !== 'string') {
+        console.warn(`[github-status-update] failed to resolve project ID: ${pidOrError.code}`)
         return null
+      }
 
       const fieldOrError = await ensureStatusField(pidOrError)
-      if ('code' in fieldOrError)
+      if ('code' in fieldOrError) {
+        console.warn(`[github-status-update] failed to resolve status field: ${fieldOrError.code}`)
         return null
+      }
 
       return {
+        project_id: pidOrError,
         field_id: fieldOrError.fieldId,
         options: cachedOptionsArray ?? [],
       }

@@ -17,6 +17,7 @@ export interface LinkedPR {
 export interface ProjectItemContext {
   owner: string
   number: number
+  project_id: string | null
   item_id: string
   field_id: string | null
   status_options: Array<{ name: string, id: string }>

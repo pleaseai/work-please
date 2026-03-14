@@ -1,6 +1,7 @@
 import type { Issue } from '../types'
 
 export interface StatusFieldInfo {
+  project_id: string
   field_id: string
   options: Array<{ name: string, id: string }>
 }
