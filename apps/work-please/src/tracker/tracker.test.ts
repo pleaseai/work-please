@@ -1306,3 +1306,154 @@ describe('fetchCandidateIssues filter application', () => {
     }
   })
 })
+
+describe('github_projects review_decision normalization', () => {
+  function makePrResponse(reviewDecision: unknown) {
+    return new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_RD',
+                  fieldValues: { nodes: [{ name: 'In Review', field: { name: 'Status' } }] },
+                  content: {
+                    number: 77,
+                    title: 'A PR with review',
+                    body: null,
+                    url: 'https://github.com/org/repo/pull/77',
+                    labels: { nodes: [] },
+                    assignees: { nodes: [] },
+                    createdAt: null,
+                    updatedAt: null,
+                    headRefName: 'feature/rd',
+                    reviewDecision,
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  test('maps CHANGES_REQUESTED to changes_requested', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makePrResponse('CHANGES_REQUESTED')) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBe('changes_requested')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('maps APPROVED to approved', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makePrResponse('APPROVED')) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBe('approved')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('maps COMMENTED to commented', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makePrResponse('COMMENTED')) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBe('commented')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('maps REVIEW_REQUIRED to review_required', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makePrResponse('REVIEW_REQUIRED')) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBe('review_required')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('maps null reviewDecision to null', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makePrResponse(null)) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBeNull()
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('maps missing reviewDecision to null for Issue content', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_ISS',
+                  fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
+                  content: {
+                    number: 88,
+                    title: 'A regular issue',
+                    body: null,
+                    url: 'https://github.com/org/repo/issues/88',
+                    labels: { nodes: [] },
+                    assignees: { nodes: [] },
+                    createdAt: null,
+                    updatedAt: null,
+                    closedByPullRequestsReferences: { nodes: [] },
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Progress'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBeNull()
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+})

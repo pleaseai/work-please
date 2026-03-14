@@ -65,6 +65,7 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                     assignees(first: 10) { nodes { login } }
                     createdAt updatedAt
                     headRefName
+                    reviewDecision
                   }
                 }
               }
@@ -101,6 +102,7 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                     assignees(first: 10) { nodes { login } }
                     createdAt updatedAt
                     headRefName
+                    reviewDecision
                   }
                 }
               }
@@ -143,6 +145,7 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
                   assignees(first: 10) { nodes { login } }
                   createdAt updatedAt
                   headRefName
+                  reviewDecision
                 }
               }
             }
@@ -314,6 +317,19 @@ function normalizePrState(raw: unknown): LinkedPR['state'] {
   return s === 'closed' || s === 'merged' ? s : 'open'
 }
 
+function normalizeReviewDecision(raw: unknown): Issue['review_decision'] {
+  if (raw == null)
+    return null
+  const s = String(raw).toUpperCase()
+  switch (s) {
+    case 'APPROVED': return 'approved'
+    case 'CHANGES_REQUESTED': return 'changes_requested'
+    case 'COMMENTED': return 'commented'
+    case 'REVIEW_REQUIRED': return 'review_required'
+    default: return null
+  }
+}
+
 function normalizeProjectItem(node: Record<string, unknown>, status: string): Issue {
   const content = node.content as Record<string, unknown>
   const number = content?.number
@@ -341,6 +357,7 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string): Is
     : []
 
   const headRefName = content?.headRefName ? String(content.headRefName) : null
+  const reviewDecision = normalizeReviewDecision(content?.reviewDecision)
 
   return {
     id: String(node.id ?? ''),
@@ -355,6 +372,7 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string): Is
     labels,
     blocked_by: [],
     pull_requests: pullRequests,
+    review_decision: reviewDecision,
     created_at: content?.createdAt ? new Date(String(content.createdAt)) : null,
     updated_at: content?.updatedAt ? new Date(String(content.updatedAt)) : null,
   }

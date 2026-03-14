@@ -27,6 +27,7 @@ export interface Issue {
   labels: string[]
   blocked_by: BlockerRef[]
   pull_requests: LinkedPR[]
+  review_decision: 'approved' | 'changes_requested' | 'commented' | 'review_required' | null
   created_at: Date | null
   updated_at: Date | null
 }

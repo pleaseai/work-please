@@ -221,6 +221,7 @@ function makeIssue() {
     labels: [],
     blocked_by: [],
     pull_requests: [],
+    review_decision: null,
     created_at: null,
     updated_at: null,
   }

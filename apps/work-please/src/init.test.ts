@@ -68,6 +68,7 @@ describe('generateWorkflow', () => {
     const content = generateWorkflow('myorg', 42)
     expect(content).toContain('- Todo')
     expect(content).toContain('- In Progress')
+    expect(content).toContain('- In Review')
   })
 
   it('includes standard terminal_states', () => {
@@ -120,6 +121,13 @@ describe('generateWorkflow', () => {
   it('includes "In Review" instruction in PR step', () => {
     const content = generateWorkflow('myorg', 42)
     expect(content).toContain('In Review')
+  })
+
+  it('includes Review Fix Mode block for In Review state', () => {
+    const content = generateWorkflow('myorg', 42)
+    expect(content).toContain('Review Fix Mode')
+    expect(content).toContain('gh pr view --json reviewDecision,reviews,comments')
+    expect(content).toContain('Do NOT change the issue status')
   })
 })
 

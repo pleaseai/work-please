@@ -8,6 +8,7 @@ import { buildConfig } from './config'
 import {
   _git,
   buildHookEnv,
+  checkoutExistingBranch,
   createWorkspace,
   ensureClaudeSettings,
   extractRepoUrl,
@@ -35,6 +36,7 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     labels: [],
     blocked_by: [],
     pull_requests: [],
+    review_decision: null,
     created_at: null,
     updated_at: null,
     ...overrides,
@@ -855,5 +857,121 @@ describe('removeWorkspace with GitHub issue URL', () => {
     spy.mockRestore()
 
     expect(wtCall).toBeUndefined()
+  })
+})
+
+describe('checkoutExistingBranch', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-checkout-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('calls git worktree add without -b flag', () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const wsPath = join(tmpRoot, 'ws')
+    const err = checkoutExistingBranch(tmpRoot, wsPath, 'feature/my-branch')
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    expect(err).toBeNull()
+    const call = calls[0]
+    expect(call).toContain('worktree')
+    expect(call).toContain('add')
+    expect(call).toContain('origin/feature/my-branch')
+    expect(call).not.toContain('-b')
+  })
+
+  it('returns error when git worktree add fails', () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 1,
+      success: false,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from('fatal: not a git repository'),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const wsPath = join(tmpRoot, 'ws')
+    const err = checkoutExistingBranch(tmpRoot, wsPath, 'feature/broken')
+    spy.mockRestore()
+
+    expect(err).not.toBeNull()
+    expect(err?.message).toContain('git worktree add failed')
+  })
+})
+
+describe('createWorkspace uses checkoutExistingBranch for PRs', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-pr-wt-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('uses checkoutExistingBranch when issue has branch_name', async () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const issue = makeIssue({
+      identifier: '#77',
+      url: 'https://github.com/org/repo/pull/77',
+      branch_name: 'feature/review-fix',
+    })
+    const config = makeConfig(tmpRoot)
+
+    await createWorkspace(config, '#77', issue)
+
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    const worktreeCall = calls.find(args => args.includes('worktree') && args.includes('add'))
+    expect(worktreeCall).toBeDefined()
+    expect(worktreeCall).toContain('origin/feature/review-fix')
+    expect(worktreeCall).not.toContain('-b')
+  })
+
+  it('uses createWorktree when issue has no branch_name', async () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as ReturnType<typeof Bun.spawnSync>)
+
+    const issue = makeIssue({
+      identifier: '#88',
+      url: 'https://github.com/org/repo/issues/88',
+      branch_name: null,
+    })
+    const config = makeConfig(tmpRoot)
+
+    await createWorkspace(config, '#88', issue)
+
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    const worktreeCall = calls.find(args => args.includes('worktree') && args.includes('add'))
+    expect(worktreeCall).toBeDefined()
+    expect(worktreeCall).toContain('-b')
   })
 })

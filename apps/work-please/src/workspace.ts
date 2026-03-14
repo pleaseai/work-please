@@ -92,6 +92,26 @@ export function createWorktree(repoDir: string, wsPath: string, branchName: stri
   return null
 }
 
+export function checkoutExistingBranch(repoDir: string, wsPath: string, remoteBranch: string): Error | null {
+  try {
+    rmSync(wsPath, { recursive: true, force: true })
+  }
+  catch (err) {
+    return err instanceof Error ? err : new Error(String(err))
+  }
+  try {
+    const result = _git.spawnSync(['git', '-C', repoDir, 'worktree', 'add', wsPath, `origin/${remoteBranch}`])
+    if (!result.success) {
+      const output = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048)
+      return new Error(`git worktree add failed: ${output}`)
+    }
+  }
+  catch (err) {
+    return err instanceof Error ? err : new Error(String(err))
+  }
+  return null
+}
+
 export function buildHookEnv(issue?: Issue): Record<string, string> {
   if (!issue)
     return {}
@@ -181,7 +201,9 @@ export async function createWorkspace(
       const branchName = sanitizeIdentifier(issue.identifier)
       const wtPath = join(repoDir, '.claude', 'worktrees', branchName)
       if (!existsSync(wtPath)) {
-        const wtErr = createWorktree(repoDir, wtPath, branchName)
+        const wtErr = issue.branch_name
+          ? checkoutExistingBranch(repoDir, wtPath, issue.branch_name)
+          : createWorktree(repoDir, wtPath, branchName)
         if (wtErr)
           return wtErr
         createdNow = true

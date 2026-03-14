@@ -67,6 +67,7 @@ function issueToTemplateVars(issue: Issue): Record<string, unknown> {
     labels: issue.labels,
     blocked_by: issue.blocked_by,
     pull_requests: issue.pull_requests,
+    review_decision: issue.review_decision,
     created_at: issue.created_at?.toISOString() ?? null,
     updated_at: issue.updated_at?.toISOString() ?? null,
   }

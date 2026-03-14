@@ -25,7 +25,7 @@ const DEFAULTS = {
   ASANA_ACTIVE_SECTIONS: ['To Do', 'In Progress'] as string[],
   ASANA_TERMINAL_SECTIONS: ['Done', 'Cancelled'] as string[],
   GITHUB_ENDPOINT: 'https://api.github.com',
-  GITHUB_ACTIVE_STATUSES: ['Todo', 'In Progress'] as string[],
+  GITHUB_ACTIVE_STATUSES: ['Todo', 'In Progress', 'In Review'] as string[],
   GITHUB_TERMINAL_STATUSES: ['Done', 'Cancelled'] as string[],
 }
 

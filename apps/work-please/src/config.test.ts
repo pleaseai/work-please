@@ -487,6 +487,13 @@ describe('getActiveStates / getTerminalStates', () => {
     expect(getActiveStates(config)).toEqual(['In Progress'])
   })
 
+  it('includes "In Review" in default github_projects active_statuses', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', owner: 'org', project_number: 1 },
+    }))
+    expect(getActiveStates(config)).toContain('In Review')
+  })
+
   it('returns defaults when not configured', () => {
     const config = buildConfig(makeWorkflow({ tracker: { kind: 'asana' } }))
     expect(getTerminalStates(config)).toEqual(['Done', 'Cancelled'])

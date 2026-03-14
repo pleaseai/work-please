@@ -190,6 +190,7 @@ tracker:
   active_states:
     - Todo
     - In Progress
+    - In Review
   terminal_states:
     - Done
     - Cancelled
@@ -261,6 +262,18 @@ The following issues must be resolved before this one can proceed:
 </blocker-data>
 
 If any blocker is still open, document it and stop.
+{% endif %}
+
+{% if issue.state == "In Review" %}
+## Review Fix Mode
+
+This issue is in review. A PR exists on branch \`{{ issue.branch_name }}\`.
+
+1. Fetch review comments: \`gh pr view --json reviewDecision,reviews,comments\`
+2. If no unresolved review comments exist, stop immediately.
+3. Apply fixes for each unresolved review comment.
+4. Commit and push to the existing branch.
+5. Do NOT change the issue status -- leave it in "In Review".
 {% endif %}
 
 ## Instructions
