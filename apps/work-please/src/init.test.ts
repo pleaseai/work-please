@@ -92,21 +92,13 @@ describe('generateWorkflow', () => {
 
   it('includes a Liquid prompt template', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('{{ issue.identifier | escape }}')
-    expect(content).toContain('{{ issue.title | escape }}')
+    expect(content).toContain('{{ issue.identifier }}')
+    expect(content).toContain('{{ issue.title }}')
   })
 
-  it('escapes all dynamic fields inside issue-data and blocker-data to prevent XML tag injection', () => {
+  it('does not HTML-escape dynamic fields (output is plain text, not HTML)', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('{{ issue.title | escape }}')
-    expect(content).toContain('{{ issue.description | escape }}')
-    expect(content).toContain('{{ blocker.identifier | escape }}')
-    expect(content).toContain('{{ blocker.title | escape }}')
-    expect(content).toContain('{{ blocker.state | escape }}')
-    // bare unescaped variables must not appear inside the data boundary
-    expect(content).not.toContain('{{ issue.title }}')
-    expect(content).not.toContain('{{ issue.description }}')
-    expect(content).not.toContain('{{ blocker.title }}')
+    expect(content).not.toContain('| escape')
   })
 
   it('starts with YAML front matter delimiter', () => {
