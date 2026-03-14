@@ -1,9 +1,10 @@
 import type { LabelService } from './label'
-import type { Issue, RunningEntry } from './types'
+import type { AutoTransitions, Issue, RunningEntry } from './types'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
+import { evaluateAutoTransition } from './auto-transition'
 import { normalizeState } from './config'
 import { Orchestrator } from './orchestrator'
 
@@ -61,6 +62,9 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     labels: [],
     blocked_by: [],
     pull_requests: [],
+    review_decision: null,
+    has_unresolved_threads: false,
+    has_unresolved_human_threads: false,
     created_at: null,
     updated_at: null,
     ...overrides,
@@ -784,6 +788,57 @@ Prompt text.`)
       orch.stop()
       rmSync(tmpDir, { recursive: true, force: true })
     }
+  })
+})
+
+function makeAutoTransitions(overrides: Partial<Required<AutoTransitions>> = {}): Required<AutoTransitions> {
+  return { human_review_to_rework: true, human_review_to_merging: true, include_bot_reviews: true, ...overrides }
+}
+
+describe('evaluateAutoTransition', () => {
+  it('returns "Rework" when review_decision is changes_requested', () => {
+    const issue = makeIssue({ review_decision: 'changes_requested' })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBe('Rework')
+  })
+
+  it('returns "Rework" when has_unresolved_threads is true', () => {
+    const issue = makeIssue({ review_decision: null, has_unresolved_threads: true })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBe('Rework')
+  })
+
+  it('returns "Rework" when has_unresolved_human_threads is true and include_bot_reviews is false', () => {
+    const issue = makeIssue({ review_decision: null, has_unresolved_human_threads: true, has_unresolved_threads: false })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions({ include_bot_reviews: false }))).toBe('Rework')
+  })
+
+  it('returns null when only bot threads and include_bot_reviews is false', () => {
+    const issue = makeIssue({ review_decision: null, has_unresolved_threads: true, has_unresolved_human_threads: false })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions({ include_bot_reviews: false }))).toBeNull()
+  })
+
+  it('returns "Merging" when review_decision is approved and no unresolved threads', () => {
+    const issue = makeIssue({ review_decision: 'approved', has_unresolved_threads: false })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBe('Merging')
+  })
+
+  it('returns "Rework" (not "Merging") when review_decision is approved but has unresolved threads', () => {
+    const issue = makeIssue({ review_decision: 'approved', has_unresolved_threads: true })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBe('Rework')
+  })
+
+  it('returns null when review_decision is null (no review yet)', () => {
+    const issue = makeIssue({ review_decision: null, has_unresolved_threads: false })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBeNull()
+  })
+
+  it('returns null when human_review_to_rework is false and changes_requested', () => {
+    const issue = makeIssue({ review_decision: 'changes_requested' })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions({ human_review_to_rework: false }))).toBeNull()
+  })
+
+  it('returns null when human_review_to_merging is false and approved', () => {
+    const issue = makeIssue({ review_decision: 'approved', has_unresolved_threads: false })
+    expect(evaluateAutoTransition(issue, makeAutoTransitions({ human_review_to_merging: false }))).toBeNull()
   })
 })
 

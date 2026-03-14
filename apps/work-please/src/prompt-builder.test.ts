@@ -16,6 +16,9 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     labels: ['bug'],
     blocked_by: [],
     pull_requests: [],
+    review_decision: null,
+    has_unresolved_threads: false,
+    has_unresolved_human_threads: false,
     created_at: null,
     updated_at: null,
     ...overrides,
@@ -134,6 +137,26 @@ describe('buildPrompt', () => {
     )
     expect(isPromptBuildError(result)).toBe(false)
     expect(result).toContain('PR #99: My PR (open) branch=fix/bug')
+  })
+
+  it('renders review_decision in template', async () => {
+    const issue = makeIssue({ review_decision: 'changes_requested' })
+    const result = await buildPrompt(
+      makeWorkflow('{% if issue.review_decision == "changes_requested" %}needs fix{% endif %}'),
+      issue,
+    )
+    expect(isPromptBuildError(result)).toBe(false)
+    expect(result).toContain('needs fix')
+  })
+
+  it('renders null review_decision as empty', async () => {
+    const issue = makeIssue({ review_decision: null })
+    const result = await buildPrompt(
+      makeWorkflow('decision:{{ issue.review_decision }}'),
+      issue,
+    )
+    expect(isPromptBuildError(result)).toBe(false)
+    expect(result).toBe('decision:')
   })
 })
 

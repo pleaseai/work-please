@@ -147,10 +147,22 @@ tracker:
   owner: your-org
   project_number: 42
   active_statuses:
+    - Todo
     - In Progress
+    - Merging
+    - Rework
   terminal_statuses:
-    - Done
+    - Closed
     - Cancelled
+    - Canceled
+    - Duplicate
+    - Done
+  watched_states:
+    - Human Review
+  auto_transitions:
+    human_review_to_rework: true
+    human_review_to_merging: true
+    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -194,7 +206,7 @@ Your task:
 1. Understand the issue requirements.
 2. Implement the requested changes.
 3. Write or update tests as needed.
-4. Open a pull request and move this issue to the review status.
+4. Open a pull request and move this issue to `Human Review`.
 ```
 
 #### GitHub Projects v2 (GitHub App)
@@ -211,10 +223,22 @@ tracker:
   owner: your-org
   project_number: 42
   active_statuses:
+    - Todo
     - In Progress
+    - Merging
+    - Rework
   terminal_statuses:
-    - Done
+    - Closed
     - Cancelled
+    - Canceled
+    - Duplicate
+    - Done
+  watched_states:
+    - Human Review
+  auto_transitions:
+    human_review_to_rework: true
+    human_review_to_merging: true
+    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -258,7 +282,7 @@ Your task:
 1. Understand the issue requirements.
 2. Implement the requested changes.
 3. Write or update tests as needed.
-4. Open a pull request and move this issue to the review status.
+4. Open a pull request and move this issue to `Human Review`.
 ```
 
 #### Asana (under development)
@@ -319,7 +343,7 @@ Your task:
 1. Understand the task requirements.
 2. Implement the requested changes.
 3. Write or update tests as needed.
-4. Open a pull request and move this task to the review section.
+4. Open a pull request and move this task to the review section (e.g. `Human Review`).
 ```
 
 ### Run
@@ -362,11 +386,23 @@ tracker:
   owner: your-org                     # Required: GitHub organization or user login
   project_number: 42                  # Required: GitHub Projects v2 project number
   project_id: PVT_kwDOxxxxx          # Optional: project node ID (bypasses owner+project_number lookup)
-  active_statuses:                    # Optional: default ["Todo", "In Progress"]
+  active_statuses:                    # Optional: default ["Todo", "In Progress", "Merging", "Rework"]
+    - Todo
     - In Progress
-  terminal_statuses:                  # Optional: default ["Done", "Cancelled"]
-    - Done
+    - Merging
+    - Rework
+  terminal_statuses:                  # Optional: default ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"]
+    - Closed
     - Cancelled
+    - Canceled
+    - Duplicate
+    - Done
+  watched_statuses:                   # Optional: states polled but not dispatched. Default ["Human Review"]
+    - Human Review
+  auto_transitions:                   # Optional: auto-transition rules for watched states
+    human_review_to_rework: true      # Move to Rework on CHANGES_REQUESTED or unresolved threads. Default true
+    human_review_to_merging: true     # Move to Merging on APPROVED + no unresolved threads. Default true
+    include_bot_reviews: true         # Whether bot comment threads count as unresolved. Default true
   # GitHub App authentication (alternative to api_key — all three required together):
   # app_id: $GITHUB_APP_ID            # Optional: GitHub App ID (integer or $ENV_VAR)
   # private_key: $GITHUB_APP_PRIVATE_KEY  # Optional: GitHub App private key PEM or $ENV_VAR
@@ -448,7 +484,11 @@ Your prompt template goes here. Available variables:
 - {{ issue.assignees }}     — Array of assignee logins (GitHub) or emails (Asana)
 - {{ issue.labels }}       — Array of label strings (normalized to lowercase)
 - {{ issue.blocked_by }}   — Array of blocker refs (each has id, identifier, state)
+- {{ issue.branch_name }}  — PR head branch name (for PullRequest items) or null
 - {{ issue.pull_requests }} — Array of linked PRs (each has number, title, url, state, branch_name)
+- {{ issue.review_decision }} — PR review decision: "approved", "changes_requested", "commented", "review_required", or null
+- {{ issue.has_unresolved_threads }} — Whether the PR has unresolved review threads
+- {{ issue.has_unresolved_human_threads }} — Whether the PR has unresolved non-bot review threads
 - {{ issue.priority }}     — Numeric priority or null
 - {{ issue.created_at }}   — ISO-8601 creation timestamp
 - {{ issue.updated_at }}   — ISO-8601 last-updated timestamp

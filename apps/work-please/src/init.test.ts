@@ -66,14 +66,28 @@ describe('generateWorkflow', () => {
 
   it('includes standard active_states', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('- Todo')
-    expect(content).toContain('- In Progress')
+    const activeStatesBlock = content.slice(
+      content.indexOf('active_states:'),
+      content.indexOf('terminal_states:'),
+    )
+    expect(activeStatesBlock).toContain('- Todo')
+    expect(activeStatesBlock).toContain('- In Progress')
+    expect(activeStatesBlock).toContain('- Merging')
+    expect(activeStatesBlock).toContain('- Rework')
+    expect(activeStatesBlock).not.toContain('- Human Review')
   })
 
   it('includes standard terminal_states', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('- Done')
-    expect(content).toContain('- Cancelled')
+    const terminalBlock = content.slice(
+      content.indexOf('terminal_states:'),
+      content.indexOf('polling:'),
+    )
+    expect(terminalBlock).toContain('- Closed')
+    expect(terminalBlock).toContain('- Cancelled')
+    expect(terminalBlock).toContain('- Canceled')
+    expect(terminalBlock).toContain('- Duplicate')
+    expect(terminalBlock).toContain('- Done')
   })
 
   it('includes a Liquid prompt template', () => {
@@ -117,9 +131,60 @@ describe('generateWorkflow', () => {
     expect(a).not.toBe(b)
   })
 
-  it('includes "In Review" instruction in PR step', () => {
+  it('includes "Human Review" instruction in PR step', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('In Review')
+    expect(content).toContain('move the issue status to `Human Review`')
+  })
+
+  it('includes Rework Mode block for Rework state', () => {
+    const content = generateWorkflow('myorg', 42)
+    expect(content).toContain('Rework Mode')
+    expect(content).toContain('gh pr view --json reviewDecision,reviews,comments')
+    expect(content).toContain('Human Review')
+  })
+
+  it('includes Merging Mode block', () => {
+    const content = generateWorkflow('myorg', 42)
+    expect(content).toContain('Merging Mode')
+    expect(content).toContain('gh pr merge --squash --delete-branch')
+  })
+
+  it('includes status map with all states', () => {
+    const content = generateWorkflow('myorg', 42)
+    expect(content).toContain('Status map')
+    expect(content).toContain('`Todo`')
+    expect(content).toContain('`In Progress`')
+    expect(content).toContain('`Human Review`')
+    expect(content).toContain('`Merging`')
+    expect(content).toContain('`Rework`')
+    expect(content).toContain('`Done`')
+  })
+
+  it('includes Todo-with-PR feedback loop block', () => {
+    const content = generateWorkflow('myorg', 42)
+    expect(content).toContain('Feedback Loop (Todo with existing PR)')
+  })
+
+  it('includes watched_states with Human Review', () => {
+    const content = generateWorkflow('myorg', 42)
+    const terminalBlock = content.slice(
+      content.indexOf('terminal_states:'),
+      content.indexOf('polling:'),
+    )
+    expect(terminalBlock).toContain('watched_states:')
+    expect(terminalBlock).toContain('- Human Review')
+  })
+
+  it('includes auto_transitions with all three boolean fields', () => {
+    const content = generateWorkflow('myorg', 42)
+    const terminalBlock = content.slice(
+      content.indexOf('terminal_states:'),
+      content.indexOf('polling:'),
+    )
+    expect(terminalBlock).toContain('auto_transitions:')
+    expect(terminalBlock).toContain('human_review_to_rework: true')
+    expect(terminalBlock).toContain('human_review_to_merging: true')
+    expect(terminalBlock).toContain('include_bot_reviews: true')
   })
 })
 

@@ -1,4 +1,4 @@
-import type { ClaudeEffort, IssueFilter, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { AutoTransitions, ClaudeEffort, IssueFilter, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -25,8 +25,11 @@ const DEFAULTS = {
   ASANA_ACTIVE_SECTIONS: ['To Do', 'In Progress'] as string[],
   ASANA_TERMINAL_SECTIONS: ['Done', 'Cancelled'] as string[],
   GITHUB_ENDPOINT: 'https://api.github.com',
-  GITHUB_ACTIVE_STATUSES: ['Todo', 'In Progress'] as string[],
-  GITHUB_TERMINAL_STATUSES: ['Done', 'Cancelled'] as string[],
+  GITHUB_ACTIVE_STATUSES: ['Todo', 'In Progress', 'Merging', 'Rework'] as string[],
+  GITHUB_TERMINAL_STATUSES: ['Closed', 'Cancelled', 'Canceled', 'Duplicate', 'Done'] as string[],
+  GITHUB_WATCHED_STATUSES: ['Human Review'] as string[],
+  ASANA_WATCHED_SECTIONS: [] as string[],
+  AUTO_TRANSITIONS: { human_review_to_rework: true, human_review_to_merging: true, include_bot_reviews: true } as AutoTransitions,
 }
 
 export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
@@ -105,6 +108,8 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
       project_gid: stringValue(tracker.project_gid) ?? null,
       active_sections: csvValue(tracker.active_sections) ?? csvValue(tracker.active_states) ?? DEFAULTS.ASANA_ACTIVE_SECTIONS,
       terminal_sections: csvValue(tracker.terminal_sections) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.ASANA_TERMINAL_SECTIONS,
+      watched_statuses: csvValue(tracker.watched_statuses) ?? csvValue(tracker.watched_states) ?? DEFAULTS.ASANA_WATCHED_SECTIONS,
+      auto_transitions: buildAutoTransitions(sectionMap(tracker, 'auto_transitions')),
       label_prefix,
       filter,
     }
@@ -120,6 +125,8 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
       project_id: stringValue(tracker.project_id) ?? null,
       active_statuses: csvValue(tracker.active_statuses) ?? csvValue(tracker.active_states) ?? DEFAULTS.GITHUB_ACTIVE_STATUSES,
       terminal_statuses: csvValue(tracker.terminal_statuses) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.GITHUB_TERMINAL_STATUSES,
+      watched_statuses: csvValue(tracker.watched_statuses) ?? csvValue(tracker.watched_states) ?? DEFAULTS.GITHUB_WATCHED_STATUSES,
+      auto_transitions: buildAutoTransitions(sectionMap(tracker, 'auto_transitions')),
       app_id: resolveEnvValue(stringValue(tracker.app_id), process.env.GITHUB_APP_ID),
       private_key: resolveEnvValue(stringValue(tracker.private_key), process.env.GITHUB_APP_PRIVATE_KEY),
       installation_id: resolveInstallationId(tracker.installation_id),
@@ -221,6 +228,25 @@ export function getTerminalStates(config: ServiceConfig): string[] {
   return []
 }
 
+export function getWatchedStates(config: ServiceConfig): string[] {
+  const { kind } = config.tracker
+  if (kind === 'asana')
+    return config.tracker.watched_statuses ?? DEFAULTS.ASANA_WATCHED_SECTIONS
+  if (kind === 'github_projects')
+    return config.tracker.watched_statuses ?? DEFAULTS.GITHUB_WATCHED_STATUSES
+  return []
+}
+
+export function getAutoTransitions(config: ServiceConfig): Required<AutoTransitions> {
+  const at = config.tracker.auto_transitions ?? {}
+  const defaults = DEFAULTS.AUTO_TRANSITIONS as Required<AutoTransitions>
+  return {
+    human_review_to_rework: at.human_review_to_rework ?? defaults.human_review_to_rework,
+    human_review_to_merging: at.human_review_to_merging ?? defaults.human_review_to_merging,
+    include_bot_reviews: at.include_bot_reviews ?? defaults.include_bot_reviews,
+  }
+}
+
 export function normalizeState(state: string): string {
   return state.trim().toLowerCase()
 }
@@ -232,6 +258,28 @@ export function maxConcurrentForState(config: ServiceConfig, state: string): num
 }
 
 // --- helpers ---
+
+function buildAutoTransitions(raw: Record<string, unknown>): AutoTransitions {
+  const defaults = DEFAULTS.AUTO_TRANSITIONS as Required<AutoTransitions>
+  return {
+    human_review_to_rework: booleanValue(raw.human_review_to_rework, defaults.human_review_to_rework),
+    human_review_to_merging: booleanValue(raw.human_review_to_merging, defaults.human_review_to_merging),
+    include_bot_reviews: booleanValue(raw.include_bot_reviews, defaults.include_bot_reviews),
+  }
+}
+
+function booleanValue(val: unknown, fallback: boolean): boolean {
+  if (typeof val === 'boolean')
+    return val
+  if (typeof val === 'string') {
+    const s = val.trim().toLowerCase()
+    if (s === 'true')
+      return true
+    if (s === 'false')
+      return false
+  }
+  return fallback
+}
 
 const DEFAULT_SYSTEM_PROMPT: SystemPromptConfig = { type: 'preset', preset: 'claude_code' }
 

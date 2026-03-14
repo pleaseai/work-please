@@ -1,7 +1,7 @@
 import type { WorkflowDefinition } from './types'
 import process from 'node:process'
 import { describe, expect, it } from 'bun:test'
-import { buildConfig, getActiveStates, getTerminalStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
+import { buildConfig, getActiveStates, getAutoTransitions, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 
 function makeWorkflow(config: Record<string, unknown>): WorkflowDefinition {
   return { config, prompt_template: '' }
@@ -487,6 +487,21 @@ describe('getActiveStates / getTerminalStates', () => {
     expect(getActiveStates(config)).toEqual(['In Progress'])
   })
 
+  it('includes "Rework" and "Merging" in default github_projects active_statuses', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', owner: 'org', project_number: 1 },
+    }))
+    expect(getActiveStates(config)).toContain('Rework')
+    expect(getActiveStates(config)).toContain('Merging')
+  })
+
+  it('does not include "Human Review" in default github_projects active_statuses', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', owner: 'org', project_number: 1 },
+    }))
+    expect(getActiveStates(config)).not.toContain('Human Review')
+  })
+
   it('returns defaults when not configured', () => {
     const config = buildConfig(makeWorkflow({ tracker: { kind: 'asana' } }))
     expect(getTerminalStates(config)).toEqual(['Done', 'Cancelled'])
@@ -625,5 +640,155 @@ describe('tracker filter config', () => {
     }))
     expect(config.tracker.filter?.assignee).toEqual(['user1'])
     expect(config.tracker.filter?.label).toEqual(['bug'])
+  })
+})
+
+describe('watched_statuses parsing', () => {
+  it('defaults to ["Human Review"] for github_projects when not configured', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', api_key: 'token', owner: 'org', project_number: 1 },
+    }))
+    expect(config.tracker.watched_statuses).toEqual(['Human Review'])
+  })
+
+  it('defaults to [] for asana when not configured', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'token', project_gid: 'gid' },
+    }))
+    expect(config.tracker.watched_statuses).toEqual([])
+  })
+
+  it('parses watched_statuses from YAML array for github_projects', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: {
+        kind: 'github_projects',
+        api_key: 'token',
+        owner: 'org',
+        project_number: 1,
+        watched_statuses: ['Human Review', 'Blocked'],
+      },
+    }))
+    expect(config.tracker.watched_statuses).toEqual(['Human Review', 'Blocked'])
+  })
+
+  it('parses watched_statuses from CSV string', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: {
+        kind: 'github_projects',
+        api_key: 'token',
+        owner: 'org',
+        project_number: 1,
+        watched_statuses: 'Human Review, Blocked',
+      },
+    }))
+    expect(config.tracker.watched_statuses).toEqual(['Human Review', 'Blocked'])
+  })
+})
+
+describe('auto_transitions parsing', () => {
+  it('defaults all auto_transitions to true when not configured', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', api_key: 'token', owner: 'org', project_number: 1 },
+    }))
+    expect(config.tracker.auto_transitions).toEqual({
+      human_review_to_rework: true,
+      human_review_to_merging: true,
+      include_bot_reviews: true,
+    })
+  })
+
+  it('parses auto_transitions.human_review_to_rework = false', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: {
+        kind: 'github_projects',
+        api_key: 'token',
+        owner: 'org',
+        project_number: 1,
+        auto_transitions: { human_review_to_rework: false },
+      },
+    }))
+    expect(config.tracker.auto_transitions?.human_review_to_rework).toBe(false)
+    expect(config.tracker.auto_transitions?.human_review_to_merging).toBe(true)
+    expect(config.tracker.auto_transitions?.include_bot_reviews).toBe(true)
+  })
+
+  it('parses auto_transitions.include_bot_reviews = false', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: {
+        kind: 'github_projects',
+        api_key: 'token',
+        owner: 'org',
+        project_number: 1,
+        auto_transitions: { include_bot_reviews: false },
+      },
+    }))
+    expect(config.tracker.auto_transitions?.include_bot_reviews).toBe(false)
+  })
+
+  it('defaults all auto_transitions to true for asana (field present but empty)', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'token', project_gid: 'gid' },
+    }))
+    expect(config.tracker.auto_transitions).toEqual({
+      human_review_to_rework: true,
+      human_review_to_merging: true,
+      include_bot_reviews: true,
+    })
+  })
+})
+
+describe('getWatchedStates', () => {
+  it('returns watched_statuses for github_projects', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: {
+        kind: 'github_projects',
+        api_key: 'token',
+        owner: 'org',
+        project_number: 1,
+        watched_statuses: ['Human Review'],
+      },
+    }))
+    expect(getWatchedStates(config)).toEqual(['Human Review'])
+  })
+
+  it('returns empty array for asana', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'token', project_gid: 'gid' },
+    }))
+    expect(getWatchedStates(config)).toEqual([])
+  })
+
+  it('returns empty array for unknown tracker kind', () => {
+    const config = buildConfig(makeWorkflow({ tracker: { kind: 'linear' } }))
+    expect(getWatchedStates(config)).toEqual([])
+  })
+})
+
+describe('getAutoTransitions', () => {
+  it('returns all defaults when not configured for github_projects', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'github_projects', api_key: 'token', owner: 'org', project_number: 1 },
+    }))
+    expect(getAutoTransitions(config)).toEqual({
+      human_review_to_rework: true,
+      human_review_to_merging: true,
+      include_bot_reviews: true,
+    })
+  })
+
+  it('returns configured values', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: {
+        kind: 'github_projects',
+        api_key: 'token',
+        owner: 'org',
+        project_number: 1,
+        auto_transitions: { human_review_to_rework: false, include_bot_reviews: false },
+      },
+    }))
+    const at = getAutoTransitions(config)
+    expect(at.human_review_to_rework).toBe(false)
+    expect(at.human_review_to_merging).toBe(true)
+    expect(at.include_bot_reviews).toBe(false)
   })
 })

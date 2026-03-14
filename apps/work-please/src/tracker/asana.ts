@@ -110,6 +110,10 @@ export function createAsanaAdapter(config: ServiceConfig): TrackerAdapter {
       return issues.filter(issue => matchesFilter(issue, filter))
     },
 
+    async updateItemStatus(_itemId: string, _targetState: string): Promise<true | TrackerError> {
+      return { code: 'tracker_write_not_supported' }
+    },
+
     async fetchIssuesByStates(states: string[]) {
       if (states.length === 0)
         return []
@@ -149,6 +153,9 @@ export function createAsanaAdapter(config: ServiceConfig): TrackerAdapter {
           labels: [],
           blocked_by: [],
           pull_requests: [],
+          review_decision: null,
+          has_unresolved_threads: false,
+          has_unresolved_human_threads: false,
           created_at: null,
           updated_at: null,
         })
@@ -188,6 +195,9 @@ function normalizeAsanaTask(task: Record<string, unknown>, sectionName: string):
     labels,
     blocked_by: blockedBy,
     pull_requests: [],
+    review_decision: null,
+    has_unresolved_threads: false,
+    has_unresolved_human_threads: false,
     created_at: task.created_at ? new Date(String(task.created_at)) : null,
     updated_at: task.modified_at ? new Date(String(task.modified_at)) : null,
   }

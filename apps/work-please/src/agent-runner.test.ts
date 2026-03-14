@@ -221,6 +221,9 @@ function makeIssue() {
     labels: [],
     blocked_by: [],
     pull_requests: [],
+    review_decision: null,
+    has_unresolved_threads: false,
+    has_unresolved_human_threads: false,
     created_at: null,
     updated_at: null,
   }

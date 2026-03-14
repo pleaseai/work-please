@@ -1306,3 +1306,433 @@ describe('fetchCandidateIssues filter application', () => {
     }
   })
 })
+
+describe('github_projects review_decision normalization', () => {
+  function makePrResponse(reviewDecision: unknown) {
+    return new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_RD',
+                  fieldValues: { nodes: [{ name: 'In Review', field: { name: 'Status' } }] },
+                  content: {
+                    number: 77,
+                    title: 'A PR with review',
+                    body: null,
+                    url: 'https://github.com/org/repo/pull/77',
+                    labels: { nodes: [] },
+                    assignees: { nodes: [] },
+                    createdAt: null,
+                    updatedAt: null,
+                    headRefName: 'feature/rd',
+                    reviewDecision,
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  test.each([
+    ['CHANGES_REQUESTED', 'changes_requested'],
+    ['APPROVED', 'approved'],
+    ['COMMENTED', 'commented'],
+    ['REVIEW_REQUIRED', 'review_required'],
+    [null, null],
+  ] as const)('maps %s to %s', async (apiValue, expectedValue) => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makePrResponse(apiValue)) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBe(expectedValue)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('maps missing reviewDecision to null for Issue content', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_ISS',
+                  fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
+                  content: {
+                    number: 88,
+                    title: 'A regular issue',
+                    body: null,
+                    url: 'https://github.com/org/repo/issues/88',
+                    labels: { nodes: [] },
+                    assignees: { nodes: [] },
+                    createdAt: null,
+                    updatedAt: null,
+                    closedByPullRequestsReferences: { nodes: [] },
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Progress'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBeNull()
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+})
+
+describe('github_projects reviewThreads normalization (T003)', () => {
+  function makePRItemWithThreads(threads: Array<{ isResolved: boolean, isOutdated: boolean, authorLogin?: string }>) {
+    return {
+      id: 'PVTI_PR',
+      fieldValues: { nodes: [{ name: 'In Review', field: { name: 'Status' } }] },
+      content: {
+        number: 10,
+        title: 'A PR',
+        body: null,
+        url: 'https://github.com/org/repo/pull/10',
+        labels: { nodes: [] },
+        assignees: { nodes: [] },
+        createdAt: null,
+        updatedAt: null,
+        headRefName: 'feature/test',
+        reviewDecision: 'APPROVED',
+        reviewThreads: {
+          nodes: threads.map(t => ({
+            isResolved: t.isResolved,
+            isOutdated: t.isOutdated,
+            comments: {
+              nodes: [{ author: { login: t.authorLogin ?? 'human-user' } }],
+            },
+          })),
+        },
+      },
+    }
+  }
+
+  function makeGHResponse(item: unknown) {
+    return new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [item],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  test('has_unresolved_threads is false when all threads are resolved', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makeGHResponse(makePRItemWithThreads([
+      { isResolved: true, isOutdated: false },
+      { isResolved: true, isOutdated: false },
+    ]))) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].has_unresolved_threads).toBe(false)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('has_unresolved_threads is false when threads are outdated (not resolved)', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makeGHResponse(makePRItemWithThreads([
+      { isResolved: false, isOutdated: true },
+    ]))) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].has_unresolved_threads).toBe(false)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('has_unresolved_threads is true when an unresolved non-outdated thread exists', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makeGHResponse(makePRItemWithThreads([
+      { isResolved: false, isOutdated: false, authorLogin: 'human-user' },
+    ]))) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].has_unresolved_threads).toBe(true)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('has_unresolved_human_threads is true for unresolved non-bot thread', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makeGHResponse(makePRItemWithThreads([
+      { isResolved: false, isOutdated: false, authorLogin: 'human-user' },
+    ]))) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].has_unresolved_human_threads).toBe(true)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('has_unresolved_human_threads is false when only bot threads are unresolved', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makeGHResponse(makePRItemWithThreads([
+      { isResolved: false, isOutdated: false, authorLogin: 'dependabot[bot]' },
+    ]))) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].has_unresolved_threads).toBe(true)
+      expect(result[0].has_unresolved_human_threads).toBe(false)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('has_unresolved_threads is false when reviewThreads is absent', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [{
+                id: 'PVTI_PR2',
+                fieldValues: { nodes: [{ name: 'In Review', field: { name: 'Status' } }] },
+                content: {
+                  number: 20,
+                  title: 'PR without threads',
+                  body: null,
+                  url: null,
+                  labels: { nodes: [] },
+                  assignees: { nodes: [] },
+                  createdAt: null,
+                  updatedAt: null,
+                  headRefName: 'feature/x',
+                  reviewDecision: null,
+                  // no reviewThreads field
+                },
+              }],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].has_unresolved_threads).toBe(false)
+      expect(result[0].has_unresolved_human_threads).toBe(false)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+})
+
+describe('github_projects updateItemStatus (T005)', () => {
+  test('updateItemStatus is defined on the adapter', () => {
+    const config = makeGitHubConfig({ project_id: 'PVT_test123' })
+    const adapter = createGitHubAdapter(config)
+    expect(typeof adapter.updateItemStatus).toBe('function')
+  })
+
+  test('updateItemStatus queries status field, then updates item', async () => {
+    const config = makeGitHubConfig({ project_id: 'PVT_test123' })
+    const adapter = createGitHubAdapter(config)
+
+    const capturedBodies: unknown[] = []
+    const origFetch = globalThis.fetch
+    let callCount = 0
+    globalThis.fetch = mock(async (_url: string, init?: RequestInit) => {
+      callCount++
+      const body = typeof init?.body === 'string' ? JSON.parse(init.body) : null
+      capturedBodies.push(body)
+      if (callCount === 1) {
+        // Status field query response
+        return new Response(JSON.stringify({
+          data: {
+            node: {
+              field: {
+                id: 'FIELD_ID_123',
+                options: [
+                  { id: 'OPT_todo', name: 'Todo' },
+                  { id: 'OPT_review', name: 'Human Review' },
+                ],
+              },
+            },
+          },
+        }), { status: 200, headers: { 'content-type': 'application/json' } })
+      }
+      // Mutation response
+      return new Response(JSON.stringify({
+        data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_abc' } } },
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.updateItemStatus!('PVTI_abc', 'Human Review')
+      expect(result).toBe(true)
+      expect(callCount).toBe(2)
+      // Mutation body should contain the correct IDs
+      const mutationBody = capturedBodies[1] as { variables?: Record<string, unknown> }
+      expect(mutationBody?.variables?.fieldId).toBe('FIELD_ID_123')
+      expect(mutationBody?.variables?.optionId).toBe('OPT_review')
+      expect(mutationBody?.variables?.itemId).toBe('PVTI_abc')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('updateItemStatus caches field/option IDs on second call', async () => {
+    const config = makeGitHubConfig({ project_id: 'PVT_test123' })
+    const adapter = createGitHubAdapter(config)
+
+    let callCount = 0
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      callCount++
+      if (callCount === 1) {
+        return new Response(JSON.stringify({
+          data: {
+            node: {
+              field: {
+                id: 'FIELD_ID_456',
+                options: [{ id: 'OPT_done', name: 'Done' }],
+              },
+            },
+          },
+        }), { status: 200, headers: { 'content-type': 'application/json' } })
+      }
+      // All mutation responses
+      return new Response(JSON.stringify({
+        data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_x' } } },
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as unknown as typeof fetch
+
+    try {
+      await adapter.updateItemStatus!('PVTI_1', 'Done')
+      await adapter.updateItemStatus!('PVTI_2', 'Done')
+      // First call: 1 field query + 1 mutation = 2 requests
+      // Second call: 0 field queries (cached) + 1 mutation = 1 request
+      // Total: 3 requests
+      expect(callCount).toBe(3)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('updateItemStatus returns error when target status option not found', async () => {
+    const config = makeGitHubConfig({ project_id: 'PVT_test123' })
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        node: {
+          field: {
+            id: 'FIELD_ID_789',
+            options: [{ id: 'OPT_todo', name: 'Todo' }],
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.updateItemStatus!('PVTI_abc', 'NonExistentStatus')
+      expect(result).not.toBe(true)
+      if (result === true)
+        return
+      expect((result as { code: string }).code).toBe('github_projects_status_update_failed')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('updateItemStatus resolves project_id from owner+number when not in config', async () => {
+    const config = makeGitHubConfig() // no project_id
+    const adapter = createGitHubAdapter(config)
+
+    let callCount = 0
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      callCount++
+      if (callCount === 1) {
+        // Project ID resolution query
+        return new Response(JSON.stringify({
+          data: { repositoryOwner: { projectV2: { id: 'PVT_resolved' } } },
+        }), { status: 200, headers: { 'content-type': 'application/json' } })
+      }
+      if (callCount === 2) {
+        // Status field query
+        return new Response(JSON.stringify({
+          data: {
+            node: {
+              field: {
+                id: 'FIELD_ID_abc',
+                options: [{ id: 'OPT_todo', name: 'Todo' }],
+              },
+            },
+          },
+        }), { status: 200, headers: { 'content-type': 'application/json' } })
+      }
+      // Mutation
+      return new Response(JSON.stringify({
+        data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_x' } } },
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.updateItemStatus!('PVTI_x', 'Todo')
+      expect(result).toBe(true)
+      expect(callCount).toBe(3)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+})

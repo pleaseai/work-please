@@ -1,8 +1,10 @@
 import type { LabelService } from './label'
+import type { TrackerAdapter } from './tracker/types'
 import type { Issue, OrchestratorState, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
 import { watch } from 'node:fs'
 import { AppServerClient } from './agent-runner'
-import { buildConfig, getActiveStates, getTerminalStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
+import { evaluateAutoTransition } from './auto-transition'
+import { buildConfig, getActiveStates, getAutoTransitions, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 import { createLabelService } from './label'
 import { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
 import { createTrackerAdapter, formatTrackerError, isTrackerError } from './tracker/index'
@@ -118,6 +120,14 @@ export class Orchestrator {
       console.error(`[orchestrator] tracker adapter error: ${formatTrackerError(adapter)}`)
       this.scheduleTick(this.state.poll_interval_ms)
       return
+    }
+
+    // 3b. Process watched states (auto-transitions)
+    try {
+      await this.processWatchedStates(adapter)
+    }
+    catch (err) {
+      console.error('[orchestrator] processWatchedStates error:', err)
     }
 
     const candidatesResult = await adapter.fetchCandidateIssues()
@@ -540,6 +550,39 @@ export class Orchestrator {
       removeWorkspace(this.config, entry.identifier, entry.issue).catch((err) => {
         console.error(`[orchestrator] workspace cleanup failed issue_id=${issueId}: ${err}`)
       })
+    }
+  }
+
+  private async processWatchedStates(adapter: TrackerAdapter): Promise<void> {
+    const watchedStates = getWatchedStates(this.config)
+    if (watchedStates.length === 0)
+      return
+
+    const autoTransitions = getAutoTransitions(this.config)
+    if (!autoTransitions.human_review_to_rework && !autoTransitions.human_review_to_merging)
+      return
+
+    const result = await adapter.fetchIssuesByStates(watchedStates)
+    if (isTrackerError(result)) {
+      console.error(`[orchestrator] watched states fetch failed: ${formatTrackerError(result)}`)
+      return
+    }
+
+    if (!adapter.updateItemStatus) {
+      console.warn('[orchestrator] auto-transitions configured but tracker adapter does not support updateItemStatus — skipping')
+      return
+    }
+
+    for (const issue of result) {
+      const targetState = evaluateAutoTransition(issue, autoTransitions)
+      if (!targetState)
+        continue
+
+      console.warn(`[orchestrator] auto-transition: ${issue.identifier} ${issue.state} → ${targetState}`)
+      const updateResult = await adapter.updateItemStatus(issue.id, targetState)
+      if (isTrackerError(updateResult)) {
+        console.error(`[orchestrator] auto-transition failed for ${issue.identifier}: ${formatTrackerError(updateResult)}`)
+      }
     }
   }
 
