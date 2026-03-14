@@ -4,8 +4,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
+import { evaluateAutoTransition } from './auto-transition'
 import { normalizeState } from './config'
-import { evaluateAutoTransition, Orchestrator } from './orchestrator'
+import { Orchestrator } from './orchestrator'
 
 // Test the sort/dispatch logic utilities in isolation
 

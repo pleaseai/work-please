@@ -112,9 +112,9 @@ describe('formatTrackerError', () => {
         .toBe('github_projects_missing_end_cursor')
     })
 
-    it('github_projects_status_update_failed returns just the code', () => {
+    it('github_projects_status_update_failed includes cause message', () => {
       expect(formatTrackerError({ code: 'github_projects_status_update_failed', cause: new Error('oops') }))
-        .toBe('github_projects_status_update_failed')
+        .toBe('github_projects_status_update_failed: oops')
     })
 
     it('tracker_write_not_supported returns just the code', () => {

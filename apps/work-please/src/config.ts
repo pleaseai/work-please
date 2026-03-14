@@ -239,10 +239,11 @@ export function getWatchedStates(config: ServiceConfig): string[] {
 
 export function getAutoTransitions(config: ServiceConfig): Required<AutoTransitions> {
   const at = config.tracker.auto_transitions ?? {}
+  const defaults = DEFAULTS.AUTO_TRANSITIONS as Required<AutoTransitions>
   return {
-    human_review_to_rework: at.human_review_to_rework ?? DEFAULTS.AUTO_TRANSITIONS.human_review_to_rework!,
-    human_review_to_merging: at.human_review_to_merging ?? DEFAULTS.AUTO_TRANSITIONS.human_review_to_merging!,
-    include_bot_reviews: at.include_bot_reviews ?? DEFAULTS.AUTO_TRANSITIONS.include_bot_reviews!,
+    human_review_to_rework: at.human_review_to_rework ?? defaults.human_review_to_rework,
+    human_review_to_merging: at.human_review_to_merging ?? defaults.human_review_to_merging,
+    include_bot_reviews: at.include_bot_reviews ?? defaults.include_bot_reviews,
   }
 }
 
@@ -259,11 +260,11 @@ export function maxConcurrentForState(config: ServiceConfig, state: string): num
 // --- helpers ---
 
 function buildAutoTransitions(raw: Record<string, unknown>): AutoTransitions {
-  const defaults = DEFAULTS.AUTO_TRANSITIONS
+  const defaults = DEFAULTS.AUTO_TRANSITIONS as Required<AutoTransitions>
   return {
-    human_review_to_rework: booleanValue(raw.human_review_to_rework, defaults.human_review_to_rework!),
-    human_review_to_merging: booleanValue(raw.human_review_to_merging, defaults.human_review_to_merging!),
-    include_bot_reviews: booleanValue(raw.include_bot_reviews, defaults.include_bot_reviews!),
+    human_review_to_rework: booleanValue(raw.human_review_to_rework, defaults.human_review_to_rework),
+    human_review_to_merging: booleanValue(raw.human_review_to_merging, defaults.human_review_to_merging),
+    include_bot_reviews: booleanValue(raw.include_bot_reviews, defaults.include_bot_reviews),
   }
 }
 

@@ -1,8 +1,9 @@
 import type { LabelService } from './label'
 import type { TrackerAdapter } from './tracker/types'
-import type { AutoTransitions, Issue, OrchestratorState, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
+import type { Issue, OrchestratorState, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
 import { watch } from 'node:fs'
 import { AppServerClient } from './agent-runner'
+import { evaluateAutoTransition } from './auto-transition'
 import { buildConfig, getActiveStates, getAutoTransitions, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 import { createLabelService } from './label'
 import { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
@@ -122,7 +123,12 @@ export class Orchestrator {
     }
 
     // 3b. Process watched states (auto-transitions)
-    await this.processWatchedStates(adapter)
+    try {
+      await this.processWatchedStates(adapter)
+    }
+    catch (err) {
+      console.error('[orchestrator] processWatchedStates error:', err)
+    }
 
     const candidatesResult = await adapter.fetchCandidateIssues()
     if (isTrackerError(candidatesResult)) {
@@ -562,8 +568,10 @@ export class Orchestrator {
       return
     }
 
-    if (!adapter.updateItemStatus)
+    if (!adapter.updateItemStatus) {
+      console.warn('[orchestrator] auto-transitions configured but tracker adapter does not support updateItemStatus — skipping')
       return
+    }
 
     for (const issue of result) {
       const targetState = evaluateAutoTransition(issue, autoTransitions)
@@ -683,31 +691,4 @@ function retryBackoffMs(attempt: number, maxMs: number): number {
 
 function nextAttemptFrom(currentAttempt: number | null): number {
   return currentAttempt === null ? 1 : currentAttempt + 1
-}
-
-export function evaluateAutoTransition(issue: Issue, autoTransitions: Required<AutoTransitions>): string | null {
-  // Rule 1: CHANGES_REQUESTED or unresolved threads → Rework
-  if (autoTransitions.human_review_to_rework) {
-    if (issue.review_decision === 'changes_requested')
-      return 'Rework'
-
-    const hasUnresolved = autoTransitions.include_bot_reviews
-      ? issue.has_unresolved_threads
-      : issue.has_unresolved_human_threads
-    if (hasUnresolved)
-      return 'Rework'
-  }
-
-  // Rule 2: APPROVED + no unresolved threads → Merging
-  if (autoTransitions.human_review_to_merging) {
-    if (issue.review_decision === 'approved') {
-      const hasUnresolved = autoTransitions.include_bot_reviews
-        ? issue.has_unresolved_threads
-        : issue.has_unresolved_human_threads
-      if (!hasUnresolved)
-        return 'Merging'
-    }
-  }
-
-  return null
 }

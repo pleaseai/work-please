@@ -51,6 +51,7 @@ export function formatTrackerError(err: TrackerError): string {
       return `${err.code}: ${JSON.stringify(err.errors)}`
     case 'github_projects_api_request':
     case 'asana_api_request':
+    case 'github_projects_status_update_failed':
       return `${err.code}: ${serializeCause(err.cause)}`
     default:
       return err.code
