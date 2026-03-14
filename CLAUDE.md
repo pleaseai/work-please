@@ -67,6 +67,8 @@ API schema references live in [`.please/references/`](.please/references/INDEX.m
 
 ## Architecture
 
+For the full bird's-eye view, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 Work Please is a TypeScript monorepo (Bun + Turbo) implementing the [Symphony spec](vendor/symphony/SPEC.md) for Claude
 Code + Asana/GitHub Projects v2. The reference implementation in Elixir/OTP lives in `vendor/symphony/elixir/`.
 
@@ -154,8 +156,8 @@ Only commit when **all tests pass** and **all lint/type errors are resolved**.
 
 ## Key Implementation Notes
 
-- The service is a **scheduler/runner only** — it does not write to the issue tracker itself. Ticket state transitions
-  and PR links are performed by the Claude Code agent.
+- The service is primarily a **scheduler/runner** — the orchestrator makes two narrow tracker writes (auto-transition
+  state changes and status labels). All other state transitions and PR links are performed by the Claude Code agent.
 - `WORKFLOW.md` supports `$ENV_VAR` references in the `api_key` field — the config layer must resolve these at startup.
 - Prompt templates use Liquid-compatible syntax (`{{ issue.title }}`, `{% if %}` blocks).
 - Agent runs use `@anthropic-ai/claude-agent-sdk` (`query()`) to invoke Claude Code programmatically.
