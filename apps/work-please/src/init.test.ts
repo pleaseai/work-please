@@ -123,21 +123,21 @@ describe('generateWorkflow', () => {
     expect(a).not.toBe(b)
   })
 
-  it('includes "Human Review" instruction in PR step', () => {
+  it('includes Human Review in workflow steps', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('move the issue status to `Human Review`')
+    expect(content).toContain('Human Review')
+    expect(content).toContain('move issue to `Human Review`')
   })
 
-  it('includes Rework Mode block for Rework state', () => {
+  it('includes Rework handling step', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('Rework Mode')
-    expect(content).toContain('gh pr view --json reviewDecision,reviews,comments')
+    expect(content).toContain('Rework handling')
     expect(content).toContain('Human Review')
   })
 
-  it('includes Merging Mode block', () => {
+  it('includes merge instructions', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('Merging Mode')
+    expect(content).toContain('merge handling')
     expect(content).toContain('gh pr merge --squash --delete-branch')
   })
 
@@ -152,9 +152,9 @@ describe('generateWorkflow', () => {
     expect(content).toContain('`Done`')
   })
 
-  it('includes Todo-with-PR feedback loop block', () => {
+  it('includes PR feedback sweep protocol', () => {
     const content = generateWorkflow('myorg', 42)
-    expect(content).toContain('Feedback Loop (Todo with existing PR)')
+    expect(content).toContain('PR feedback sweep protocol')
   })
 
   it('includes watched_states with Human Review', () => {
