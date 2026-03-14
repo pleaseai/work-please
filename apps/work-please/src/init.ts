@@ -31,6 +31,7 @@ export type InitError
     | { code: 'init_create_failed', cause: unknown }
     | { code: 'init_graphql_errors', errors: unknown }
     | { code: 'init_network_error', cause: unknown }
+    | { code: 'init_write_failed', path: string, cause: string, projectNumber?: number }
 
 export function isInitError(val: unknown): val is InitError {
   return typeof val === 'object' && val !== null && 'code' in val
@@ -220,7 +221,17 @@ export async function initProject(
   const statusConfigured = statusResult === true
 
   const workflowContent = generateWorkflow(options.owner, projectResult.projectNumber)
-  writeFileSync(workflowPath, workflowContent, 'utf-8')
+  try {
+    writeFileSync(workflowPath, workflowContent, 'utf-8')
+  }
+  catch (err) {
+    return {
+      code: 'init_write_failed',
+      path: workflowPath,
+      cause: err instanceof Error ? err.message : String(err),
+      projectNumber: projectResult.projectNumber,
+    }
+  }
 
   return {
     projectId: projectResult.projectId,
@@ -247,6 +258,12 @@ export function formatInitError(error: InitError): string {
       return `Error: GitHub API returned GraphQL errors: ${JSON.stringify(error.errors)}`
     case 'init_network_error':
       return `Error: A network error occurred: ${error.cause}`
+    case 'init_write_failed': {
+      const hint = error.projectNumber !== undefined
+        ? ` Note: GitHub project #${error.projectNumber} was already created.`
+        : ''
+      return `Error: Failed to write ${error.path}: ${error.cause}.${hint}`
+    }
   }
 }
 
