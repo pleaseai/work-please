@@ -1,6 +1,6 @@
 # Work Please
 
-[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | [한국어](README.ko.md) | 日本語 | [简体中文](README.zh-CN.md)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please)
 [![codecov](https://codecov.io/gh/pleaseai/work-please/graph/badge.svg?token=do858Z1lsI)](https://codecov.io/gh/pleaseai/work-please)
@@ -122,7 +122,7 @@ Config Layer ──> Orchestrator ──> Workspace Manager ──> Agent Runner
 ### インストール
 
 ```bash
-git clone https://github.com/chatbot-pf/work-please.git
+git clone https://github.com/pleaseai/work-please.git
 cd work-please
 bun install
 bun run build
