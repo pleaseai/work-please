@@ -478,9 +478,12 @@ function buildEnvConfig(raw: Record<string, unknown>): Record<string, string> {
     const envRefMatch = str.match(ENV_VAR_RE)
     if (envRefMatch) {
       const envVal = process.env[envRefMatch[1]]?.trim()
-      if (envVal)
+      if (envVal) {
         result[key] = envVal
-      // Drop entries where env var is not set
+      }
+      else {
+        console.warn(`[config] env.${key} references $${envRefMatch[1]} which is not set — dropping`)
+      }
       continue
     }
 

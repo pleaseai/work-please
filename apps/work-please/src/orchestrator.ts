@@ -666,14 +666,20 @@ export class Orchestrator {
 
     return {
       installationAccessToken: async () => {
-        const { createAppAuth } = await import('@octokit/auth-app')
-        const auth = createAppAuth({
-          appId: app_id,
-          privateKey: private_key,
-          installationId: installation_id,
-        })
-        const { token } = await auth({ type: 'installation' })
-        return token
+        try {
+          const { createAppAuth } = await import('@octokit/auth-app')
+          const auth = createAppAuth({
+            appId: app_id,
+            privateKey: private_key,
+            installationId: installation_id,
+          })
+          const { token } = await auth({ type: 'installation' })
+          return token
+        }
+        catch (err) {
+          console.error(`[orchestrator] failed to generate installation access token: ${err}`)
+          return null
+        }
       },
     }
   }

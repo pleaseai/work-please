@@ -94,4 +94,13 @@ describe('resolveAgentEnv', () => {
     expect(result.B).toBe('token')
     expect(callCount).toBe(1)
   })
+
+  it('propagates tokenProvider errors to caller', async () => {
+    const config = makeConfig({
+      env: { GH_TOKEN: '${INSTALLATION_ACCESS_TOKEN}' },
+    })
+    await expect(resolveAgentEnv(config, {
+      installationAccessToken: async () => { throw new Error('auth_failed') },
+    })).rejects.toThrow('auth_failed')
+  })
 })
