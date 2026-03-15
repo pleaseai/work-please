@@ -11,8 +11,8 @@ see [vendor/symphony/SPEC.md](vendor/symphony/SPEC.md).
 Work Please is a long-running TypeScript daemon that turns issue tracker tasks into autonomous
 Claude Code agent sessions. It continuously polls an issue tracker (GitHub Projects v2 or Asana),
 creates an isolated workspace for each eligible issue, renders a Liquid prompt template, and
-launches a Claude Code agent session inside that workspace via the
-`@anthropic-ai/claude-agent-sdk`.
+launches a Claude Code agent session inside that workspace via one of two runners:
+the `@anthropic-ai/claude-agent-sdk` (local) or `claude-code-action` (GitHub Actions).
 
 The service is primarily a **scheduler/runner** — it does not perform full ticket management.
 The orchestrator writes only status labels to GitHub issues. All state transitions, PR
@@ -40,7 +40,12 @@ work-please/                      # Monorepo root (Bun + Turborepo)
 │   ├── config.ts                 # YAML front matter → typed ServiceConfig with env-var resolution
 │   ├── workflow.ts               # WORKFLOW.md parser (YAML front matter + Liquid body)
 │   ├── prompt-builder.ts         # Liquid template rendering (issue → prompt string)
-│   ├── agent-runner.ts           # Claude Code agent session via @anthropic-ai/claude-agent-sdk
+│   ├── agent-runner.ts           # Re-export shim for backward compatibility (delegates to runner/)
+│   ├── runner/                   # Agent runner abstraction
+│   │   ├── types.ts              # AgentRunner interface, AgentSession, SessionResult
+│   │   ├── sdk-runner.ts         # SDK runner: local Claude Code via @anthropic-ai/claude-agent-sdk
+│   │   ├── code-action-runner.ts # Code Action runner: GitHub Actions via repository_dispatch
+│   │   └── index.ts              # createRunner() factory — selects runner based on config
 │   ├── workspace.ts              # Per-issue directory management, git worktrees, lifecycle hooks
 │   ├── server.ts                 # Optional HTTP dashboard (Bun.serve) and JSON API
 │   ├── tools.ts                  # MCP tool server (asana_api, github_graphql) injected into agent
@@ -86,10 +91,12 @@ work-please/                      # Monorepo root (Bun + Turborepo)
      ┌───────▼──┐ ┌───▼───┐ ┌─▼──────────┐
      │ Tracker  │ │Workspace│ │ Agent      │
      │ Client   │ │Manager │ │ Runner     │
-     │(GitHub/  │ │(create,│ │(claude-    │
-     │ Asana)   │ │ hooks, │ │ agent-sdk) │
-     └──────────┘ │worktree│ └────────────┘
-                  └────────┘
+     │(GitHub/  │ │(create,│ │(factory)   │
+     │ Asana)   │ │ hooks, │ ├────────────┤
+     └──────────┘ │worktree│ │ SdkRunner  │ ← local via claude-agent-sdk
+                  └────────┘ │ CodeAction │ ← remote via GH Actions
+                             │  Runner    │   (repository_dispatch + poll)
+                             └────────────┘
 ```
 
 ### Startup
@@ -116,20 +123,34 @@ Each poll tick executes in order:
 
 ### Agent Session Lifecycle
 
+The orchestrator selects a runner via `createRunner(config)` based on `agent.runner` (`sdk` or
+`code_action`).
+
+**SDK Runner (default):**
+
 1. `createWorkspace()` — Creates or reuses a per-issue directory (or git worktree if issue URL
    points to a GitHub repo). Runs `after_create` hook on first creation.
 2. `runBeforeRunHook()` — Executes the optional `before_run` shell hook.
-3. `AppServerClient.startSession()` — Validates workspace path against `workspace.root`
-   (path traversal prevention) and assigns a local session UUID. No SDK communication occurs
-   yet — the real session is established when `runTurn()` receives a `system/init` event.
-4. `AppServerClient.runTurn()` — Calls `query()` from `@anthropic-ai/claude-agent-sdk` with the
-   rendered prompt. Translates SDK messages into orchestrator events (`session_started`,
-   `turn_completed`, `turn_failed`, `notification`).
+3. `SdkRunner.startSession()` — Validates workspace path against `workspace.root`
+   (path traversal prevention) and assigns a local session UUID.
+4. `SdkRunner.runTurn()` — Calls `query()` from `@anthropic-ai/claude-agent-sdk` with the
+   rendered prompt. Translates SDK messages into orchestrator events.
    Supports multi-turn: after each turn, refreshes issue state; continues if still active and
    under `max_turns`.
 5. `runAfterRunHook()` — Executes the optional `after_run` shell hook.
-6. On exit — normal exits schedule a 1s continuation retry; failures schedule exponential backoff
-   retries up to `max_retry_backoff_ms`.
+6. On exit — normal exits schedule a 1s continuation retry; failures schedule exponential backoff.
+
+**Code Action Runner:**
+
+1. No local workspace created — execution happens in a GitHub Actions runner.
+2. `CodeActionRunner.startSession()` — Returns a virtual session (workspace: null).
+3. `CodeActionRunner.runTurn()` — Dispatches a `repository_dispatch` event via GitHub API with the
+   prompt and issue context in `client_payload` (including `before_run`/`after_run` hooks).
+   Polls the GitHub Actions API until the triggered run completes, then maps the conclusion
+   (`success`/`failure`/`cancelled`) to orchestrator events.
+4. `CodeActionRunner.stopSession()` — Cancels the in-progress GitHub Actions run.
+5. The target repository must have a workflow file listening for `repository_dispatch` events
+   that uses `anthropics/claude-code-action@v1`.
 
 ## Architecture Invariants
 
@@ -182,8 +203,9 @@ for narrowing.
 
 - **Runner:** Bun test (Jest-compatible API)
 - **Pattern:** Unit tests co-located with source files (`*.test.ts` alongside `*.ts`)
-- **Mocking:** `AppServerClient` accepts an injectable `queryFn` for testing without the real
-  Claude CLI. Tracker adapters are tested against mock GraphQL/REST responses. Workspace operations
+- **Mocking:** `SdkRunner` accepts an injectable `queryFn` for testing without the real
+  Claude CLI. `CodeActionRunner` tests mock `globalThis.fetch` for GitHub API responses.
+  Tracker adapters are tested against mock GraphQL/REST responses. Workspace operations
   use `spyOn(_git, 'spawnSync')` to mock git commands.
 - **Commands:** `bun run test` (all), `bun run test:app` (work-please only)
 
