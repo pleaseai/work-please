@@ -642,3 +642,8 @@ Functional Source License 1.1, MIT Future License (FSL-1.1-MIT)。詳細は[LICE
 
 Work PleaseはOpenAIの[Symphony仕様](vendor/symphony/SPEC.md)（Apache 2.0）に基づく
 TypeScript実装です。
+
+### サードパーティライセンス
+
+本プロジェクトは[Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript)を使用しており、
+Anthropicの[商用利用規約](https://www.anthropic.com/legal/commercial-terms)が適用されます。

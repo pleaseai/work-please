@@ -669,3 +669,8 @@ Functional Source License 1.1, MIT Future License (FSL-1.1-MIT). See [LICENSE](L
 
 Work Please is a TypeScript implementation based on the
 [Symphony specification](vendor/symphony/SPEC.md) by OpenAI (Apache 2.0).
+
+### Third-Party Licenses
+
+This project uses the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript),
+which is subject to Anthropic's [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms).
