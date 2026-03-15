@@ -1404,6 +1404,194 @@ describe('github_projects review_decision normalization', () => {
   })
 })
 
+describe('fetchCandidateAndWatchedIssues', () => {
+  function makeGitHubResponse(items: Array<{ id: string, status: string, number: number, title: string, labels?: string[], assignees?: string[], reviewDecision?: string }>) {
+    return new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: items.map(i => ({
+                id: i.id,
+                fieldValues: { nodes: [{ name: i.status, field: { name: 'Status' } }] },
+                content: {
+                  number: i.number,
+                  title: i.title,
+                  body: null,
+                  url: null,
+                  labels: { nodes: (i.labels ?? []).map(l => ({ name: l })) },
+                  assignees: { nodes: (i.assignees ?? []).map(a => ({ login: a })) },
+                  ...(i.reviewDecision ? { reviewDecision: i.reviewDecision } : {}),
+                },
+              })),
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  test('github: no-filter path splits active and watched issues from single fetch', async () => {
+    const config = makeGitHubConfig({ active_statuses: 'In Progress', watched_statuses: 'Human Review' })
+    const adapter = createGitHubAdapter(config)
+
+    let fetchCount = 0
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      fetchCount++
+      return makeGitHubResponse([
+        { id: 'PVTI_1', status: 'In Progress', number: 1, title: 'Active' },
+        { id: 'PVTI_2', status: 'Human Review', number: 2, title: 'Watched', reviewDecision: 'APPROVED' },
+        { id: 'PVTI_3', status: 'Done', number: 3, title: 'Terminal' },
+      ])
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateAndWatchedIssues(['Human Review'])
+      expect('code' in result).toBe(false)
+      if ('code' in result)
+        return
+      expect(result.candidates).toHaveLength(1)
+      expect(result.candidates[0].id).toBe('PVTI_1')
+      expect(result.watched).toHaveLength(1)
+      expect(result.watched[0].id).toBe('PVTI_2')
+      // Single fetch for combined path
+      expect(fetchCount).toBe(1)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('github: hasFilter path uses parallel fetches', async () => {
+    const config = makeGitHubConfig({ active_statuses: 'Todo', watched_statuses: 'Human Review', filter: { label: 'bot' } })
+    const adapter = createGitHubAdapter(config)
+
+    let fetchCount = 0
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      fetchCount++
+      return makeGitHubResponse([
+        { id: 'PVTI_1', status: 'Todo', number: 1, title: 'Bot Issue', labels: ['bot'] },
+      ])
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateAndWatchedIssues(['Human Review'])
+      expect('code' in result).toBe(false)
+      if ('code' in result)
+        return
+      // Two parallel fetches when filter is active
+      expect(fetchCount).toBe(2)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('github: hasFilter path handles partial candidate failure gracefully', async () => {
+    const config = makeGitHubConfig({ active_statuses: 'Todo', watched_statuses: 'Human Review', filter: { label: 'bot' } })
+    const adapter = createGitHubAdapter(config)
+
+    let fetchCount = 0
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      fetchCount++
+      if (fetchCount === 1) {
+        // Candidate fetch fails (GraphQL error)
+        return new Response(JSON.stringify({ errors: [{ message: 'rate limited' }] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      // Watched fetch succeeds
+      return makeGitHubResponse([
+        { id: 'PVTI_2', status: 'Human Review', number: 2, title: 'Watched', reviewDecision: 'APPROVED' },
+      ])
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateAndWatchedIssues(['Human Review'])
+      expect('code' in result).toBe(false)
+      if ('code' in result)
+        return
+      // Candidates failed but watched succeeded — partial success
+      expect(result.candidates).toHaveLength(0)
+      expect(result.watched).toHaveLength(1)
+      expect(result.watched[0].id).toBe('PVTI_2')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('github: no watched states returns candidates only', async () => {
+    const config = makeGitHubConfig({ active_statuses: 'Todo' })
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makeGitHubResponse([
+      { id: 'PVTI_1', status: 'Todo', number: 1, title: 'Candidate' },
+    ])) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateAndWatchedIssues([])
+      expect('code' in result).toBe(false)
+      if ('code' in result)
+        return
+      expect(result.candidates).toHaveLength(1)
+      expect(result.watched).toEqual([])
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('asana: combined fetch splits active and watched sections', async () => {
+    const config = makeAsanaConfig({ active_sections: 'To Do', watched_statuses: 'Review' })
+    const adapter = createAsanaAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/projects/')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'sec1', name: 'To Do' }, { gid: 'sec2', name: 'Review' }] }) } as unknown as Response
+      }
+      if (urlStr.includes('sec1')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'task1', name: 'Active Task', notes: null, tags: [], dependencies: [], created_at: null, modified_at: null }], next_page: null }) } as unknown as Response
+      }
+      if (urlStr.includes('sec2')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'task2', name: 'Watched Task', notes: null, tags: [], dependencies: [], created_at: null, modified_at: null }], next_page: null }) } as unknown as Response
+      }
+      return { ok: true, json: async () => ({ data: [] }) } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateAndWatchedIssues(['Review'])
+      expect('code' in result).toBe(false)
+      if ('code' in result)
+        return
+      expect(result.candidates).toHaveLength(1)
+      expect(result.candidates[0].identifier).toBe('task1')
+      expect(result.watched).toHaveLength(1)
+      expect(result.watched[0].identifier).toBe('task2')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('github: both fetches fail returns error', async () => {
+    const config = makeGitHubConfig({ active_statuses: 'Todo', watched_statuses: 'Review', filter: { label: 'bot' } })
+    const adapter = createGitHubAdapter(config)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      return new Response(JSON.stringify({ errors: [{ message: 'rate limited' }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchCandidateAndWatchedIssues(['Review'])
+      expect('code' in result).toBe(true)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+})
+
 describe('github_projects updateItemStatus (T005)', () => {
   test('updateItemStatus is defined on the adapter', () => {
     const config = makeGitHubConfig({ project_id: 'PVT_test123' })

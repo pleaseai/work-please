@@ -1,5 +1,4 @@
 import type { LabelService } from './label'
-import type { TrackerAdapter } from './tracker/types'
 import type { Issue, OrchestratorState, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
 import { watch } from 'node:fs'
 import { resolveAgentEnv } from './agent-env'
@@ -122,23 +121,20 @@ export class Orchestrator {
       return
     }
 
-    // 3b. Process watched states (dispatch agents for review activity)
-    try {
-      await this.processWatchedStates(adapter)
-    }
-    catch (err) {
-      console.error('[orchestrator] processWatchedStates error:', err)
-    }
-
-    const candidatesResult = await adapter.fetchCandidateIssues()
-    if (isTrackerError(candidatesResult)) {
-      console.error(`[orchestrator] tracker fetch failed: ${formatTrackerError(candidatesResult)}`)
+    // 3b. Fetch candidates and watched issues in a single API call
+    const watchedStates = getWatchedStates(this.config)
+    const combinedResult = await adapter.fetchCandidateAndWatchedIssues(watchedStates)
+    if (isTrackerError(combinedResult)) {
+      console.error(`[orchestrator] tracker fetch failed (candidates + watched dispatch skipped): ${formatTrackerError(combinedResult)}`)
       this.scheduleTick(this.state.poll_interval_ms)
       return
     }
 
+    // 3c. Process watched issues (dispatch agents for review activity)
+    this.dispatchWatchedIssues(combinedResult.watched)
+
     // 4. Sort by dispatch priority
-    const sorted = sortForDispatch(candidatesResult)
+    const sorted = sortForDispatch(combinedResult.candidates)
 
     // 5. Dispatch eligible issues
     const activeStates = getActiveStates(this.config)
@@ -582,18 +578,11 @@ export class Orchestrator {
     }
   }
 
-  private async processWatchedStates(adapter: TrackerAdapter): Promise<void> {
-    const watchedStates = getWatchedStates(this.config)
-    if (watchedStates.length === 0)
+  private dispatchWatchedIssues(watchedIssues: Issue[]): void {
+    if (watchedIssues.length === 0)
       return
 
-    const result = await adapter.fetchIssuesByStates(watchedStates)
-    if (isTrackerError(result)) {
-      console.error(`[orchestrator] watched states fetch failed: ${formatTrackerError(result)}`)
-      return
-    }
-
-    for (const issue of sortForDispatch(result)) {
+    for (const issue of sortForDispatch(watchedIssues)) {
       if (this.state.running.has(issue.id) || this.state.claimed.has(issue.id))
         continue
 
@@ -610,8 +599,13 @@ export class Orchestrator {
       if (runningInState >= stateLimit)
         continue
 
-      console.warn(`[orchestrator] dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
-      this.dispatchIssue(issue, null)
+      try {
+        console.warn(`[orchestrator] dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
+        this.dispatchIssue(issue, null)
+      }
+      catch (err) {
+        console.error(`[orchestrator] dispatchWatchedIssues failed for ${issue.identifier}:`, err)
+      }
     }
   }
 

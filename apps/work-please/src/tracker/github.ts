@@ -1,7 +1,8 @@
 import type { Issue, IssueFilter, LinkedPR, ServiceConfig } from '../types'
-import type { TrackerAdapter, TrackerError } from './types'
+import type { CandidateAndWatchedResult, TrackerAdapter, TrackerError } from './types'
 import { GraphqlResponseError } from '@octokit/graphql'
 import { normalizeState } from '../config'
+import { deduplicateByNormalized, hasFilter, splitCandidatesAndWatched } from '../filter'
 import { createAuthenticatedGraphql } from './github-auth'
 import { createStatusUpdateContext } from './github-status-update'
 
@@ -240,6 +241,45 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
   return {
     async fetchCandidateIssues() {
       return fetchAllItems(activeStatuses, buildQueryString(filter))
+    },
+
+    async fetchCandidateAndWatchedIssues(watchedStates: string[]): Promise<CandidateAndWatchedResult | TrackerError> {
+      if (watchedStates.length === 0) {
+        // No watched states — just fetch candidates with server-side filter
+        const candidates = await fetchAllItems(activeStatuses, buildQueryString(filter))
+        if ('code' in candidates)
+          return candidates
+        return { candidates, watched: [] }
+      }
+
+      if (hasFilter(filter)) {
+        // When filter is active, use server-side search for candidates to avoid
+        // missing issues whose labels/assignees exceed the GraphQL pagination limits
+        // (20 labels, 10 assignees per item).
+        // Handle each result independently so one failure does not block the other.
+        const [candidatesResult, watchedResult] = await Promise.all([
+          fetchAllItems(activeStatuses, buildQueryString(filter)),
+          fetchAllItems(watchedStates),
+        ])
+        const candidates = 'code' in candidatesResult ? [] : candidatesResult
+        const watched = 'code' in watchedResult ? [] : watchedResult
+        if ('code' in candidatesResult)
+          console.warn(`[github] candidate fetch failed: ${candidatesResult.code}`)
+        if ('code' in watchedResult)
+          console.warn(`[github] watched fetch failed: ${watchedResult.code}`)
+        // Only return error if both failed
+        if ('code' in candidatesResult && 'code' in watchedResult)
+          return candidatesResult
+        return { candidates, watched }
+      }
+
+      // No filter — fetch all items once with combined statuses, split client-side
+      const combinedStatuses = deduplicateByNormalized([...activeStatuses, ...watchedStates])
+      const allIssues = await fetchAllItems(combinedStatuses)
+      if ('code' in allIssues)
+        return allIssues
+
+      return splitCandidatesAndWatched(allIssues, activeStatuses, watchedStates, filter)
     },
 
     async fetchIssuesByStates(states: string[]) {

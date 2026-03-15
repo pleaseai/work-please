@@ -1,7 +1,7 @@
 import type { Issue, ServiceConfig } from '../types'
-import type { TrackerAdapter, TrackerError } from './types'
+import type { CandidateAndWatchedResult, TrackerAdapter, TrackerError } from './types'
 import { normalizeState } from '../config'
-import { matchesFilter } from '../filter'
+import { deduplicateByNormalized, matchesFilter, splitCandidatesAndWatched } from '../filter'
 import { isTrackerError } from './types'
 
 const PAGE_SIZE = 50
@@ -108,6 +108,17 @@ export function createAsanaAdapter(config: ServiceConfig): TrackerAdapter {
       if (isTrackerError(issues))
         return issues
       return issues.filter(issue => matchesFilter(issue, filter))
+    },
+
+    async fetchCandidateAndWatchedIssues(watchedStates: string[]): Promise<CandidateAndWatchedResult | TrackerError> {
+      // Always safe to combine for Asana: tasks are fetched per-section (no server-side
+      // search query), so client-side filtering via matchesFilter is equivalent.
+      const combinedSections = deduplicateByNormalized([...activeSections, ...watchedStates])
+      const allIssues = await fetchTasks(combinedSections)
+      if (isTrackerError(allIssues))
+        return allIssues
+
+      return splitCandidatesAndWatched(allIssues, activeSections, watchedStates, filter)
     },
 
     async updateItemStatus(_itemId: string, _targetState: string): Promise<true | TrackerError> {
