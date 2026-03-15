@@ -536,12 +536,14 @@ export class Orchestrator {
     }
 
     const activeStates = getActiveStates(this.config)
+    const watchedStates = getWatchedStates(this.config)
     const terminalStates = getTerminalStates(this.config)
 
     for (const issue of refreshed) {
       const normalizedState = normalizeState(issue.state)
       const isTerminal = terminalStates.some(s => normalizeState(s) === normalizedState)
       const isActive = activeStates.some(s => normalizeState(s) === normalizedState)
+        || watchedStates.some(s => normalizeState(s) === normalizedState)
 
       if (isTerminal) {
         console.warn(`[orchestrator] issue terminal, stopping worker issue_id=${issue.id} state=${issue.state}`)
@@ -591,7 +593,7 @@ export class Orchestrator {
       return
     }
 
-    for (const issue of result) {
+    for (const issue of sortForDispatch(result)) {
       if (this.state.running.has(issue.id) || this.state.claimed.has(issue.id))
         continue
 
@@ -601,6 +603,12 @@ export class Orchestrator {
 
       if (this.availableSlots() === 0)
         break
+
+      // Respect per-state concurrency limits
+      const stateLimit = maxConcurrentForState(this.config, issue.state)
+      const runningInState = countRunningInState(this.state.running, issue.state)
+      if (runningInState >= stateLimit)
+        continue
 
       console.warn(`[orchestrator] dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
       this.dispatchIssue(issue, null)

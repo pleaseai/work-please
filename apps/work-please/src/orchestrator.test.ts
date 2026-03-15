@@ -403,12 +403,14 @@ describe('reconciliation state machine (Section 17.4)', () => {
     issueState: string | null,
     activeStates: string[],
     terminalStates: string[],
+    watchedStates: string[] = [],
   ): ReconcileAction {
     if (!issueState)
       return 'terminate_no_cleanup'
     const normalized = normalizeState(issueState)
     const isTerminal = terminalStates.some(s => normalizeState(s) === normalized)
     const isActive = activeStates.some(s => normalizeState(s) === normalized)
+      || watchedStates.some(s => normalizeState(s) === normalized)
     if (isTerminal)
       return 'terminate_cleanup'
     if (isActive)
@@ -418,6 +420,7 @@ describe('reconciliation state machine (Section 17.4)', () => {
 
   const activeStates = ['In Progress', 'Todo']
   const terminalStates = ['Done', 'Cancelled']
+  const watchedStates = ['Human Review']
 
   it('terminal state stops running agent and cleans workspace', () => {
     expect(classifyRunningIssueState('Done', activeStates, terminalStates)).toBe('terminate_cleanup')
@@ -429,9 +432,12 @@ describe('reconciliation state machine (Section 17.4)', () => {
     expect(classifyRunningIssueState('Todo', activeStates, terminalStates)).toBe('update')
   })
 
-  it('non-active non-terminal state stops agent without workspace cleanup', () => {
-    expect(classifyRunningIssueState('Human Review', activeStates, terminalStates)).toBe('terminate_no_cleanup')
-    expect(classifyRunningIssueState('Blocked', activeStates, terminalStates)).toBe('terminate_no_cleanup')
+  it('watched state keeps running agent alive (not terminated)', () => {
+    expect(classifyRunningIssueState('Human Review', activeStates, terminalStates, watchedStates)).toBe('update')
+  })
+
+  it('non-active non-terminal non-watched state stops agent without workspace cleanup', () => {
+    expect(classifyRunningIssueState('Blocked', activeStates, terminalStates, watchedStates)).toBe('terminate_no_cleanup')
   })
 
   it('null state stops agent without workspace cleanup', () => {

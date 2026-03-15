@@ -137,10 +137,8 @@ Each poll tick executes in order:
 These constraints must hold across the codebase. Violating them is a bug.
 
 1. **Minimal tracker writes** — The orchestrator does not write to the issue tracker except for
-   two cases: (a) `processWatchedStates()` calls `adapter.updateItemStatus()` to advance items
-   between watched states (e.g., Human Review → Rework); (b) the `LabelService` (`label.ts`)
-   applies `dispatched`/`done`/`failed` labels to GitHub issues. All other state transitions,
-   PR operations, and comments are performed by the agent.
+   the `LabelService` (`label.ts`) which applies `dispatched`/`done`/`failed` labels to GitHub
+   issues. All state transitions, PR operations, and comments are performed by the agent.
 
 2. **Workspace path validation** — Every workspace path must be validated against
    `config.workspace.root` before any agent launch. The path must be a strict child of the root
