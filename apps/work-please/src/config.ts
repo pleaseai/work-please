@@ -61,6 +61,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
       timeout_ms: posIntValue(hooks.timeout_ms, DEFAULTS.HOOK_TIMEOUT_MS),
     },
     agent: {
+      runner: runnerValue(agent.runner),
       max_concurrent_agents: intValue(agent.max_concurrent_agents, DEFAULTS.MAX_CONCURRENT_AGENTS),
       max_turns: posIntValue(agent.max_turns, DEFAULTS.AGENT_MAX_TURNS),
       max_retry_backoff_ms: posIntValue(agent.max_retry_backoff_ms, DEFAULTS.MAX_RETRY_BACKOFF_MS),
@@ -460,6 +461,13 @@ function buildEnvConfig(raw: Record<string, unknown>): Record<string, string> {
     result[key] = str
   }
   return result
+}
+
+function runnerValue(val: unknown): 'sdk' | 'code_action' {
+  const s = typeof val === 'string' ? val.trim().toLowerCase() : null
+  if (s === 'code_action')
+    return 'code_action'
+  return 'sdk'
 }
 
 function normalizeTrackerKind(kind: string | null): string | null {

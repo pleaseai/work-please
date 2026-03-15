@@ -97,6 +97,7 @@ export interface ServiceConfig {
     timeout_ms: number
   }
   agent: {
+    runner: 'sdk' | 'code_action'
     max_concurrent_agents: number
     max_turns: number
     max_retry_backoff_ms: number
