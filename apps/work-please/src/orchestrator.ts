@@ -722,7 +722,7 @@ function countRunningInState(running: Map<string, RunningEntry>, state: string):
   return count
 }
 
-function getLinkedPrUpdateMs(issue: Issue): number | null {
+export function getLinkedPrUpdateMs(issue: Issue): number | null {
   const prTimes = issue.pull_requests
     .map(pr => pr.updated_at?.getTime())
     .filter((ms): ms is number => ms != null && !Number.isNaN(ms))
@@ -730,7 +730,7 @@ function getLinkedPrUpdateMs(issue: Issue): number | null {
   return prTimes.length > 0 ? Math.max(...prTimes) : null
 }
 
-function isWatchedUnchanged(issue: Issue, snapshot: import('./types').WatchedSnapshot | undefined): boolean {
+export function isWatchedUnchanged(issue: Issue, snapshot: import('./types').WatchedSnapshot | undefined): boolean {
   if (!snapshot)
     return false
 

@@ -1,11 +1,11 @@
 import type { LabelService } from './label'
-import type { Issue, RunningEntry, TrackerConfig } from './types'
+import type { Issue, RunningEntry, TrackerConfig, WatchedSnapshot } from './types'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
 import { normalizeState } from './config'
-import { buildTokenProvider, Orchestrator } from './orchestrator'
+import { buildTokenProvider, getLinkedPrUpdateMs, isWatchedUnchanged, Orchestrator } from './orchestrator'
 
 // Test the sort/dispatch logic utilities in isolation
 
@@ -797,6 +797,7 @@ Prompt text.`)
 
 describe('processWatchedStates dispatch logic', () => {
   // Mirror the processWatchedStates dispatch guard logic
+  // Uses exported getLinkedPrUpdateMs and isWatchedUnchanged from orchestrator.ts
   function shouldDispatchWatched(
     issue: Issue,
     running: Map<string, unknown>,
@@ -810,31 +811,6 @@ describe('processWatchedStates dispatch logic', () => {
     if (isWatchedUnchanged(issue, watchedSnapshots.get(issue.id)))
       return false
     return true
-  }
-
-  interface WatchedSnapshot {
-    pr_update_ms: number | null
-    review_decision: Issue['review_decision']
-  }
-
-  function getLinkedPrUpdateMs(issue: Issue): number | null {
-    const prTimes = issue.pull_requests
-      .map(pr => pr.updated_at?.getTime())
-      .filter((ms): ms is number => ms != null && !Number.isNaN(ms))
-    return prTimes.length > 0 ? Math.max(...prTimes) : null
-  }
-
-  function isWatchedUnchanged(issue: Issue, snapshot: WatchedSnapshot | undefined): boolean {
-    if (!snapshot)
-      return false
-    const currentPrMs = getLinkedPrUpdateMs(issue)
-    const hadPrs = snapshot.pr_update_ms != null
-    const hasPrs = currentPrMs != null
-    if (hadPrs !== hasPrs)
-      return false
-    if (hasPrs)
-      return currentPrMs <= snapshot.pr_update_ms!
-    return issue.review_decision === snapshot.review_decision
   }
 
   it('dispatches issue with review_decision', () => {
