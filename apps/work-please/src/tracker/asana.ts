@@ -1,5 +1,5 @@
 import type { Issue, ServiceConfig } from '../types'
-import type { TrackerAdapter, TrackerError } from './types'
+import type { CandidateAndWatchedResult, TrackerAdapter, TrackerError } from './types'
 import { normalizeState } from '../config'
 import { matchesFilter } from '../filter'
 import { isTrackerError } from './types'
@@ -110,6 +110,30 @@ export function createAsanaAdapter(config: ServiceConfig): TrackerAdapter {
       return issues.filter(issue => matchesFilter(issue, filter))
     },
 
+    async fetchCandidateAndWatchedIssues(watchedStates: string[]): Promise<CandidateAndWatchedResult | TrackerError> {
+      // Combine active + watched sections, fetch once, split results
+      const combinedSections = deduplicateSections([...activeSections, ...watchedStates])
+      const allIssues = await fetchTasks(combinedSections)
+      if (isTrackerError(allIssues))
+        return allIssues
+
+      const activeSet = new Set(activeSections.map(s => normalizeState(s)))
+      const watchedSet = new Set(watchedStates.map(s => normalizeState(s)))
+
+      const candidates: Issue[] = []
+      const watched: Issue[] = []
+
+      for (const issue of allIssues) {
+        const norm = normalizeState(issue.state)
+        if (activeSet.has(norm) && matchesFilter(issue, filter))
+          candidates.push(issue)
+        if (watchedSet.has(norm))
+          watched.push(issue)
+      }
+
+      return { candidates, watched }
+    },
+
     async updateItemStatus(_itemId: string, _targetState: string): Promise<true | TrackerError> {
       return { code: 'tracker_write_not_supported' }
     },
@@ -199,6 +223,17 @@ function normalizeAsanaTask(task: Record<string, unknown>, sectionName: string):
     updated_at: task.modified_at ? new Date(String(task.modified_at)) : null,
     project: null,
   }
+}
+
+function deduplicateSections(sections: string[]): string[] {
+  const seen = new Set<string>()
+  return sections.filter((s) => {
+    const norm = normalizeState(s)
+    if (seen.has(norm))
+      return false
+    seen.add(norm)
+    return true
+  })
 }
 
 function extractTaskState(task: Record<string, unknown>): string | null {

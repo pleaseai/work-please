@@ -1,7 +1,8 @@
 import type { Issue, IssueFilter, LinkedPR, ServiceConfig } from '../types'
-import type { TrackerAdapter, TrackerError } from './types'
+import type { CandidateAndWatchedResult, TrackerAdapter, TrackerError } from './types'
 import { GraphqlResponseError } from '@octokit/graphql'
 import { normalizeState } from '../config'
+import { matchesFilter } from '../filter'
 import { createAuthenticatedGraphql } from './github-auth'
 import { createStatusUpdateContext } from './github-status-update'
 
@@ -242,6 +243,31 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
       return fetchAllItems(activeStatuses, buildQueryString(filter))
     },
 
+    async fetchCandidateAndWatchedIssues(watchedStates: string[]): Promise<CandidateAndWatchedResult | TrackerError> {
+      // Fetch all items once with combined statuses (no server-side search filter)
+      // then split: candidates get client-side filter, watched do not.
+      const combinedStatuses = deduplicateStates([...activeStatuses, ...watchedStates])
+      const allIssues = await fetchAllItems(combinedStatuses)
+      if ('code' in allIssues)
+        return allIssues
+
+      const activeSet = new Set(activeStatuses.map(normalizeState))
+      const watchedSet = new Set(watchedStates.map(normalizeState))
+
+      const candidates: Issue[] = []
+      const watched: Issue[] = []
+
+      for (const issue of allIssues) {
+        const norm = normalizeState(issue.state)
+        if (activeSet.has(norm) && matchesFilter(issue, filter))
+          candidates.push(issue)
+        if (watchedSet.has(norm))
+          watched.push(issue)
+      }
+
+      return { candidates, watched }
+    },
+
     async fetchIssuesByStates(states: string[]) {
       if (states.length === 0)
         return []
@@ -338,6 +364,17 @@ function normalizeReviewDecision(raw: unknown): Issue['review_decision'] {
       console.warn(`[github] unknown reviewDecision value: ${s}`)
       return null
   }
+}
+
+function deduplicateStates(states: string[]): string[] {
+  const seen = new Set<string>()
+  return states.filter((s) => {
+    const norm = normalizeState(s)
+    if (seen.has(norm))
+      return false
+    seen.add(norm)
+    return true
+  })
 }
 
 function normalizeProjectItem(node: Record<string, unknown>, status: string, projectOwner?: string, projectNum?: number): Issue {

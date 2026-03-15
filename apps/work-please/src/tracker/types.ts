@@ -6,8 +6,14 @@ export interface StatusFieldInfo {
   options: Array<{ name: string, id: string }>
 }
 
+export interface CandidateAndWatchedResult {
+  candidates: Issue[]
+  watched: Issue[]
+}
+
 export interface TrackerAdapter {
   fetchCandidateIssues: () => Promise<Issue[] | TrackerError>
+  fetchCandidateAndWatchedIssues: (watchedStates: string[]) => Promise<CandidateAndWatchedResult | TrackerError>
   fetchIssuesByStates: (states: string[]) => Promise<Issue[] | TrackerError>
   fetchIssueStatesByIds: (ids: string[]) => Promise<Issue[] | TrackerError>
   updateItemStatus?: (itemId: string, targetState: string) => Promise<true | TrackerError>
