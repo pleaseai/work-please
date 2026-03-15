@@ -228,18 +228,16 @@ If neither is present, stop and ask the user to configure GitHub access.
 1.  Find or create a single persistent workpad comment for the issue:
     - Search existing comments for the workpad marker `<!-- workpad:issue-<number> -->` (preferred) or the header `## Workpad`.
       ```bash
-      # Search by the HTML marker (most reliable)
+      # Search by HTML marker (preferred) or header
       gh api repos/<owner>/<repo>/issues/<number>/comments --paginate \
-        --jq '.[] | select(.body | test("<!-- workpad:issue-<number> -->")) | {id, node_id, body}'
-      # Fallback: search by header
-      gh api repos/<owner>/<repo>/issues/<number>/comments --paginate \
-        --jq '.[] | select(.body | startswith("## Workpad")) | {id, node_id, body}'
+        --jq '.[] | select(.body | test("<!-- workpad:issue-<number> -->") or startswith("## Workpad")) | {id, node_id, body}'
       ```
     - Ignore resolved comments while searching; only active/unresolved comments are eligible to be reused as the live workpad.
     - If found, reuse that comment — **do not create a new workpad comment**. Use `PATCH` to update it:
       ```bash
       # Update an existing workpad comment (use the numeric comment id)
-      gh api repos/<owner>/<repo>/issues/comments/<comment-id> -X PATCH -f body='<updated workpad markdown>'
+      # Pipe body via stdin to avoid shell quoting issues with apostrophes
+      echo '<updated workpad markdown>' | gh api repos/<owner>/<repo>/issues/comments/<comment-id> -X PATCH -F body=@-
       ```
     - If and only if no existing workpad comment is found, create one:
       ```bash
@@ -305,7 +303,7 @@ Use this only when completion is blocked by missing required tools or missing au
 1.  Determine current repo state (`branch`, `git status`, `HEAD`) and verify the kickoff sync result is already recorded in the workpad before implementation continues.
 2.  If current issue state is `Todo`, move it to `In Progress`; otherwise leave the current state unchanged.
 3.  Load the existing workpad comment and treat it as the active execution checklist.
-    - Edit it liberally via `gh api repos/<owner>/<repo>/issues/comments/<comment-id> -X PATCH -f body='…'` whenever reality changes (scope, risks, validation approach, discovered tasks).
+    - Edit it liberally via `echo '…' | gh api repos/<owner>/<repo>/issues/comments/<comment-id> -X PATCH -F body=@-` whenever reality changes (scope, risks, validation approach, discovered tasks).
     - Never post a new comment to update progress — always `PATCH` the existing workpad comment.
 4.  Implement against the hierarchical TODOs and keep the comment current:
     - Check off completed items.
@@ -378,7 +376,7 @@ Use this only when completion is blocked by missing required tools or missing au
 - If the branch PR is already closed/merged, do not reuse that branch or prior implementation state for continuation.
 - For closed/merged branch PRs, create a new branch from `origin/main` and restart from reproduction/planning as if starting fresh.
 - Do not edit the issue body/description for planning or progress tracking.
-- Use exactly one persistent workpad comment (`## Workpad`) per issue. Before creating a new workpad, always search existing comments via `gh api repos/<owner>/<repo>/issues/<number>/comments --paginate` and check for `## Workpad`. Update via `PATCH`, never create a second one.
+- Use exactly one persistent workpad comment (`## Workpad`) per issue. Before creating a new workpad, always search existing comments via `gh api repos/<owner>/<repo>/issues/<number>/comments --paginate` and check for the `<!-- workpad:issue-<number> -->` marker or the `## Workpad` header. Update via `PATCH`, never create a second one.
 - If comment editing is unavailable in-session, use an alternative update method. Only report blocked if all editing methods are unavailable.
 - Temporary proof edits are allowed only for local verification and must be reverted before commit.
 - If out-of-scope improvements are found, create a separate issue rather
