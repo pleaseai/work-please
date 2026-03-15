@@ -2,7 +2,7 @@ import type { Issue, IssueFilter, LinkedPR, ServiceConfig } from '../types'
 import type { CandidateAndWatchedResult, TrackerAdapter, TrackerError } from './types'
 import { GraphqlResponseError } from '@octokit/graphql'
 import { normalizeState } from '../config'
-import { matchesFilter } from '../filter'
+import { deduplicateByNormalized, hasFilter, splitCandidatesAndWatched } from '../filter'
 import { createAuthenticatedGraphql } from './github-auth'
 import { createStatusUpdateContext } from './github-status-update'
 
@@ -244,28 +244,36 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
     },
 
     async fetchCandidateAndWatchedIssues(watchedStates: string[]): Promise<CandidateAndWatchedResult | TrackerError> {
-      // Fetch all items once with combined statuses (no server-side search filter)
-      // then split: candidates get client-side filter, watched do not.
-      const combinedStatuses = deduplicateStates([...activeStatuses, ...watchedStates])
+      if (watchedStates.length === 0) {
+        // No watched states — just fetch candidates with server-side filter
+        const candidates = await fetchAllItems(activeStatuses, buildQueryString(filter))
+        if ('code' in candidates)
+          return candidates
+        return { candidates, watched: [] }
+      }
+
+      if (hasFilter(filter)) {
+        // When filter is active, use server-side search for candidates to avoid
+        // missing issues whose labels/assignees exceed the GraphQL pagination limits
+        // (20 labels, 10 assignees per item).
+        const [candidates, watched] = await Promise.all([
+          fetchAllItems(activeStatuses, buildQueryString(filter)),
+          fetchAllItems(watchedStates),
+        ])
+        if ('code' in candidates)
+          return candidates
+        if ('code' in watched)
+          return watched
+        return { candidates, watched }
+      }
+
+      // No filter — fetch all items once with combined statuses, split client-side
+      const combinedStatuses = deduplicateByNormalized([...activeStatuses, ...watchedStates])
       const allIssues = await fetchAllItems(combinedStatuses)
       if ('code' in allIssues)
         return allIssues
 
-      const activeSet = new Set(activeStatuses.map(normalizeState))
-      const watchedSet = new Set(watchedStates.map(normalizeState))
-
-      const candidates: Issue[] = []
-      const watched: Issue[] = []
-
-      for (const issue of allIssues) {
-        const norm = normalizeState(issue.state)
-        if (activeSet.has(norm) && matchesFilter(issue, filter))
-          candidates.push(issue)
-        if (watchedSet.has(norm))
-          watched.push(issue)
-      }
-
-      return { candidates, watched }
+      return splitCandidatesAndWatched(allIssues, activeStatuses, watchedStates, filter)
     },
 
     async fetchIssuesByStates(states: string[]) {
@@ -364,17 +372,6 @@ function normalizeReviewDecision(raw: unknown): Issue['review_decision'] {
       console.warn(`[github] unknown reviewDecision value: ${s}`)
       return null
   }
-}
-
-function deduplicateStates(states: string[]): string[] {
-  const seen = new Set<string>()
-  return states.filter((s) => {
-    const norm = normalizeState(s)
-    if (seen.has(norm))
-      return false
-    seen.add(norm)
-    return true
-  })
 }
 
 function normalizeProjectItem(node: Record<string, unknown>, status: string, projectOwner?: string, projectNum?: number): Issue {
