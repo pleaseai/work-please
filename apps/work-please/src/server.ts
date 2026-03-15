@@ -1,5 +1,6 @@
 import type { Orchestrator } from './orchestrator'
 import type { OrchestratorState, RetryEntry, RunningEntry } from './types'
+import { handleWebhook } from './webhook'
 import { workspacePath } from './workspace'
 
 const DEFAULT_HOST = '127.0.0.1'
@@ -36,7 +37,7 @@ export class HttpServer {
     return this.server?.port ?? null
   }
 
-  private handleRequest(req: Request): Response {
+  private handleRequest(req: Request): Response | Promise<Response> {
     const orchestrator = this.orchestrator
     const url = new URL(req.url)
     const pathname = url.pathname
@@ -55,6 +56,14 @@ export class HttpServer {
       if (req.method !== 'POST')
         return methodNotAllowed()
       return refreshResponse(orchestrator)
+    }
+
+    if (pathname === '/api/v1/webhook') {
+      if (req.method !== 'POST')
+        return methodNotAllowed()
+      const config = orchestrator.getConfig()
+      const { secret, events } = config.server.webhook
+      return handleWebhook(req, secret, events, () => orchestrator.triggerRefresh())
     }
 
     const issueMatch = pathname.match(ISSUE_PATH_RE)
