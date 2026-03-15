@@ -820,7 +820,7 @@ describe('processWatchedStates dispatch logic', () => {
   function getLinkedPrUpdateMs(issue: Issue): number | null {
     const prTimes = issue.pull_requests
       .map(pr => pr.updated_at?.getTime())
-      .filter((ms): ms is number => ms != null)
+      .filter((ms): ms is number => ms != null && !Number.isNaN(ms))
     return prTimes.length > 0 ? Math.max(...prTimes) : null
   }
 
@@ -828,8 +828,12 @@ describe('processWatchedStates dispatch logic', () => {
     if (!snapshot)
       return false
     const currentPrMs = getLinkedPrUpdateMs(issue)
-    if (currentPrMs != null)
-      return snapshot.pr_update_ms != null && currentPrMs <= snapshot.pr_update_ms
+    const hadPrs = snapshot.pr_update_ms != null
+    const hasPrs = currentPrMs != null
+    if (hadPrs !== hasPrs)
+      return false
+    if (hasPrs)
+      return currentPrMs <= snapshot.pr_update_ms!
     return issue.review_decision === snapshot.review_decision
   }
 
@@ -934,6 +938,132 @@ describe('processWatchedStates dispatch logic', () => {
     })
     const snapshots = new Map([['w10', { pr_update_ms: new Date('2024-06-02T12:00:00Z').getTime(), review_decision: 'changes_requested' as const }]])
     expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(true)
+  })
+
+  it('dispatches when linked PR is removed (PR presence changed)', () => {
+    const issue = makeIssue({
+      id: 'w11',
+      review_decision: 'approved',
+      pull_requests: [], // PR was unlinked
+    })
+    // Snapshot recorded when PR existed
+    const snapshots = new Map([['w11', { pr_update_ms: new Date('2024-06-01T12:00:00Z').getTime(), review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(true)
+  })
+
+  it('dispatches when linked PR is added (PR presence changed)', () => {
+    const issue = makeIssue({
+      id: 'w12',
+      review_decision: 'approved',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'approved', updated_at: new Date('2024-06-01T12:00:00Z') },
+      ],
+    })
+    // Snapshot recorded when no PRs existed
+    const snapshots = new Map([['w12', { pr_update_ms: null, review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(true)
+  })
+
+  it('filters NaN timestamps from invalid dates', () => {
+    const issue = makeIssue({
+      id: 'w13',
+      review_decision: 'approved',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'approved', updated_at: new Date('invalid') },
+      ],
+    })
+    // NaN should be filtered — falls through to review_decision comparison
+    const snapshots = new Map([['w13', { pr_update_ms: null, review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(false)
+  })
+})
+
+describe('watched snapshot recording in onWorkerExit', () => {
+  it('records snapshot on normal exit', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'work-please-snapshot-test-'))
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflowWithLabelPrefix(30_000, 'work-please'))
+
+    const orch = new Orchestrator(wfPath)
+    const issue = makeIssue({
+      id: 'snap1',
+      identifier: 'MT-S1',
+      state: 'Human Review',
+      review_decision: 'changes_requested',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'changes_requested', updated_at: new Date('2024-06-01T12:00:00Z') },
+      ],
+    })
+
+    const orchState = (orch as unknown as { state: { running: Map<string, unknown>, claimed: Set<string>, retry_attempts: Map<string, unknown>, agent_totals: Record<string, number>, completed: Set<string>, watched_last_dispatched: Map<string, { pr_update_ms: number | null, review_decision: string | null }> } }).state
+    orchState.running.set('snap1', {
+      identifier: 'MT-S1',
+      issue,
+      session_id: null,
+      agent_app_server_pid: null,
+      last_agent_message: null,
+      last_agent_event: null,
+      last_agent_timestamp: null,
+      agent_input_tokens: 0,
+      agent_output_tokens: 0,
+      agent_total_tokens: 0,
+      last_reported_input_tokens: 0,
+      last_reported_output_tokens: 0,
+      last_reported_total_tokens: 0,
+      turn_count: 0,
+      retry_attempt: null,
+      started_at: new Date(),
+    })
+
+    try {
+      ;(orch as unknown as { onWorkerExit: (id: string, startedAt: Date, reason: string, error: string | null) => void }).onWorkerExit('snap1', new Date(), 'normal', null)
+      const snapshot = orchState.watched_last_dispatched.get('snap1')
+      expect(snapshot).toBeDefined()
+      expect(snapshot!.pr_update_ms).toBeGreaterThan(0)
+      expect(snapshot!.review_decision).toBe('changes_requested')
+    }
+    finally {
+      orch.stop()
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  it('does NOT record snapshot on failed exit', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'work-please-snapshot-test-'))
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflowWithLabelPrefix(30_000, 'work-please'))
+
+    const orch = new Orchestrator(wfPath)
+    const issue = makeIssue({ id: 'snap2', identifier: 'MT-S2', state: 'Human Review', review_decision: 'approved' })
+
+    const orchState = (orch as unknown as { state: { running: Map<string, unknown>, claimed: Set<string>, retry_attempts: Map<string, unknown>, agent_totals: Record<string, number>, completed: Set<string>, watched_last_dispatched: Map<string, unknown> } }).state
+    orchState.running.set('snap2', {
+      identifier: 'MT-S2',
+      issue,
+      session_id: null,
+      agent_app_server_pid: null,
+      last_agent_message: null,
+      last_agent_event: null,
+      last_agent_timestamp: null,
+      agent_input_tokens: 0,
+      agent_output_tokens: 0,
+      agent_total_tokens: 0,
+      last_reported_input_tokens: 0,
+      last_reported_output_tokens: 0,
+      last_reported_total_tokens: 0,
+      turn_count: 0,
+      retry_attempt: null,
+      started_at: new Date(),
+    })
+
+    try {
+      ;(orch as unknown as { onWorkerExit: (id: string, startedAt: Date, reason: string, error: string | null) => void }).onWorkerExit('snap2', new Date(), 'failed', 'agent crashed')
+      expect(orchState.watched_last_dispatched.has('snap2')).toBe(false)
+    }
+    finally {
+      orch.stop()
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
   })
 })
 

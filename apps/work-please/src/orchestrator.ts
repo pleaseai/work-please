@@ -419,9 +419,11 @@ export class Orchestrator {
       })
       this.state.completed.add(issueId)
 
-      // Record watched state snapshot only on success to allow retry on failure
+      // Record watched state snapshot only on success to allow retry on failure.
+      // Use Date.now() as high-water mark (not stale dispatch-time PR timestamp)
+      // so PRs updated during the agent run don't cause immediate re-dispatch.
       this.state.watched_last_dispatched.set(issueId, {
-        pr_update_ms: getLinkedPrUpdateMs(running.issue),
+        pr_update_ms: getLinkedPrUpdateMs(running.issue) != null ? Date.now() : null,
         review_decision: running.issue.review_decision,
       })
 
@@ -723,7 +725,7 @@ function countRunningInState(running: Map<string, RunningEntry>, state: string):
 function getLinkedPrUpdateMs(issue: Issue): number | null {
   const prTimes = issue.pull_requests
     .map(pr => pr.updated_at?.getTime())
-    .filter((ms): ms is number => ms != null)
+    .filter((ms): ms is number => ms != null && !Number.isNaN(ms))
 
   return prTimes.length > 0 ? Math.max(...prTimes) : null
 }
@@ -732,10 +734,17 @@ function isWatchedUnchanged(issue: Issue, snapshot: import('./types').WatchedSna
   if (!snapshot)
     return false
 
-  // For items with linked PRs: compare PR update timestamps
   const currentPrMs = getLinkedPrUpdateMs(issue)
-  if (currentPrMs != null)
-    return snapshot.pr_update_ms != null && currentPrMs <= snapshot.pr_update_ms
+  const hadPrs = snapshot.pr_update_ms != null
+  const hasPrs = currentPrMs != null
+
+  // PR presence changed (gained or lost linked PRs) — treat as changed
+  if (hadPrs !== hasPrs)
+    return false
+
+  // For items with linked PRs: compare PR update timestamps
+  if (hasPrs)
+    return currentPrMs <= snapshot.pr_update_ms!
 
   // For PR-type project items (no linked PRs): compare review_decision
   return issue.review_decision === snapshot.review_decision
