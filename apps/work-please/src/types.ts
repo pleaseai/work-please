@@ -58,12 +58,6 @@ export interface IssueFilter {
   label: string[]
 }
 
-export interface AutoTransitions {
-  human_review_to_rework?: boolean
-  human_review_to_merging?: boolean
-  include_bot_reviews?: boolean
-}
-
 export interface TrackerConfig {
   kind: string | null
   endpoint: string
@@ -85,9 +79,8 @@ export interface TrackerConfig {
   label_prefix: string | null
   // shared filter
   filter: IssueFilter
-  // watched states and auto-transitions (shared)
+  // watched states (shared)
   watched_statuses?: string[]
-  auto_transitions?: AutoTransitions
 }
 
 export type SettingSource = 'user' | 'project' | 'local'

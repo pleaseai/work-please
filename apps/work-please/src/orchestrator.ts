@@ -4,8 +4,7 @@ import type { Issue, OrchestratorState, RetryEntry, RunningEntry, ServiceConfig,
 import { watch } from 'node:fs'
 import { resolveAgentEnv } from './agent-env'
 import { AppServerClient } from './agent-runner'
-import { evaluateAutoTransition } from './auto-transition'
-import { buildConfig, getActiveStates, getAutoTransitions, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
+import { buildConfig, getActiveStates, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 import { createLabelService } from './label'
 import { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
 import { createTrackerAdapter, formatTrackerError, isTrackerError } from './tracker/index'
@@ -123,7 +122,7 @@ export class Orchestrator {
       return
     }
 
-    // 3b. Process watched states (auto-transitions)
+    // 3b. Process watched states (dispatch agents for review activity)
     try {
       await this.processWatchedStates(adapter)
     }
@@ -537,12 +536,14 @@ export class Orchestrator {
     }
 
     const activeStates = getActiveStates(this.config)
+    const watchedStates = getWatchedStates(this.config)
     const terminalStates = getTerminalStates(this.config)
 
     for (const issue of refreshed) {
       const normalizedState = normalizeState(issue.state)
       const isTerminal = terminalStates.some(s => normalizeState(s) === normalizedState)
       const isActive = activeStates.some(s => normalizeState(s) === normalizedState)
+        || watchedStates.some(s => normalizeState(s) === normalizedState)
 
       if (isTerminal) {
         console.warn(`[orchestrator] issue terminal, stopping worker issue_id=${issue.id} state=${issue.state}`)
@@ -586,31 +587,31 @@ export class Orchestrator {
     if (watchedStates.length === 0)
       return
 
-    const autoTransitions = getAutoTransitions(this.config)
-    if (!autoTransitions.human_review_to_rework && !autoTransitions.human_review_to_merging)
-      return
-
     const result = await adapter.fetchIssuesByStates(watchedStates)
     if (isTrackerError(result)) {
       console.error(`[orchestrator] watched states fetch failed: ${formatTrackerError(result)}`)
       return
     }
 
-    if (!adapter.updateItemStatus) {
-      console.warn('[orchestrator] auto-transitions configured but tracker adapter does not support updateItemStatus — skipping')
-      return
-    }
-
-    for (const issue of result) {
-      const targetState = evaluateAutoTransition(issue, autoTransitions)
-      if (!targetState)
+    for (const issue of sortForDispatch(result)) {
+      if (this.state.running.has(issue.id) || this.state.claimed.has(issue.id))
         continue
 
-      console.warn(`[orchestrator] auto-transition: ${issue.identifier} ${issue.state} → ${targetState}`)
-      const updateResult = await adapter.updateItemStatus(issue.id, targetState)
-      if (isTrackerError(updateResult)) {
-        console.error(`[orchestrator] auto-transition failed for ${issue.identifier}: ${formatTrackerError(updateResult)}`)
-      }
+      // Only dispatch if there's a review decision or unresolved threads
+      if (!issue.review_decision && !issue.has_unresolved_threads)
+        continue
+
+      if (this.availableSlots() === 0)
+        break
+
+      // Respect per-state concurrency limits
+      const stateLimit = maxConcurrentForState(this.config, issue.state)
+      const runningInState = countRunningInState(this.state.running, issue.state)
+      if (runningInState >= stateLimit)
+        continue
+
+      console.warn(`[orchestrator] dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
+      this.dispatchIssue(issue, null)
     }
   }
 

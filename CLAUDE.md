@@ -156,8 +156,7 @@ Only commit when **all tests pass** and **all lint/type errors are resolved**.
 
 ## Key Implementation Notes
 
-- The service is primarily a **scheduler/runner** — the orchestrator makes two narrow tracker writes (auto-transition
-  state changes and status labels). All other state transitions and PR links are performed by the Claude Code agent.
+- The service is primarily a **scheduler/runner** — the orchestrator writes status labels only. All state transitions and PR links are performed by the Claude Code agent via WORKFLOW.md.
 - `WORKFLOW.md` supports `$ENV_VAR` references in the `api_key`, `app_id`, `private_key`, and `installation_id` credential fields — the config layer must resolve these at startup.
 - Prompt templates use Liquid-compatible syntax (`{{ issue.title }}`, `{% if %}` blocks).
 - Agent runs use [`@anthropic-ai/claude-agent-sdk`](https://platform.claude.com/docs/en/agent-sdk/typescript.md) (`query()`) to invoke Claude Code programmatically.

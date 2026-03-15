@@ -1,10 +1,9 @@
 import type { LabelService } from './label'
-import type { AutoTransitions, Issue, RunningEntry, TrackerConfig } from './types'
+import type { Issue, RunningEntry, TrackerConfig } from './types'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
-import { evaluateAutoTransition } from './auto-transition'
 import { normalizeState } from './config'
 import { buildTokenProvider, Orchestrator } from './orchestrator'
 
@@ -404,12 +403,14 @@ describe('reconciliation state machine (Section 17.4)', () => {
     issueState: string | null,
     activeStates: string[],
     terminalStates: string[],
+    watchedStates: string[] = [],
   ): ReconcileAction {
     if (!issueState)
       return 'terminate_no_cleanup'
     const normalized = normalizeState(issueState)
     const isTerminal = terminalStates.some(s => normalizeState(s) === normalized)
     const isActive = activeStates.some(s => normalizeState(s) === normalized)
+      || watchedStates.some(s => normalizeState(s) === normalized)
     if (isTerminal)
       return 'terminate_cleanup'
     if (isActive)
@@ -419,6 +420,7 @@ describe('reconciliation state machine (Section 17.4)', () => {
 
   const activeStates = ['In Progress', 'Todo']
   const terminalStates = ['Done', 'Cancelled']
+  const watchedStates = ['Human Review']
 
   it('terminal state stops running agent and cleans workspace', () => {
     expect(classifyRunningIssueState('Done', activeStates, terminalStates)).toBe('terminate_cleanup')
@@ -430,9 +432,12 @@ describe('reconciliation state machine (Section 17.4)', () => {
     expect(classifyRunningIssueState('Todo', activeStates, terminalStates)).toBe('update')
   })
 
-  it('non-active non-terminal state stops agent without workspace cleanup', () => {
-    expect(classifyRunningIssueState('Human Review', activeStates, terminalStates)).toBe('terminate_no_cleanup')
-    expect(classifyRunningIssueState('Blocked', activeStates, terminalStates)).toBe('terminate_no_cleanup')
+  it('watched state keeps running agent alive (not terminated)', () => {
+    expect(classifyRunningIssueState('Human Review', activeStates, terminalStates, watchedStates)).toBe('update')
+  })
+
+  it('non-active non-terminal non-watched state stops agent without workspace cleanup', () => {
+    expect(classifyRunningIssueState('Blocked', activeStates, terminalStates, watchedStates)).toBe('terminate_no_cleanup')
   })
 
   it('null state stops agent without workspace cleanup', () => {
@@ -792,54 +797,44 @@ Prompt text.`)
   })
 })
 
-function makeAutoTransitions(overrides: Partial<Required<AutoTransitions>> = {}): Required<AutoTransitions> {
-  return { human_review_to_rework: true, human_review_to_merging: true, include_bot_reviews: true, ...overrides }
-}
+describe('processWatchedStates dispatch logic', () => {
+  // Mirror the processWatchedStates dispatch guard logic
+  function shouldDispatchWatched(
+    issue: Issue,
+    running: Map<string, unknown>,
+    claimed: Set<string>,
+  ): boolean {
+    if (running.has(issue.id) || claimed.has(issue.id))
+      return false
+    if (!issue.review_decision && !issue.has_unresolved_threads)
+      return false
+    return true
+  }
 
-describe('evaluateAutoTransition', () => {
-  it('returns "Rework" when review_decision is changes_requested', () => {
-    const issue = makeIssue({ review_decision: 'changes_requested' })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBe('Rework')
+  it('dispatches issue with review_decision', () => {
+    const issue = makeIssue({ id: 'w1', review_decision: 'changes_requested' })
+    expect(shouldDispatchWatched(issue, new Map(), new Set())).toBe(true)
   })
 
-  it('returns "Rework" when has_unresolved_threads is true', () => {
-    const issue = makeIssue({ review_decision: null, has_unresolved_threads: true })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBe('Rework')
+  it('dispatches issue with unresolved threads', () => {
+    const issue = makeIssue({ id: 'w2', has_unresolved_threads: true })
+    expect(shouldDispatchWatched(issue, new Map(), new Set())).toBe(true)
   })
 
-  it('returns "Rework" when has_unresolved_human_threads is true and include_bot_reviews is false', () => {
-    const issue = makeIssue({ review_decision: null, has_unresolved_human_threads: true, has_unresolved_threads: false })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions({ include_bot_reviews: false }))).toBe('Rework')
+  it('skips issue with no review activity', () => {
+    const issue = makeIssue({ id: 'w3', review_decision: null, has_unresolved_threads: false })
+    expect(shouldDispatchWatched(issue, new Map(), new Set())).toBe(false)
   })
 
-  it('returns null when only bot threads and include_bot_reviews is false', () => {
-    const issue = makeIssue({ review_decision: null, has_unresolved_threads: true, has_unresolved_human_threads: false })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions({ include_bot_reviews: false }))).toBeNull()
+  it('skips already running issues', () => {
+    const issue = makeIssue({ id: 'w4', review_decision: 'approved' })
+    const running = new Map([['w4', {}]])
+    expect(shouldDispatchWatched(issue, running, new Set())).toBe(false)
   })
 
-  it('returns "Merging" when review_decision is approved and no unresolved threads', () => {
-    const issue = makeIssue({ review_decision: 'approved', has_unresolved_threads: false })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBe('Merging')
-  })
-
-  it('returns "Rework" (not "Merging") when review_decision is approved but has unresolved threads', () => {
-    const issue = makeIssue({ review_decision: 'approved', has_unresolved_threads: true })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBe('Rework')
-  })
-
-  it('returns null when review_decision is null (no review yet)', () => {
-    const issue = makeIssue({ review_decision: null, has_unresolved_threads: false })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions())).toBeNull()
-  })
-
-  it('returns null when human_review_to_rework is false and changes_requested', () => {
-    const issue = makeIssue({ review_decision: 'changes_requested' })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions({ human_review_to_rework: false }))).toBeNull()
-  })
-
-  it('returns null when human_review_to_merging is false and approved', () => {
-    const issue = makeIssue({ review_decision: 'approved', has_unresolved_threads: false })
-    expect(evaluateAutoTransition(issue, makeAutoTransitions({ human_review_to_merging: false }))).toBeNull()
+  it('skips already claimed issues', () => {
+    const issue = makeIssue({ id: 'w5', review_decision: 'approved' })
+    expect(shouldDispatchWatched(issue, new Map(), new Set(['w5']))).toBe(false)
   })
 })
 

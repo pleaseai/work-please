@@ -166,18 +166,6 @@ describe('generateWorkflow', () => {
     expect(terminalBlock).toContain('watched_states:')
     expect(terminalBlock).toContain('- Human Review')
   })
-
-  it('includes auto_transitions with all three boolean fields', () => {
-    const content = generateWorkflow('myorg', 42)
-    const terminalBlock = content.slice(
-      content.indexOf('terminal_states:'),
-      content.indexOf('polling:'),
-    )
-    expect(terminalBlock).toContain('auto_transitions:')
-    expect(terminalBlock).toContain('human_review_to_rework: true')
-    expect(terminalBlock).toContain('human_review_to_merging: true')
-    expect(terminalBlock).toContain('include_bot_reviews: true')
-  })
 })
 
 // ---------------------------------------------------------------------------

@@ -202,10 +202,6 @@ tracker:
     - Done
   watched_states:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 polling:
   interval_ms: 30000
 workspace:

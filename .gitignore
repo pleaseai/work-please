@@ -12,3 +12,5 @@ coverage/
 # npm publish artifacts copied from root (prepublishOnly/postpublish)
 apps/work-please/LICENSE
 apps/work-please/README.md
+
+WORKFLOW.local.md

@@ -17,10 +17,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
   # filter:                        # optional: applies at dispatch time only
   #   assignee: user1, user2      # CSV or YAML array; case-insensitive OR; unassigned issues excluded
   #   label: bug, feature         # CSV or YAML array; case-insensitive OR; at least one label must match

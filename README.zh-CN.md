@@ -157,10 +157,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -233,10 +229,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -395,12 +387,8 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_statuses:                   # 可选: 轮询但不分发的状态。默认 ["Human Review"]
+  watched_statuses:                   # 可选: 有审查活动时分发代理的状态。默认 ["Human Review"]
     - Human Review
-  auto_transitions:                   # 可选: 监视状态的自动转换规则
-    human_review_to_rework: true      # CHANGES_REQUESTED 或未解决线程时移至 Rework。默认 true
-    human_review_to_merging: true     # APPROVED + 无未解决线程时移至 Merging。默认 true
-    include_bot_reviews: true         # 是否将机器人评论线程视为未解决。默认 true
   # GitHub App 认证（api_key 的替代方案 —— 三个字段必须同时提供）：
   # app_id: $GITHUB_APP_ID            # 可选: GitHub App ID（整数或 $ENV_VAR）
   # private_key: $GITHUB_APP_PRIVATE_KEY  # 可选: GitHub App 私钥 PEM 或 $ENV_VAR

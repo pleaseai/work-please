@@ -161,10 +161,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -237,10 +233,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -399,12 +391,8 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_statuses:                   # Optional: states polled but not dispatched. Default ["Human Review"]
+  watched_statuses:                   # Optional: states polled for dispatch on review activity. Default ["Human Review"]
     - Human Review
-  auto_transitions:                   # Optional: auto-transition rules for watched states
-    human_review_to_rework: true      # Move to Rework on CHANGES_REQUESTED or unresolved threads. Default true
-    human_review_to_merging: true     # Move to Merging on APPROVED + no unresolved threads. Default true
-    include_bot_reviews: true         # Whether bot comment threads count as unresolved. Default true
   # GitHub App authentication (alternative to api_key — all three required together):
   # app_id: $GITHUB_APP_ID            # Optional: GitHub App ID (integer or $ENV_VAR)
   # private_key: $GITHUB_APP_PRIVATE_KEY  # Optional: GitHub App private key PEM or $ENV_VAR

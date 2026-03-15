@@ -2,7 +2,7 @@
 import type { WorkflowDefinition } from './types'
 import process from 'node:process'
 import { describe, expect, it } from 'bun:test'
-import { buildConfig, getActiveStates, getAutoTransitions, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
+import { buildConfig, getActiveStates, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 
 function makeWorkflow(config: Record<string, unknown>): WorkflowDefinition {
   return { config, prompt_template: '' }
@@ -686,58 +686,6 @@ describe('watched_statuses parsing', () => {
   })
 })
 
-describe('auto_transitions parsing', () => {
-  it('defaults all auto_transitions to true when not configured', () => {
-    const config = buildConfig(makeWorkflow({
-      tracker: { kind: 'github_projects', api_key: 'token', owner: 'org', project_number: 1 },
-    }))
-    expect(config.tracker.auto_transitions).toEqual({
-      human_review_to_rework: true,
-      human_review_to_merging: true,
-      include_bot_reviews: true,
-    })
-  })
-
-  it('parses auto_transitions.human_review_to_rework = false', () => {
-    const config = buildConfig(makeWorkflow({
-      tracker: {
-        kind: 'github_projects',
-        api_key: 'token',
-        owner: 'org',
-        project_number: 1,
-        auto_transitions: { human_review_to_rework: false },
-      },
-    }))
-    expect(config.tracker.auto_transitions?.human_review_to_rework).toBe(false)
-    expect(config.tracker.auto_transitions?.human_review_to_merging).toBe(true)
-    expect(config.tracker.auto_transitions?.include_bot_reviews).toBe(true)
-  })
-
-  it('parses auto_transitions.include_bot_reviews = false', () => {
-    const config = buildConfig(makeWorkflow({
-      tracker: {
-        kind: 'github_projects',
-        api_key: 'token',
-        owner: 'org',
-        project_number: 1,
-        auto_transitions: { include_bot_reviews: false },
-      },
-    }))
-    expect(config.tracker.auto_transitions?.include_bot_reviews).toBe(false)
-  })
-
-  it('defaults all auto_transitions to true for asana (field present but empty)', () => {
-    const config = buildConfig(makeWorkflow({
-      tracker: { kind: 'asana', api_key: 'token', project_gid: 'gid' },
-    }))
-    expect(config.tracker.auto_transitions).toEqual({
-      human_review_to_rework: true,
-      human_review_to_merging: true,
-      include_bot_reviews: true,
-    })
-  })
-})
-
 describe('getWatchedStates', () => {
   it('returns watched_statuses for github_projects', () => {
     const config = buildConfig(makeWorkflow({
@@ -842,34 +790,5 @@ describe('buildConfig - env section', () => {
     expect(config.env.VALID_KEY).toBe('ok')
     expect(config.env.ALSO_VALID).toBe('ok')
     expect(Object.keys(config.env)).toHaveLength(2)
-  })
-})
-
-describe('getAutoTransitions', () => {
-  it('returns all defaults when not configured for github_projects', () => {
-    const config = buildConfig(makeWorkflow({
-      tracker: { kind: 'github_projects', api_key: 'token', owner: 'org', project_number: 1 },
-    }))
-    expect(getAutoTransitions(config)).toEqual({
-      human_review_to_rework: true,
-      human_review_to_merging: true,
-      include_bot_reviews: true,
-    })
-  })
-
-  it('returns configured values', () => {
-    const config = buildConfig(makeWorkflow({
-      tracker: {
-        kind: 'github_projects',
-        api_key: 'token',
-        owner: 'org',
-        project_number: 1,
-        auto_transitions: { human_review_to_rework: false, include_bot_reviews: false },
-      },
-    }))
-    const at = getAutoTransitions(config)
-    expect(at.human_review_to_rework).toBe(false)
-    expect(at.human_review_to_merging).toBe(true)
-    expect(at.include_bot_reviews).toBe(false)
   })
 })

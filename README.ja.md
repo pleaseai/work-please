@@ -157,10 +157,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -233,10 +229,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -395,12 +387,8 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_statuses:                   # 任意: ポーリングするがディスパッチしない状態。デフォルト ["Human Review"]
+  watched_statuses:                   # 任意: レビュー活動時にエージェントをディスパッチする状態。デフォルト ["Human Review"]
     - Human Review
-  auto_transitions:                   # 任意: 監視状態の自動遷移ルール
-    human_review_to_rework: true      # CHANGES_REQUESTEDまたは未解決スレッド時にReworkへ移動。デフォルト true
-    human_review_to_merging: true     # APPROVED + 未解決スレッドなし時にMergingへ移動。デフォルト true
-    include_bot_reviews: true         # ボットコメントスレッドを未解決として扱うかどうか。デフォルト true
   # GitHub App認証（api_keyの代替 — 3フィールドすべて同時に必要）：
   # app_id: $GITHUB_APP_ID            # 任意: GitHub App ID（整数または$ENV_VAR）
   # private_key: $GITHUB_APP_PRIVATE_KEY  # 任意: GitHub App秘密鍵PEMまたは$ENV_VAR

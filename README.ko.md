@@ -157,10 +157,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -233,10 +229,6 @@ tracker:
     - Done
   watched_statuses:
     - Human Review
-  auto_transitions:
-    human_review_to_rework: true
-    human_review_to_merging: true
-    include_bot_reviews: true
 
 polling:
   interval_ms: 30000
@@ -395,12 +387,8 @@ tracker:
     - Canceled
     - Duplicate
     - Done
-  watched_statuses:                   # 선택: 폴링하지만 디스패치하지 않는 상태. 기본값 ["Human Review"]
+  watched_statuses:                   # 선택: 리뷰 활동 시 에이전트를 디스패치할 상태. 기본값 ["Human Review"]
     - Human Review
-  auto_transitions:                   # 선택: 감시 상태에 대한 자동 전환 규칙
-    human_review_to_rework: true      # CHANGES_REQUESTED 또는 미해결 스레드 시 Rework으로 이동. 기본값 true
-    human_review_to_merging: true     # APPROVED + 미해결 스레드 없음 시 Merging으로 이동. 기본값 true
-    include_bot_reviews: true         # 봇 댓글 스레드를 미해결로 간주할지 여부. 기본값 true
   # GitHub App 인증 (api_key 대안 — 세 필드 모두 함께 필요):
   # app_id: $GITHUB_APP_ID            # 선택: GitHub App ID (정수 또는 $ENV_VAR)
   # private_key: $GITHUB_APP_PRIVATE_KEY  # 선택: GitHub App 개인키 PEM 또는 $ENV_VAR
