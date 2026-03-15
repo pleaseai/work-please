@@ -307,7 +307,7 @@ Use this only when completion is blocked by missing required tools or missing au
 1.  Determine current repo state (`branch`, `git status`, `HEAD`) and verify the kickoff sync result is already recorded in the workpad before implementation continues.
 2.  If current issue state is `Todo`, move it to `In Progress`; otherwise leave the current state unchanged.
 3.  Load the existing workpad comment and treat it as the active execution checklist.
-    - Edit it liberally via `gh api repos/<owner>/<repo>/issues/comments/<comment-id> -X PATCH -F body=@- <<'EOF' … EOF` whenever reality changes (scope, risks, validation approach, discovered tasks).
+    - Edit it liberally via `PATCH` (piping the body through a heredoc as shown in Step 1) whenever reality changes (scope, risks, validation approach, discovered tasks).
     - Never post a new comment to update progress — always `PATCH` the existing workpad comment.
 4.  Implement against the hierarchical TODOs and keep the comment current:
     - Check off completed items.
