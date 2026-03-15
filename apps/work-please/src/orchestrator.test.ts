@@ -1029,7 +1029,7 @@ describe('watched snapshot recording in onWorkerExit', () => {
       ;(orch as unknown as { onWorkerExit: (id: string, startedAt: Date, reason: string, error: string | null) => void }).onWorkerExit('snap1', new Date(), 'normal', null)
       const snapshot = orchState.watched_last_dispatched.get('snap1')
       expect(snapshot).toBeDefined()
-      expect(snapshot!.pr_update_ms).toBeGreaterThan(0)
+      expect(snapshot!.pr_update_ms).toBe(new Date('2024-06-01T12:00:00Z').getTime())
       expect(snapshot!.review_decision).toBe('changes_requested')
     }
     finally {

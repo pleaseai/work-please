@@ -420,10 +420,10 @@ export class Orchestrator {
       this.state.completed.add(issueId)
 
       // Record watched state snapshot only on success to allow retry on failure.
-      // Use Date.now() as high-water mark (not stale dispatch-time PR timestamp)
-      // so PRs updated during the agent run don't cause immediate re-dispatch.
+      // Uses dispatch-time PR timestamp (stale but correct): if a review happened
+      // during the agent run, its updated_at > stale timestamp → re-dispatch.
       this.state.watched_last_dispatched.set(issueId, {
-        pr_update_ms: getLinkedPrUpdateMs(running.issue) != null ? Date.now() : null,
+        pr_update_ms: getLinkedPrUpdateMs(running.issue),
         review_decision: running.issue.review_decision,
       })
 
