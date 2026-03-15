@@ -418,6 +418,12 @@ export class Orchestrator {
         console.warn(`[orchestrator] label service error issue_id=${issueId}: ${err}`)
       })
       this.state.completed.add(issueId)
+
+      // Record watched state timestamp only on success to allow retry on failure
+      const updateMs = getWatchedUpdateMs(running.issue)
+      if (updateMs != null)
+        this.state.watched_last_dispatched_at.set(issueId, updateMs)
+
       this.scheduleRetry(issueId, running.identifier, 1, null, 'continuation')
     }
     else {
@@ -602,11 +608,11 @@ export class Orchestrator {
       if (!issue.review_decision)
         continue
 
-      // Skip if linked PRs have not been updated since last dispatch
+      // Skip if issue has not been updated since last dispatch
       const lastDispatched = this.state.watched_last_dispatched_at.get(issue.id)
       if (lastDispatched != null) {
-        const latestPrUpdate = getLatestPrUpdateMs(issue)
-        if (latestPrUpdate != null && latestPrUpdate <= lastDispatched)
+        const latestUpdate = getWatchedUpdateMs(issue)
+        if (latestUpdate != null && latestUpdate <= lastDispatched)
           continue
       }
 
@@ -618,11 +624,6 @@ export class Orchestrator {
       const runningInState = countRunningInState(this.state.running, issue.state)
       if (runningInState >= stateLimit)
         continue
-
-      // Record the latest PR update timestamp at dispatch time
-      const latestPrMs = getLatestPrUpdateMs(issue)
-      if (latestPrMs != null)
-        this.state.watched_last_dispatched_at.set(issue.id, latestPrMs)
 
       console.warn(`[orchestrator] dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
       this.dispatchIssue(issue, null)
@@ -722,16 +723,17 @@ function countRunningInState(running: Map<string, RunningEntry>, state: string):
   return count
 }
 
-function getLatestPrUpdateMs(issue: Issue): number | null {
-  let latest: number | null = null
-  for (const pr of issue.pull_requests) {
-    if (pr.updated_at) {
-      const ms = pr.updated_at.getTime()
-      if (latest == null || ms > latest)
-        latest = ms
-    }
-  }
-  return latest
+function getWatchedUpdateMs(issue: Issue): number | null {
+  const prTimes = issue.pull_requests
+    .map(pr => pr.updated_at?.getTime())
+    .filter((ms): ms is number => ms != null)
+
+  if (prTimes.length > 0)
+    return Math.max(...prTimes)
+
+  // Fallback to issue's own updated_at (for PR-type project items
+  // where content is a PullRequest and pull_requests is empty)
+  return issue.updated_at?.getTime() ?? null
 }
 
 function hasNonTerminalBlockers(issue: Issue, terminalStates: string[]): boolean {

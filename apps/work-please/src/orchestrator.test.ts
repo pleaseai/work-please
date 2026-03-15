@@ -808,27 +808,26 @@ describe('processWatchedStates dispatch logic', () => {
     if (!issue.review_decision)
       return false
 
-    // Check if linked PRs have been updated since last dispatch
+    // Check if issue/PRs have been updated since last dispatch
     const lastDispatched = watchedLastDispatchedAt.get(issue.id)
     if (lastDispatched != null) {
-      const latestPrUpdate = getLatestPrUpdateMs(issue)
-      if (latestPrUpdate != null && latestPrUpdate <= lastDispatched)
+      const latestUpdate = getWatchedUpdateMs(issue)
+      if (latestUpdate != null && latestUpdate <= lastDispatched)
         return false
     }
 
     return true
   }
 
-  function getLatestPrUpdateMs(issue: Issue): number | null {
-    let latest: number | null = null
-    for (const pr of issue.pull_requests) {
-      if (pr.updated_at) {
-        const ms = pr.updated_at.getTime()
-        if (latest == null || ms > latest)
-          latest = ms
-      }
-    }
-    return latest
+  function getWatchedUpdateMs(issue: Issue): number | null {
+    const prTimes = issue.pull_requests
+      .map(pr => pr.updated_at?.getTime())
+      .filter((ms): ms is number => ms != null)
+
+    if (prTimes.length > 0)
+      return Math.max(...prTimes)
+
+    return issue.updated_at?.getTime() ?? null
   }
 
   it('dispatches issue with review_decision', () => {
@@ -888,13 +887,38 @@ describe('processWatchedStates dispatch logic', () => {
     expect(shouldDispatchWatched(issue, new Map(), new Set(), new Map())).toBe(true)
   })
 
-  it('dispatches when issue has no linked PRs (no updated_at to compare)', () => {
+  it('uses issue.updated_at as fallback for PR-type project items (no linked PRs)', () => {
+    const issueUpdatedAt = new Date('2024-06-01T12:00:00Z')
     const issue = makeIssue({
       id: 'w9',
       review_decision: 'approved',
       pull_requests: [],
+      updated_at: issueUpdatedAt,
     })
-    const lastDispatched = new Map([['w9', Date.now()]])
+    // Same timestamp → skip (no change)
+    const lastDispatched = new Map([['w9', issueUpdatedAt.getTime()]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), lastDispatched)).toBe(false)
+  })
+
+  it('dispatches PR-type project item when issue.updated_at is newer', () => {
+    const issue = makeIssue({
+      id: 'w9b',
+      review_decision: 'approved',
+      pull_requests: [],
+      updated_at: new Date('2024-06-02T12:00:00Z'),
+    })
+    const lastDispatched = new Map([['w9b', new Date('2024-06-01T12:00:00Z').getTime()]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), lastDispatched)).toBe(true)
+  })
+
+  it('dispatches when no updated_at available at all', () => {
+    const issue = makeIssue({
+      id: 'w9c',
+      review_decision: 'approved',
+      pull_requests: [],
+      updated_at: null,
+    })
+    const lastDispatched = new Map([['w9c', Date.now()]])
     expect(shouldDispatchWatched(issue, new Map(), new Set(), lastDispatched)).toBe(true)
   })
 
