@@ -127,7 +127,7 @@ describe('buildPrompt', () => {
   it('renders pull_requests fields in Liquid template', async () => {
     const issue = makeIssue({
       pull_requests: [
-        { number: 99, title: 'My PR', url: 'https://github.com/org/repo/pull/99', state: 'open', branch_name: 'fix/bug' },
+        { number: 99, title: 'My PR', url: 'https://github.com/org/repo/pull/99', state: 'open', branch_name: 'fix/bug', review_decision: null, updated_at: null },
       ],
     })
     const result = await buildPrompt(

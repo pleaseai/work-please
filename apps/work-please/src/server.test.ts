@@ -59,6 +59,7 @@ function makeOrchestratorStub(state: Partial<OrchestratorState> = {}) {
     claimed: new Set(),
     retry_attempts: new Map(),
     completed: new Set(),
+    watched_last_dispatched: new Map(),
     agent_totals: { input_tokens: 0, output_tokens: 0, total_tokens: 0, seconds_running: 0 },
     agent_rate_limits: null,
     ...state,

@@ -40,6 +40,7 @@ export class Orchestrator {
       claimed: new Set(),
       retry_attempts: new Map(),
       completed: new Set(),
+      watched_last_dispatched: new Map(),
       agent_totals: { input_tokens: 0, output_tokens: 0, total_tokens: 0, seconds_running: 0 },
       agent_rate_limits: null,
     }
@@ -413,6 +414,15 @@ export class Orchestrator {
         console.warn(`[orchestrator] label service error issue_id=${issueId}: ${err}`)
       })
       this.state.completed.add(issueId)
+
+      // Record watched state snapshot only on success to allow retry on failure.
+      // Uses dispatch-time PR timestamp (stale but correct): if a review happened
+      // during the agent run, its updated_at > stale timestamp → re-dispatch.
+      this.state.watched_last_dispatched.set(issueId, {
+        pr_update_ms: getLinkedPrUpdateMs(running.issue),
+        review_decision: running.issue.review_decision,
+      })
+
       this.scheduleRetry(issueId, running.identifier, 1, null, 'continuation')
     }
     else {
@@ -590,6 +600,10 @@ export class Orchestrator {
       if (!issue.review_decision)
         continue
 
+      // Skip if nothing has changed since last dispatch
+      if (isWatchedUnchanged(issue, this.state.watched_last_dispatched.get(issue.id)))
+        continue
+
       if (this.availableSlots() === 0)
         break
 
@@ -700,6 +714,34 @@ function countRunningInState(running: Map<string, RunningEntry>, state: string):
       count++
   }
   return count
+}
+
+export function getLinkedPrUpdateMs(issue: Issue): number | null {
+  const prTimes = issue.pull_requests
+    .map(pr => pr.updated_at?.getTime())
+    .filter((ms): ms is number => ms != null && !Number.isNaN(ms))
+
+  return prTimes.length > 0 ? Math.max(...prTimes) : null
+}
+
+export function isWatchedUnchanged(issue: Issue, snapshot: import('./types').WatchedSnapshot | undefined): boolean {
+  if (!snapshot)
+    return false
+
+  const currentPrMs = getLinkedPrUpdateMs(issue)
+  const hadPrs = snapshot.pr_update_ms != null
+  const hasPrs = currentPrMs != null
+
+  // PR presence changed (gained or lost linked PRs) — treat as changed
+  if (hadPrs !== hasPrs)
+    return false
+
+  // For items with linked PRs: compare PR update timestamps
+  if (hasPrs)
+    return currentPrMs <= snapshot.pr_update_ms!
+
+  // For PR-type project items (no linked PRs): compare review_decision
+  return issue.review_decision === snapshot.review_decision
 }
 
 function hasNonTerminalBlockers(issue: Issue, terminalStates: string[]): boolean {

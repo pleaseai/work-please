@@ -12,6 +12,8 @@ export interface LinkedPR {
   url: string | null
   state: 'open' | 'closed' | 'merged'
   branch_name: string | null
+  review_decision: Issue['review_decision']
+  updated_at: Date | null
 }
 
 export interface ProjectItemContext {
@@ -184,6 +186,13 @@ export interface AgentTotals {
   seconds_running: number
 }
 
+export interface WatchedSnapshot {
+  /** Linked PR update timestamp (null when no linked PRs) */
+  pr_update_ms: number | null
+  /** Review decision at dispatch time (for PR-type project items) */
+  review_decision: Issue['review_decision']
+}
+
 export interface OrchestratorState {
   poll_interval_ms: number
   max_concurrent_agents: number
@@ -191,6 +200,7 @@ export interface OrchestratorState {
   claimed: Set<string>
   retry_attempts: Map<string, RetryEntry>
   completed: Set<string>
+  watched_last_dispatched: Map<string, WatchedSnapshot>
   agent_totals: AgentTotals
   agent_rate_limits: unknown
 }

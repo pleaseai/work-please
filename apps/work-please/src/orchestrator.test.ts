@@ -1,11 +1,11 @@
 import type { LabelService } from './label'
-import type { Issue, RunningEntry, TrackerConfig } from './types'
+import type { Issue, RunningEntry, TrackerConfig, WatchedSnapshot } from './types'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
 import { normalizeState } from './config'
-import { buildTokenProvider, Orchestrator } from './orchestrator'
+import { buildTokenProvider, getLinkedPrUpdateMs, isWatchedUnchanged, Orchestrator } from './orchestrator'
 
 // Test the sort/dispatch logic utilities in isolation
 
@@ -795,16 +795,54 @@ Prompt text.`)
   })
 })
 
+describe('getLinkedPrUpdateMs', () => {
+  it('returns null for empty pull_requests', () => {
+    expect(getLinkedPrUpdateMs(makeIssue({ pull_requests: [] }))).toBeNull()
+  })
+
+  it('returns max timestamp from linked PRs', () => {
+    const issue = makeIssue({
+      pull_requests: [
+        { number: 1, title: 'A', url: null, state: 'open', branch_name: null, review_decision: null, updated_at: new Date('2024-01-01') },
+        { number: 2, title: 'B', url: null, state: 'open', branch_name: null, review_decision: null, updated_at: new Date('2024-06-01') },
+      ],
+    })
+    expect(getLinkedPrUpdateMs(issue)).toBe(new Date('2024-06-01').getTime())
+  })
+
+  it('filters NaN from invalid dates', () => {
+    const issue = makeIssue({
+      pull_requests: [
+        { number: 1, title: 'A', url: null, state: 'open', branch_name: null, review_decision: null, updated_at: new Date('invalid') },
+      ],
+    })
+    expect(getLinkedPrUpdateMs(issue)).toBeNull()
+  })
+
+  it('skips PRs with null updated_at', () => {
+    const issue = makeIssue({
+      pull_requests: [
+        { number: 1, title: 'A', url: null, state: 'open', branch_name: null, review_decision: null, updated_at: null },
+        { number: 2, title: 'B', url: null, state: 'open', branch_name: null, review_decision: null, updated_at: new Date('2024-06-01') },
+      ],
+    })
+    expect(getLinkedPrUpdateMs(issue)).toBe(new Date('2024-06-01').getTime())
+  })
+})
+
 describe('processWatchedStates dispatch logic', () => {
-  // Mirror the processWatchedStates dispatch guard logic
+  // Uses exported isWatchedUnchanged from orchestrator.ts
   function shouldDispatchWatched(
     issue: Issue,
     running: Map<string, unknown>,
     claimed: Set<string>,
+    watchedSnapshots: Map<string, WatchedSnapshot> = new Map(),
   ): boolean {
     if (running.has(issue.id) || claimed.has(issue.id))
       return false
     if (!issue.review_decision)
+      return false
+    if (isWatchedUnchanged(issue, watchedSnapshots.get(issue.id)))
       return false
     return true
   }
@@ -828,6 +866,214 @@ describe('processWatchedStates dispatch logic', () => {
   it('skips already claimed issues', () => {
     const issue = makeIssue({ id: 'w5', review_decision: 'approved' })
     expect(shouldDispatchWatched(issue, new Map(), new Set(['w5']))).toBe(false)
+  })
+
+  it('skips when linked PR has not been updated since last dispatch', () => {
+    const prUpdatedAt = new Date('2024-06-01T12:00:00Z')
+    const issue = makeIssue({
+      id: 'w6',
+      review_decision: 'changes_requested',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'changes_requested', updated_at: prUpdatedAt },
+      ],
+    })
+    const snapshots = new Map([['w6', { pr_update_ms: prUpdatedAt.getTime(), review_decision: 'changes_requested' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(false)
+  })
+
+  it('dispatches when linked PR has been updated after last dispatch', () => {
+    const issue = makeIssue({
+      id: 'w7',
+      review_decision: 'changes_requested',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'changes_requested', updated_at: new Date('2024-06-02T12:00:00Z') },
+      ],
+    })
+    const snapshots = new Map([['w7', { pr_update_ms: new Date('2024-06-01T12:00:00Z').getTime(), review_decision: 'changes_requested' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(true)
+  })
+
+  it('dispatches when no previous dispatch record exists', () => {
+    const issue = makeIssue({
+      id: 'w8',
+      review_decision: 'approved',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'approved', updated_at: new Date('2024-06-01T12:00:00Z') },
+      ],
+    })
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), new Map())).toBe(true)
+  })
+
+  it('skips PR-type project item when review_decision unchanged (no linked PRs)', () => {
+    const issue = makeIssue({
+      id: 'w9',
+      review_decision: 'approved',
+      pull_requests: [],
+    })
+    const snapshots = new Map([['w9', { pr_update_ms: null, review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(false)
+  })
+
+  it('dispatches PR-type project item when review_decision changes', () => {
+    const issue = makeIssue({
+      id: 'w9b',
+      review_decision: 'changes_requested',
+      pull_requests: [],
+    })
+    const snapshots = new Map([['w9b', { pr_update_ms: null, review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(true)
+  })
+
+  it('does not self-trigger from label updates on PR-type items', () => {
+    // When orchestrator sets labels, issue.updated_at changes but
+    // review_decision stays the same — should NOT re-dispatch
+    const issue = makeIssue({
+      id: 'w9c',
+      review_decision: 'approved',
+      pull_requests: [],
+      updated_at: new Date('2024-06-02T12:00:00Z'), // updated by label change
+    })
+    const snapshots = new Map([['w9c', { pr_update_ms: null, review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(false)
+  })
+
+  it('uses latest PR updated_at when multiple PRs exist', () => {
+    const issue = makeIssue({
+      id: 'w10',
+      review_decision: 'changes_requested',
+      pull_requests: [
+        { number: 10, title: 'Old PR', url: null, state: 'open', branch_name: null, review_decision: null, updated_at: new Date('2024-06-01T12:00:00Z') },
+        { number: 11, title: 'New PR', url: null, state: 'open', branch_name: null, review_decision: 'changes_requested', updated_at: new Date('2024-06-03T12:00:00Z') },
+      ],
+    })
+    const snapshots = new Map([['w10', { pr_update_ms: new Date('2024-06-02T12:00:00Z').getTime(), review_decision: 'changes_requested' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(true)
+  })
+
+  it('dispatches when linked PR is removed (PR presence changed)', () => {
+    const issue = makeIssue({
+      id: 'w11',
+      review_decision: 'approved',
+      pull_requests: [], // PR was unlinked
+    })
+    // Snapshot recorded when PR existed
+    const snapshots = new Map([['w11', { pr_update_ms: new Date('2024-06-01T12:00:00Z').getTime(), review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(true)
+  })
+
+  it('dispatches when linked PR is added (PR presence changed)', () => {
+    const issue = makeIssue({
+      id: 'w12',
+      review_decision: 'approved',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'approved', updated_at: new Date('2024-06-01T12:00:00Z') },
+      ],
+    })
+    // Snapshot recorded when no PRs existed
+    const snapshots = new Map([['w12', { pr_update_ms: null, review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(true)
+  })
+
+  it('filters NaN timestamps from invalid dates', () => {
+    const issue = makeIssue({
+      id: 'w13',
+      review_decision: 'approved',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'approved', updated_at: new Date('invalid') },
+      ],
+    })
+    // NaN should be filtered — falls through to review_decision comparison
+    const snapshots = new Map([['w13', { pr_update_ms: null, review_decision: 'approved' as const }]])
+    expect(shouldDispatchWatched(issue, new Map(), new Set(), snapshots)).toBe(false)
+  })
+})
+
+describe('watched snapshot recording in onWorkerExit', () => {
+  it('records snapshot on normal exit', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'work-please-snapshot-test-'))
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflowWithLabelPrefix(30_000, 'work-please'))
+
+    const orch = new Orchestrator(wfPath)
+    const issue = makeIssue({
+      id: 'snap1',
+      identifier: 'MT-S1',
+      state: 'Human Review',
+      review_decision: 'changes_requested',
+      pull_requests: [
+        { number: 10, title: 'PR', url: null, state: 'open', branch_name: null, review_decision: 'changes_requested', updated_at: new Date('2024-06-01T12:00:00Z') },
+      ],
+    })
+
+    const orchState = (orch as unknown as { state: { running: Map<string, unknown>, claimed: Set<string>, retry_attempts: Map<string, unknown>, agent_totals: Record<string, number>, completed: Set<string>, watched_last_dispatched: Map<string, { pr_update_ms: number | null, review_decision: string | null }> } }).state
+    orchState.running.set('snap1', {
+      identifier: 'MT-S1',
+      issue,
+      session_id: null,
+      agent_app_server_pid: null,
+      last_agent_message: null,
+      last_agent_event: null,
+      last_agent_timestamp: null,
+      agent_input_tokens: 0,
+      agent_output_tokens: 0,
+      agent_total_tokens: 0,
+      last_reported_input_tokens: 0,
+      last_reported_output_tokens: 0,
+      last_reported_total_tokens: 0,
+      turn_count: 0,
+      retry_attempt: null,
+      started_at: new Date(),
+    })
+
+    try {
+      ;(orch as unknown as { onWorkerExit: (id: string, startedAt: Date, reason: string, error: string | null) => void }).onWorkerExit('snap1', new Date(), 'normal', null)
+      const snapshot = orchState.watched_last_dispatched.get('snap1')
+      expect(snapshot).toBeDefined()
+      expect(snapshot!.pr_update_ms).toBe(new Date('2024-06-01T12:00:00Z').getTime())
+      expect(snapshot!.review_decision).toBe('changes_requested')
+    }
+    finally {
+      orch.stop()
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  it('does NOT record snapshot on failed exit', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'work-please-snapshot-test-'))
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflowWithLabelPrefix(30_000, 'work-please'))
+
+    const orch = new Orchestrator(wfPath)
+    const issue = makeIssue({ id: 'snap2', identifier: 'MT-S2', state: 'Human Review', review_decision: 'approved' })
+
+    const orchState = (orch as unknown as { state: { running: Map<string, unknown>, claimed: Set<string>, retry_attempts: Map<string, unknown>, agent_totals: Record<string, number>, completed: Set<string>, watched_last_dispatched: Map<string, unknown> } }).state
+    orchState.running.set('snap2', {
+      identifier: 'MT-S2',
+      issue,
+      session_id: null,
+      agent_app_server_pid: null,
+      last_agent_message: null,
+      last_agent_event: null,
+      last_agent_timestamp: null,
+      agent_input_tokens: 0,
+      agent_output_tokens: 0,
+      agent_total_tokens: 0,
+      last_reported_input_tokens: 0,
+      last_reported_output_tokens: 0,
+      last_reported_total_tokens: 0,
+      turn_count: 0,
+      retry_attempt: null,
+      started_at: new Date(),
+    })
+
+    try {
+      ;(orch as unknown as { onWorkerExit: (id: string, startedAt: Date, reason: string, error: string | null) => void }).onWorkerExit('snap2', new Date(), 'failed', 'agent crashed')
+      expect(orchState.watched_last_dispatched.has('snap2')).toBe(false)
+    }
+    finally {
+      orch.stop()
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
   })
 })
 
