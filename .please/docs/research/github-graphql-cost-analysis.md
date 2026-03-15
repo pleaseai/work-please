@@ -98,7 +98,12 @@ Each `tick()` triggers:
 | Reconcile | `fetchIssueStatesByIds(N)` | ITEMS_BY_IDS_QUERY | ceil((1 + 2N) / 100) = 1 |
 | Watched states | `fetchIssuesByStates()` | PROJECT_ITEMS/BY_ID_QUERY | ~4/page |
 | Candidates | `fetchCandidateIssues()` | PROJECT_ITEMS/BY_ID_QUERY | ~4/page |
-| Per agent turn | `fetchIssueStatesByIds([1])` | ITEMS_BY_IDS_QUERY | 1 |
+
+Per-agent-turn costs (async, not per-tick):
+
+| Step | Method | Query | Cost |
+|------|--------|-------|------|
+| Turn refresh (per agent per turn) | `fetchIssueStatesByIds([1])` | ITEMS_BY_IDS_QUERY | 1 |
 
 ### Typical tick (5 running, 1 page)
 
@@ -107,10 +112,14 @@ Reconcile:        1 pt   (N=5, ceil((1+10)/100) = 1)
 Watched states:   4 pts  (1 page)
 Candidates:       4 pts  (1 page)
                 ────────
-Total:            9 pts/tick
+Tick total:       9 pts/tick
+
++ Agent turns:    5 pts  (5 running agents x 1 pt each, async)
+                ────────
+Combined:        14 pts/tick (worst case)
 ```
 
-At 30s polling → ~18 pts/min → **~1,080 pts/hr** (well within 5,000 limit).
+At 30s polling → ~28 pts/min → **~1,680 pts/hr** (well within 5,000 limit).
 
 ---
 
