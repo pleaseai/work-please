@@ -41,7 +41,7 @@ export class Orchestrator {
       claimed: new Set(),
       retry_attempts: new Map(),
       completed: new Set(),
-      watched_last_dispatched_at: new Map(),
+      watched_last_dispatched: new Map(),
       agent_totals: { input_tokens: 0, output_tokens: 0, total_tokens: 0, seconds_running: 0 },
       agent_rate_limits: null,
     }
@@ -419,10 +419,11 @@ export class Orchestrator {
       })
       this.state.completed.add(issueId)
 
-      // Record watched state timestamp only on success to allow retry on failure
-      const updateMs = getWatchedUpdateMs(running.issue)
-      if (updateMs != null)
-        this.state.watched_last_dispatched_at.set(issueId, updateMs)
+      // Record watched state snapshot only on success to allow retry on failure
+      this.state.watched_last_dispatched.set(issueId, {
+        pr_update_ms: getLinkedPrUpdateMs(running.issue),
+        review_decision: running.issue.review_decision,
+      })
 
       this.scheduleRetry(issueId, running.identifier, 1, null, 'continuation')
     }
@@ -608,13 +609,9 @@ export class Orchestrator {
       if (!issue.review_decision)
         continue
 
-      // Skip if issue has not been updated since last dispatch
-      const lastDispatched = this.state.watched_last_dispatched_at.get(issue.id)
-      if (lastDispatched != null) {
-        const latestUpdate = getWatchedUpdateMs(issue)
-        if (latestUpdate != null && latestUpdate <= lastDispatched)
-          continue
-      }
+      // Skip if nothing has changed since last dispatch
+      if (isWatchedUnchanged(issue, this.state.watched_last_dispatched.get(issue.id)))
+        continue
 
       if (this.availableSlots() === 0)
         break
@@ -723,17 +720,25 @@ function countRunningInState(running: Map<string, RunningEntry>, state: string):
   return count
 }
 
-function getWatchedUpdateMs(issue: Issue): number | null {
+function getLinkedPrUpdateMs(issue: Issue): number | null {
   const prTimes = issue.pull_requests
     .map(pr => pr.updated_at?.getTime())
     .filter((ms): ms is number => ms != null)
 
-  if (prTimes.length > 0)
-    return Math.max(...prTimes)
+  return prTimes.length > 0 ? Math.max(...prTimes) : null
+}
 
-  // Fallback to issue's own updated_at (for PR-type project items
-  // where content is a PullRequest and pull_requests is empty)
-  return issue.updated_at?.getTime() ?? null
+function isWatchedUnchanged(issue: Issue, snapshot: import('./types').WatchedSnapshot | undefined): boolean {
+  if (!snapshot)
+    return false
+
+  // For items with linked PRs: compare PR update timestamps
+  const currentPrMs = getLinkedPrUpdateMs(issue)
+  if (currentPrMs != null)
+    return snapshot.pr_update_ms != null && currentPrMs <= snapshot.pr_update_ms
+
+  // For PR-type project items (no linked PRs): compare review_decision
+  return issue.review_decision === snapshot.review_decision
 }
 
 function hasNonTerminalBlockers(issue: Issue, terminalStates: string[]): boolean {
