@@ -256,14 +256,20 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
         // When filter is active, use server-side search for candidates to avoid
         // missing issues whose labels/assignees exceed the GraphQL pagination limits
         // (20 labels, 10 assignees per item).
-        const [candidates, watched] = await Promise.all([
+        // Handle each result independently so one failure does not block the other.
+        const [candidatesResult, watchedResult] = await Promise.all([
           fetchAllItems(activeStatuses, buildQueryString(filter)),
           fetchAllItems(watchedStates),
         ])
-        if ('code' in candidates)
-          return candidates
-        if ('code' in watched)
-          return watched
+        const candidates = 'code' in candidatesResult ? [] : candidatesResult
+        const watched = 'code' in watchedResult ? [] : watchedResult
+        if ('code' in candidatesResult)
+          console.warn(`[github] candidate fetch failed: ${candidatesResult.code}`)
+        if ('code' in watchedResult)
+          console.warn(`[github] watched fetch failed: ${watchedResult.code}`)
+        // Only return error if both failed
+        if ('code' in candidatesResult && 'code' in watchedResult)
+          return candidatesResult
         return { candidates, watched }
       }
 

@@ -125,18 +125,13 @@ export class Orchestrator {
     const watchedStates = getWatchedStates(this.config)
     const combinedResult = await adapter.fetchCandidateAndWatchedIssues(watchedStates)
     if (isTrackerError(combinedResult)) {
-      console.error(`[orchestrator] tracker fetch failed: ${formatTrackerError(combinedResult)}`)
+      console.error(`[orchestrator] tracker fetch failed (candidates + watched dispatch skipped): ${formatTrackerError(combinedResult)}`)
       this.scheduleTick(this.state.poll_interval_ms)
       return
     }
 
     // 3c. Process watched issues (dispatch agents for review activity)
-    try {
-      this.dispatchWatchedIssues(combinedResult.watched)
-    }
-    catch (err) {
-      console.error('[orchestrator] dispatchWatchedIssues error:', err)
-    }
+    this.dispatchWatchedIssues(combinedResult.watched)
 
     // 4. Sort by dispatch priority
     const sorted = sortForDispatch(combinedResult.candidates)
@@ -604,8 +599,13 @@ export class Orchestrator {
       if (runningInState >= stateLimit)
         continue
 
-      console.warn(`[orchestrator] dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
-      this.dispatchIssue(issue, null)
+      try {
+        console.warn(`[orchestrator] dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
+        this.dispatchIssue(issue, null)
+      }
+      catch (err) {
+        console.error(`[orchestrator] dispatchWatchedIssues failed for ${issue.identifier}:`, err)
+      }
     }
   }
 

@@ -111,7 +111,8 @@ export function createAsanaAdapter(config: ServiceConfig): TrackerAdapter {
     },
 
     async fetchCandidateAndWatchedIssues(watchedStates: string[]): Promise<CandidateAndWatchedResult | TrackerError> {
-      // Combine active + watched sections, fetch once, split results
+      // Always safe to combine for Asana: tasks are fetched per-section (no server-side
+      // search query), so client-side filtering via matchesFilter is equivalent.
       const combinedSections = deduplicateByNormalized([...activeSections, ...watchedStates])
       const allIssues = await fetchTasks(combinedSections)
       if (isTrackerError(allIssues))
