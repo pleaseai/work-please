@@ -38,14 +38,20 @@ export class HttpServer {
   }
 
   private handleRequest(req: Request): Response | Promise<Response> {
-    const result = this.routeRequest(req)
-    if (result instanceof Promise) {
-      return result.catch((err) => {
-        console.error(`[server] unhandled error in request handler: ${err}`)
-        return errorResponse(500, 'internal_error', 'Internal server error')
-      })
+    try {
+      const result = this.routeRequest(req)
+      if (result instanceof Promise) {
+        return result.catch((err) => {
+          console.error(`[server] unhandled error in request handler: ${err}`)
+          return errorResponse(500, 'internal_error', 'Internal server error')
+        })
+      }
+      return result
     }
-    return result
+    catch (err) {
+      console.error(`[server] unhandled error in request handler: ${err}`)
+      return errorResponse(500, 'internal_error', 'Internal server error')
+    }
   }
 
   private routeRequest(req: Request): Response | Promise<Response> {

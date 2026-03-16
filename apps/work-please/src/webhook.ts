@@ -32,7 +32,7 @@ export async function handleWebhook(
   }
 
   const body = await req.text()
-  if (body.length > MAX_BODY_BYTES) {
+  if (new TextEncoder().encode(body).byteLength > MAX_BODY_BYTES) {
     return jsonResponse({ error: { code: 'payload_too_large', message: 'Payload exceeds maximum allowed size' } }, 413)
   }
 
