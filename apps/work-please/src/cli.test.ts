@@ -156,6 +156,16 @@ describe('parseArgs - --version / -V flag', () => {
   })
 })
 
+describe('parseArgs - --help / -h flag', () => {
+  it.each([
+    ['--help'],
+    ['-h'],
+  ])('returns command help when %s is passed', (flag) => {
+    const result = parseArgs([flag])
+    expect(result.command).toBe('help')
+  })
+})
+
 describe('CLI startup - nonexistent workflow path (Section 17.7)', () => {
   it('exits nonzero when explicit workflow path does not exist', () => {
     // Use import.meta.dir (Bun) to find the app root regardless of test cwd
