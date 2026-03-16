@@ -2,6 +2,9 @@ import type { ClaudeEffort, IssueFilter, ServiceConfig, SettingSource, SystemPro
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
+import { createLogger } from './logger'
+
+const log = createLogger('config')
 
 const ENV_VAR_RE = /^\$([A-Z_]\w*)$/i
 const ENV_KEY_RE = /^[A-Z_]\w*$/i
@@ -427,7 +430,7 @@ function buildEnvConfig(raw: Record<string, unknown>): Record<string, string> {
   const result: Record<string, string> = {}
   for (const [key, val] of Object.entries(envSection as Record<string, unknown>)) {
     if (!ENV_KEY_RE.test(key)) {
-      console.warn(`[config] ignoring invalid env key: ${JSON.stringify(key)}`)
+      log.warn(`ignoring invalid env key: ${JSON.stringify(key)}`)
       continue
     }
     let str: string | null = null
@@ -452,7 +455,7 @@ function buildEnvConfig(raw: Record<string, unknown>): Record<string, string> {
         result[key] = envVal
       }
       else {
-        console.warn(`[config] env.${key} references $${envRefMatch[1]} which is not set — dropping`)
+        log.warn(`env.${key} references $${envRefMatch[1]} which is not set — dropping`)
       }
       continue
     }

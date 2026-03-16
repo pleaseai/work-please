@@ -1,4 +1,7 @@
 import type { StatusFieldInfo, TrackerError } from './types'
+import { createLogger } from '../logger'
+
+const log = createLogger('github-status')
 
 const RESOLVE_PROJECT_ID_QUERY = `
   query($owner: String!, $number: Int!) {
@@ -130,13 +133,13 @@ export function createStatusUpdateContext(
     async resolveStatusField(): Promise<StatusFieldInfo | null> {
       const pidOrError = await ensureProjectId()
       if (typeof pidOrError !== 'string') {
-        console.warn(`[github-status-update] failed to resolve project ID: ${pidOrError.code}`)
+        log.warn(`failed to resolve project ID: ${pidOrError.code}`)
         return null
       }
 
       const fieldOrError = await ensureStatusField(pidOrError)
       if ('code' in fieldOrError) {
-        console.warn(`[github-status-update] failed to resolve status field: ${fieldOrError.code}`)
+        log.warn(`failed to resolve status field: ${fieldOrError.code}`)
         return null
       }
 

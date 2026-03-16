@@ -1,5 +1,8 @@
 import type { ServiceConfig } from './types'
 import process from 'node:process'
+import { createLogger } from './logger'
+
+const log = createLogger('agent-env')
 
 const RUNTIME_VAR_RE = /^\$\{(\w+)\}$/
 
@@ -27,15 +30,15 @@ export async function resolveAgentEnv(
             resolved[key] = cachedToken
           }
           else {
-            console.warn(`[agent-env] dropping env.${key}: token provider returned null`)
+            log.warn(`dropping env.${key}: token provider returned null`)
           }
         }
         else {
-          console.warn(`[agent-env] dropping env.${key}: no token provider available (tracker may not be github_projects)`)
+          log.warn(`dropping env.${key}: no token provider available (tracker may not be github_projects)`)
         }
       }
       else {
-        console.warn(`[agent-env] dropping env.${key}: unknown runtime variable \${${varName}}`)
+        log.warn(`dropping env.${key}: unknown runtime variable \${${varName}}`)
       }
       continue
     }

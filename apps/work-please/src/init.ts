@@ -2,6 +2,9 @@ import { existsSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import { graphql as createGraphql, GraphqlResponseError } from '@octokit/graphql'
+import { createLogger } from './logger'
+
+const log = createLogger('work-please')
 
 const GITHUB_API_ENDPOINT = 'https://api.github.com'
 const DEFAULT_TITLE = 'Work Please'
@@ -624,12 +627,12 @@ export async function runInit(options: {
 }): Promise<void> {
   const token = options.token ?? process.env.GITHUB_TOKEN ?? null
   if (!token) {
-    console.error('Error: --token is required or set GITHUB_TOKEN environment variable')
+    log.fatal('--token is required or set GITHUB_TOKEN environment variable')
     process.exit(1)
   }
 
   if (!options.owner) {
-    console.error('Error: --owner is required')
+    log.fatal('--owner is required')
     process.exit(1)
   }
 
@@ -639,32 +642,32 @@ export async function runInit(options: {
   if (isInitError(result)) {
     switch (result.code) {
       case 'init_workflow_exists':
-        console.error(`Error: ${WORKFLOW_FILE_NAME} already exists at ${result.path}`)
+        log.fatal(`${WORKFLOW_FILE_NAME} already exists at ${result.path}`)
         break
       case 'init_owner_not_found':
-        console.error(`Error: GitHub owner '${result.owner}' not found. Check the --owner value.`)
+        log.fatal(`GitHub owner '${result.owner}' not found. Check the --owner value.`)
         break
       case 'init_create_failed':
-        console.error('Error: Failed to create GitHub Projects v2 board.', result.cause)
+        log.fatal('Failed to create GitHub Projects v2 board.', result.cause)
         break
       case 'init_graphql_errors':
-        console.error('Error: GitHub API returned GraphQL errors:', result.errors)
+        log.fatal('GitHub API returned GraphQL errors:', result.errors)
         break
       case 'init_network_error':
-        console.error('Error: A network error occurred:', result.cause)
+        log.fatal('A network error occurred:', result.cause)
         break
       default:
-        console.error(`Error: init failed: ${result.code}`)
+        log.fatal(`init failed: ${result.code}`)
     }
     process.exit(1)
   }
 
-  console.warn(`[work-please] created GitHub Projects v2 board: #${result.projectNumber}`)
-  console.warn(`[work-please] generated ${result.workflowPath}`)
+  log.success(`created GitHub Projects v2 board: #${result.projectNumber}`)
+  log.success(`generated ${result.workflowPath}`)
   if (result.statusConfigured) {
-    console.warn('[work-please] configured Status field: Todo, In Progress, Human Review, Rework, Merging, Done, Cancelled')
+    log.success('configured Status field: Todo, In Progress, Human Review, Rework, Merging, Done, Cancelled')
   }
   else {
-    console.warn('[work-please] warning: could not configure Status field — add statuses manually')
+    log.warn('could not configure Status field — add statuses manually')
   }
 }

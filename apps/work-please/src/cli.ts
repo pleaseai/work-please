@@ -4,9 +4,12 @@ import process from 'node:process'
 import { Command, CommanderError } from 'commander'
 import pkg from '../package.json' with { type: 'json' }
 import { runInit } from './init'
+import { createLogger } from './logger'
 import { Orchestrator } from './orchestrator'
 import { HttpServer } from './server'
 import { WORKFLOW_FILE_NAME } from './workflow'
+
+const log = createLogger('work-please')
 
 export interface ParsedArgs {
   command: 'run' | 'init' | 'version'
@@ -29,7 +32,7 @@ export async function runCli(argv: string[]): Promise<void> {
   const resolvedPath = resolve(parsed.workflowPath)
 
   if (!existsSync(resolvedPath)) {
-    console.error(`Error: workflow file not found: ${resolvedPath}`)
+    log.fatal(`workflow file not found: ${resolvedPath}`)
     process.exit(1)
   }
 
@@ -38,7 +41,7 @@ export async function runCli(argv: string[]): Promise<void> {
     orchestrator = new Orchestrator(resolvedPath)
   }
   catch (err) {
-    console.error(`Error: failed to initialize work-please: ${err}`)
+    log.fatal(`failed to initialize work-please: ${err}`)
     process.exit(1)
   }
 
@@ -46,7 +49,7 @@ export async function runCli(argv: string[]): Promise<void> {
 
   // Graceful shutdown
   const shutdown = () => {
-    console.warn('[work-please] shutting down...')
+    log.info('shutting down...')
     httpServer?.stop()
     orchestrator.stop()
     process.exit(0)
@@ -55,13 +58,13 @@ export async function runCli(argv: string[]): Promise<void> {
   process.on('SIGINT', shutdown)
   process.on('SIGTERM', shutdown)
 
-  console.warn(`[work-please] starting with workflow: ${resolvedPath}`)
+  log.info(`starting with workflow: ${resolvedPath}`)
   try {
     await orchestrator.start()
-    console.warn('[work-please] running')
+    log.success('running')
   }
   catch (err) {
-    console.error(`[work-please] startup failed: ${err}`)
+    log.fatal(`startup failed: ${err}`)
     process.exit(1)
   }
 
@@ -71,7 +74,7 @@ export async function runCli(argv: string[]): Promise<void> {
   if (serverPort !== null) {
     httpServer = new HttpServer(orchestrator, serverPort)
     const boundPort = httpServer.start()
-    console.warn(`[work-please] http server listening on 127.0.0.1:${boundPort}`)
+    log.info(`http server listening on 127.0.0.1:${boundPort}`)
   }
 }
 
@@ -142,7 +145,7 @@ export function parseArgs(args: string[]): ParsedArgs {
       const informational = new Set(['commander.help', 'commander.helpDisplayed'])
       if (informational.has(err.code))
         return result
-      console.error(err.message)
+      log.error(err.message)
       process.exit(err.exitCode)
     }
     throw err

@@ -1,4 +1,7 @@
 import type { Issue, ServiceConfig } from './types'
+import { createLogger } from './logger'
+
+const log = createLogger('label')
 
 export type LabelState = 'dispatched' | 'done' | 'failed'
 
@@ -69,7 +72,7 @@ export function createLabelService(config: ServiceConfig): LabelService | null {
         await addLabel(ctx, parsed.number, labelName)
       }
       catch (err) {
-        console.warn(`[label] error setting label issue_url=${issue.url}: ${err}`)
+        log.warn(`error setting label issue_url=${issue.url}: ${err}`)
       }
     },
   }
@@ -99,7 +102,7 @@ async function ensureLabelExists(
     body: JSON.stringify({ name, color: LABEL_COLORS[state] }),
   })
   if (!response.ok && response.status !== 422) {
-    console.warn(`[label] failed to ensure label exists label_name=${name} owner=${owner} repo=${repo}: HTTP ${response.status}`)
+    log.warn(`failed to ensure label exists label_name=${name} owner=${owner} repo=${repo}: HTTP ${response.status}`)
   }
 }
 
@@ -112,7 +115,7 @@ async function removeExistingPrefixLabels(
   const url = `${endpoint}/repos/${owner}/${repo}/issues/${number}/labels`
   const response = await fetchWithTimeout(url, { method: 'GET', headers })
   if (!response.ok) {
-    console.warn(`[label] failed to fetch existing labels owner=${owner} repo=${repo} issue_number=${number}: HTTP ${response.status}`)
+    log.warn(`failed to fetch existing labels owner=${owner} repo=${repo} issue_number=${number}: HTTP ${response.status}`)
     return
   }
   let labels: Array<{ name: string }>
@@ -120,18 +123,18 @@ async function removeExistingPrefixLabels(
     labels = await response.json() as Array<{ name: string }>
   }
   catch {
-    console.warn(`[label] failed to parse label list response for issue_number=${number}`)
+    log.warn(`failed to parse label list response for issue_number=${number}`)
     return
   }
   const toRemove = labels.filter(l => l.name.startsWith(`${prefix}: `))
   for (const label of toRemove) {
     const deleteUrl = `${url}/${encodeURIComponent(label.name)}`
     const deleteResponse = await fetchWithTimeout(deleteUrl, { method: 'DELETE', headers }).catch((err) => {
-      console.warn(`[label] failed to remove label "${label.name}" issue_number=${number}: ${err}`)
+      log.warn(`failed to remove label "${label.name}" issue_number=${number}: ${err}`)
       return null
     })
     if (deleteResponse && !deleteResponse.ok) {
-      console.warn(`[label] failed to remove label "${label.name}" owner=${owner} repo=${repo} issue_number=${number}: HTTP ${deleteResponse.status}`)
+      log.warn(`failed to remove label "${label.name}" owner=${owner} repo=${repo} issue_number=${number}: HTTP ${deleteResponse.status}`)
     }
   }
 }
@@ -149,6 +152,6 @@ async function addLabel(
     body: JSON.stringify({ labels: [name] }),
   })
   if (!response.ok) {
-    console.warn(`[label] failed to add label label_name=${name} owner=${owner} repo=${repo} issue_number=${number}: HTTP ${response.status}`)
+    log.warn(`failed to add label label_name=${name} owner=${owner} repo=${repo} issue_number=${number}: HTTP ${response.status}`)
   }
 }

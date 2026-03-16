@@ -2,6 +2,9 @@ import type { Issue, ServiceConfig, Workspace } from './types'
 import { existsSync, lstatSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import process from 'node:process'
+import { createLogger } from './logger'
+
+const log = createLogger('workspace')
 
 const CLAUDE_SETTINGS_PATH = '.claude/settings.local.json'
 const WORK_PLEASE_URL = 'https://github.com/pleaseai/work-please'
@@ -281,7 +284,7 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string,
       if (config.hooks.before_remove && statSync(wtPath).isDirectory()) {
         const hookErr = runHook(config.hooks.before_remove, wtPath, config.hooks.timeout_ms, buildHookEnv(issue))
         if (hookErr) {
-          console.error(`before_remove hook failed (ignored): ${hookErr.message}`)
+          log.warn(`before_remove hook failed (ignored): ${hookErr.message}`)
         }
       }
 
@@ -289,18 +292,18 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string,
         const result = _git.spawnSync(['git', '-C', repoDir, 'worktree', 'remove', wtPath, '--force'])
         if (!result.success) {
           const output = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048)
-          console.error(`git worktree remove failed (ignored): ${output}`)
+          log.warn(`git worktree remove failed (ignored): ${output}`)
         }
       }
       catch (err) {
-        console.error(`git worktree remove spawn failed (ignored): ${err instanceof Error ? err.message : String(err)}`)
+        log.warn(`git worktree remove spawn failed (ignored): ${err instanceof Error ? err.message : String(err)}`)
       }
 
       try {
         rmSync(wtPath, { recursive: true, force: true })
       }
       catch (err) {
-        console.error(`workspace remove failed: ${err}`)
+        log.error(`workspace remove failed: ${err}`)
       }
       return
     }
@@ -314,14 +317,14 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string,
 
   const validationErr = validateWorkspacePath(config, wsPath)
   if (validationErr) {
-    console.error(`workspace remove validation failed: ${validationErr.message}`)
+    log.error(`workspace remove validation failed: ${validationErr.message}`)
     return
   }
 
   if (config.hooks.before_remove && statSync(wsPath).isDirectory()) {
     const hookErr = runHook(config.hooks.before_remove, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
     if (hookErr) {
-      console.error(`before_remove hook failed (ignored): ${hookErr.message}`)
+      log.warn(`before_remove hook failed (ignored): ${hookErr.message}`)
     }
   }
 
@@ -329,7 +332,7 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string,
     rmSync(wsPath, { recursive: true, force: true })
   }
   catch (err) {
-    console.error(`workspace remove failed: ${err}`)
+    log.error(`workspace remove failed: ${err}`)
   }
 }
 
@@ -344,7 +347,7 @@ export async function runAfterRunHook(config: ServiceConfig, wsPath: string, iss
     return
   const err = runHook(config.hooks.after_run, wsPath, config.hooks.timeout_ms, buildHookEnv(issue))
   if (err) {
-    console.error(`after_run hook failed (ignored): ${err.message}`)
+    log.warn(`after_run hook failed (ignored): ${err.message}`)
   }
 }
 

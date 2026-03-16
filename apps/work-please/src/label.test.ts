@@ -218,11 +218,12 @@ describe('setLabel', () => {
   })
 
   it('logs warning when DELETE returns non-2xx status', async () => {
-    const warnCalls: string[] = []
-    const origWarn = console.warn
-    console.warn = (...args: unknown[]) => {
-      warnCalls.push(args.join(' '))
-    }
+    const stderrChunks: string[] = []
+    const origWrite = process.stderr.write
+    process.stderr.write = ((chunk: string | Uint8Array, ..._rest: unknown[]) => {
+      stderrChunks.push(String(chunk))
+      return true
+    }) as typeof process.stderr.write
     const origFetch = globalThis.fetch
     globalThis.fetch = mock(async (_url: string, options: RequestInit) => {
       if (options.method === 'GET') {
@@ -240,11 +241,13 @@ describe('setLabel', () => {
     try {
       const service = createLabelService(makeGithubConfig('work-please'))!
       await service.setLabel(makeIssue({ url: 'https://github.com/org/repo/issues/1' }), 'done')
-      expect(warnCalls.some(w => w.includes('failed to remove label') && w.includes('HTTP 403'))).toBe(true)
+      const output = stderrChunks.join('')
+      expect(output).toContain('failed to remove label')
+      expect(output).toContain('HTTP 403')
     }
     finally {
       globalThis.fetch = origFetch
-      console.warn = origWarn
+      process.stderr.write = origWrite
     }
   })
 

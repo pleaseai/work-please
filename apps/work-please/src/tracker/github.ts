@@ -3,8 +3,11 @@ import type { CandidateAndWatchedResult, TrackerAdapter, TrackerError } from './
 import { GraphqlResponseError } from '@octokit/graphql'
 import { normalizeState } from '../config'
 import { deduplicateByNormalized, hasFilter, splitCandidatesAndWatched } from '../filter'
+import { createLogger } from '../logger'
 import { createAuthenticatedGraphql } from './github-auth'
 import { createStatusUpdateContext } from './github-status-update'
+
+const log = createLogger('github')
 
 const PAGE_SIZE = 50
 
@@ -264,9 +267,9 @@ export function createGitHubAdapter(config: ServiceConfig): TrackerAdapter {
         const candidates = 'code' in candidatesResult ? [] : candidatesResult
         const watched = 'code' in watchedResult ? [] : watchedResult
         if ('code' in candidatesResult)
-          console.warn(`[github] candidate fetch failed: ${candidatesResult.code}`)
+          log.warn(`candidate fetch failed: ${candidatesResult.code}`)
         if ('code' in watchedResult)
-          console.warn(`[github] watched fetch failed: ${watchedResult.code}`)
+          log.warn(`watched fetch failed: ${watchedResult.code}`)
         // Only return error if both failed
         if ('code' in candidatesResult && 'code' in watchedResult)
           return candidatesResult
@@ -375,7 +378,7 @@ function normalizeReviewDecision(raw: unknown): Issue['review_decision'] {
     case 'COMMENTED': return 'commented'
     case 'REVIEW_REQUIRED': return 'review_required'
     default:
-      console.warn(`[github] unknown reviewDecision value: ${s}`)
+      log.warn(`unknown reviewDecision value: ${s}`)
       return null
   }
 }

@@ -5,10 +5,13 @@ import { resolveAgentEnv } from './agent-env'
 import { AppServerClient } from './agent-runner'
 import { buildConfig, getActiveStates, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
 import { createLabelService } from './label'
+import { createLogger } from './logger'
 import { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
 import { createTrackerAdapter, formatTrackerError, isTrackerError } from './tracker/index'
 import { isWorkflowError, loadWorkflow } from './workflow'
 import { createWorkspace, removeWorkspace, runAfterRunHook, runBeforeRunHook } from './workspace'
+
+const log = createLogger('orchestrator')
 
 const CONTINUATION_RETRY_DELAY_MS = 1_000
 const FAILURE_RETRY_BASE_MS = 10_000
@@ -109,7 +112,7 @@ export class Orchestrator {
     // 2. Validate config before dispatch
     const validationErr = validateConfig(this.config)
     if (validationErr) {
-      console.error(`[orchestrator] config validation failed: ${validationErr.code} — skipping dispatch`)
+      log.error(`config validation failed: ${validationErr.code} — skipping dispatch`)
       this.scheduleTick(this.state.poll_interval_ms)
       return
     }
@@ -117,7 +120,7 @@ export class Orchestrator {
     // 3. Fetch candidate issues
     const adapter = createTrackerAdapter(this.config)
     if (isTrackerError(adapter)) {
-      console.error(`[orchestrator] tracker adapter error: ${formatTrackerError(adapter)}`)
+      log.error(`tracker adapter error: ${formatTrackerError(adapter)}`)
       this.scheduleTick(this.state.poll_interval_ms)
       return
     }
@@ -126,7 +129,7 @@ export class Orchestrator {
     const watchedStates = getWatchedStates(this.config)
     const combinedResult = await adapter.fetchCandidateAndWatchedIssues(watchedStates)
     if (isTrackerError(combinedResult)) {
-      console.error(`[orchestrator] tracker fetch failed (candidates + watched dispatch skipped): ${formatTrackerError(combinedResult)}`)
+      log.error(`tracker fetch failed (candidates + watched dispatch skipped): ${formatTrackerError(combinedResult)}`)
       this.scheduleTick(this.state.poll_interval_ms)
       return
     }
@@ -209,15 +212,15 @@ export class Orchestrator {
     }
     this.state.running.set(issue.id, entry)
 
-    console.warn(`[orchestrator] dispatching issue_id=${issue.id} issue_identifier=${issue.identifier} attempt=${attempt ?? 'first'}`)
+    log.info(`dispatching issue_id=${issue.id} issue_identifier=${issue.identifier} attempt=${attempt ?? 'first'}`)
 
     this.labelService?.setLabel(issue, 'dispatched').catch((err) => {
-      console.warn(`[orchestrator] label service error issue_id=${issue.id}: ${err}`)
+      log.warn(`label service error issue_id=${issue.id}: ${err}`)
     })
 
     // Run in background
     this.runWorker(issue, attempt).catch((err) => {
-      console.error(`[orchestrator] worker uncaught error issue_id=${issue.id}: ${err}`)
+      log.error(`worker uncaught error issue_id=${issue.id}: ${err}`)
     })
   }
 
@@ -228,7 +231,7 @@ export class Orchestrator {
       await this.executeAgentRun(issue, attempt)
     }
     catch (err) {
-      console.error(`[orchestrator] worker failed issue_id=${issue.id}: ${err}`)
+      log.error(`worker failed issue_id=${issue.id}: ${err}`)
       this.onWorkerExit(issue.id, startedAt, 'failed', String(err))
       return
     }
@@ -279,7 +282,7 @@ export class Orchestrator {
     try {
       const adapter = createTrackerAdapter(this.config)
       if (isTrackerError(adapter) || !adapter.resolveStatusField) {
-        console.warn(`[orchestrator] cannot resolve project context issue_id=${issue.id}: tracker does not support resolveStatusField`)
+        log.warn(`cannot resolve project context issue_id=${issue.id}: tracker does not support resolveStatusField`)
         return
       }
       const fieldInfo = await adapter.resolveStatusField()
@@ -290,7 +293,7 @@ export class Orchestrator {
       }
     }
     catch (err) {
-      console.warn(`[orchestrator] failed to populate project context issue_id=${issue.id}: ${err}`)
+      log.warn(`failed to populate project context issue_id=${issue.id}: ${err}`)
     }
   }
 
@@ -327,7 +330,7 @@ export class Orchestrator {
         throw turnResult
       }
 
-      console.warn(`[orchestrator] turn completed issue_id=${currentIssue.id} session_id=${turnResult.session_id} turn=${turnNumber}/${maxTurns}`)
+      log.info(`turn completed issue_id=${currentIssue.id} session_id=${turnResult.session_id} turn=${turnNumber}/${maxTurns}`)
 
       // Refresh issue state after turn
       const adapter = createTrackerAdapter(this.config)
@@ -346,7 +349,7 @@ export class Orchestrator {
       if (!isActive)
         break
       if (turnNumber >= maxTurns) {
-        console.warn(`[orchestrator] max_turns reached issue_id=${currentIssue.id}`)
+        log.warn(`max_turns reached issue_id=${currentIssue.id}`)
         break
       }
 
@@ -411,7 +414,7 @@ export class Orchestrator {
 
     if (reason === 'normal') {
       this.labelService?.setLabel(running.issue, 'done').catch((err) => {
-        console.warn(`[orchestrator] label service error issue_id=${issueId}: ${err}`)
+        log.warn(`label service error issue_id=${issueId}: ${err}`)
       })
       this.state.completed.add(issueId)
 
@@ -427,7 +430,7 @@ export class Orchestrator {
     }
     else {
       this.labelService?.setLabel(running.issue, 'failed').catch((err) => {
-        console.warn(`[orchestrator] label service error issue_id=${issueId}: ${err}`)
+        log.warn(`label service error issue_id=${issueId}: ${err}`)
       })
       const nextAttempt = nextAttemptFrom(running.retry_attempt)
       this.scheduleRetry(issueId, running.identifier, nextAttempt, error, 'failure')
@@ -463,7 +466,7 @@ export class Orchestrator {
     }
     this.state.retry_attempts.set(issueId, entry)
 
-    console.warn(`[orchestrator] retry scheduled issue_id=${issueId} attempt=${attempt} delay_ms=${delayMs} error=${error ?? 'none'}`)
+    log.info(`retry scheduled issue_id=${issueId} attempt=${attempt} delay_ms=${delayMs} error=${error ?? 'none'}`)
   }
 
   private async onRetryTimer(issueId: string): Promise<void> {
@@ -489,7 +492,7 @@ export class Orchestrator {
     const issue = candidatesResult.find(i => i.id === issueId)
     if (!issue) {
       this.state.claimed.delete(issueId)
-      console.warn(`[orchestrator] releasing claim (issue not found in active candidates) issue_id=${issueId}`)
+      log.info(`releasing claim (issue not found in active candidates) issue_id=${issueId}`)
       return
     }
 
@@ -497,7 +500,7 @@ export class Orchestrator {
     const terminalStates = getTerminalStates(this.config)
     if (normalizeState(issue.state) === 'todo' && hasNonTerminalBlockers(issue, terminalStates)) {
       this.state.claimed.delete(issueId)
-      console.warn(`[orchestrator] dispatch revalidation: skipping blocked issue issue_id=${issueId}`)
+      log.info(`dispatch revalidation: skipping blocked issue issue_id=${issueId}`)
       return
     }
 
@@ -519,7 +522,7 @@ export class Orchestrator {
         const lastActivity = entry.last_agent_timestamp ?? entry.started_at
         const elapsed = now - lastActivity.getTime()
         if (elapsed > stallTimeoutMs) {
-          console.warn(`[orchestrator] stall detected issue_id=${issueId} elapsed_ms=${elapsed}`)
+          log.warn(`stall detected issue_id=${issueId} elapsed_ms=${elapsed}`)
           this.terminateRunningIssue(issueId, false)
           this.scheduleRetry(issueId, entry.identifier, nextAttemptFrom(entry.retry_attempt), 'stall timeout', 'failure')
         }
@@ -537,7 +540,7 @@ export class Orchestrator {
 
     const refreshed = await adapter.fetchIssueStatesByIds(runningIds)
     if (isTrackerError(refreshed)) {
-      console.warn(`[orchestrator] state refresh failed: ${formatTrackerError(refreshed)} — keeping workers running`)
+      log.warn(`state refresh failed: ${formatTrackerError(refreshed)} — keeping workers running`)
       return
     }
 
@@ -552,11 +555,11 @@ export class Orchestrator {
         || watchedStates.some(s => normalizeState(s) === normalizedState)
 
       if (isTerminal) {
-        console.warn(`[orchestrator] issue terminal, stopping worker issue_id=${issue.id} state=${issue.state}`)
+        log.info(`issue terminal, stopping worker issue_id=${issue.id} state=${issue.state}`)
         const runningEntry = this.state.running.get(issue.id)
         if (runningEntry) {
           this.labelService?.setLabel(runningEntry.issue, 'done').catch((err) => {
-            console.warn(`[orchestrator] label service error issue_id=${issue.id}: ${err}`)
+            log.warn(`label service error issue_id=${issue.id}: ${err}`)
           })
         }
         this.terminateRunningIssue(issue.id, true)
@@ -567,7 +570,7 @@ export class Orchestrator {
           entry.issue = issue
       }
       else {
-        console.warn(`[orchestrator] issue non-active, stopping worker issue_id=${issue.id} state=${issue.state}`)
+        log.info(`issue non-active, stopping worker issue_id=${issue.id} state=${issue.state}`)
         this.terminateRunningIssue(issue.id, false)
       }
     }
@@ -583,7 +586,7 @@ export class Orchestrator {
 
     if (cleanupWorkspace) {
       removeWorkspace(this.config, entry.identifier, entry.issue).catch((err) => {
-        console.error(`[orchestrator] workspace cleanup failed issue_id=${issueId}: ${err}`)
+        log.error(`workspace cleanup failed issue_id=${issueId}: ${err}`)
       })
     }
   }
@@ -614,11 +617,11 @@ export class Orchestrator {
         continue
 
       try {
-        console.warn(`[orchestrator] dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
+        log.info(`dispatching watched issue: ${issue.identifier} state=${issue.state} review=${issue.review_decision}`)
         this.dispatchIssue(issue, null)
       }
       catch (err) {
-        console.error(`[orchestrator] dispatchWatchedIssues failed for ${issue.identifier}:`, err)
+        log.error(`dispatchWatchedIssues failed for ${issue.identifier}:`, err)
       }
     }
   }
@@ -628,22 +631,22 @@ export class Orchestrator {
 
     const adapter = createTrackerAdapter(this.config)
     if (isTrackerError(adapter)) {
-      console.warn(`[orchestrator] startup cleanup: adapter error ${formatTrackerError(adapter)}`)
+      log.warn(`startup cleanup: adapter error ${formatTrackerError(adapter)}`)
       return
     }
 
     const result = await adapter.fetchIssuesByStates(terminalStates)
     if (isTrackerError(result)) {
-      console.warn(`[orchestrator] startup terminal cleanup failed: ${formatTrackerError(result)}`)
+      log.warn(`startup terminal cleanup failed: ${formatTrackerError(result)}`)
       return
     }
 
     for (const issue of result) {
       await removeWorkspace(this.config, issue.identifier, issue).catch((err) => {
-        console.error(`[orchestrator] startup cleanup workspace removal failed: ${err}`)
+        log.error(`startup cleanup workspace removal failed: ${err}`)
       })
     }
-    console.warn(`[orchestrator] startup cleanup: removed ${result.length} terminal workspaces`)
+    log.info(`startup cleanup: removed ${result.length} terminal workspaces`)
   }
 
   private startFileWatcher(): void {
@@ -653,7 +656,7 @@ export class Orchestrator {
       })
     }
     catch (err) {
-      console.warn(`[orchestrator] could not watch workflow file: ${err}`)
+      log.warn(`could not watch workflow file: ${err}`)
     }
   }
 
@@ -664,14 +667,14 @@ export class Orchestrator {
   private reloadWorkflow(): void {
     const wf = loadWorkflow(this.workflowPath)
     if (isWorkflowError(wf)) {
-      console.error(`[orchestrator] workflow reload failed: ${wf.code} — keeping last known good config`)
+      log.error(`workflow reload failed: ${wf.code} — keeping last known good config`)
       return
     }
 
     const newConfig = buildConfig(wf)
     const validationErr = validateConfig(newConfig)
     if (validationErr) {
-      console.error(`[orchestrator] reloaded config invalid: ${validationErr.code} — keeping last known good config`)
+      log.error(`reloaded config invalid: ${validationErr.code} — keeping last known good config`)
       return
     }
 
@@ -681,7 +684,7 @@ export class Orchestrator {
     this.state.poll_interval_ms = newConfig.polling.interval_ms
     this.state.max_concurrent_agents = newConfig.agent.max_concurrent_agents
 
-    console.warn('[orchestrator] workflow reloaded successfully')
+    log.success('workflow reloaded successfully')
   }
 }
 
@@ -791,7 +794,7 @@ export function buildTokenProvider(tracker: ServiceConfig['tracker']): import('.
         return token
       }
       catch (err) {
-        console.error(`[orchestrator] failed to generate installation access token: ${err}`)
+        log.error(`failed to generate installation access token: ${err}`)
         return null
       }
     },

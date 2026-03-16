@@ -33,6 +33,7 @@
     "@octokit/auth-app": "^8.2.0",
     "@octokit/graphql": "^9.0.3",
     "commander": "^14.0.3",
+    "consola": "^3.4.2",
     "js-yaml": "^4.1.1",
     "liquidjs": "^10.25.0",
     "zod": "^4.3.6"
