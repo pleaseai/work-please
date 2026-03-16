@@ -112,7 +112,7 @@ export class Orchestrator {
     // state.poll_interval_ms is kept in sync by reloadWorkflow().
     // In webhook mode it acts as a long fallback safety net;
     // the primary trigger is webhook → triggerRefresh() → scheduleTick(0).
-    this.scheduleNextPoll()
+    this.scheduleTick(this.state.poll_interval_ms)
   }
 
   private async tick(): Promise<void> {
