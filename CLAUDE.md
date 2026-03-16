@@ -62,8 +62,8 @@ bun run lint:app:fix           # work-please only, auto-fix
 
 ## Workspace
 
-Project planning artifacts (specs, plans, decisions, research) live in [`.please/`](.please/INDEX.md).
-API schema references live in [`.please/references/`](.please/references/INDEX.md) — includes the [GitHub Projects v2 GraphQL schema](.please/references/github.graphql).
+Project planning artifacts (tracks, product-specs, decisions, research) live in [`.please/`](.please/INDEX.md).
+API schema references live in [`.please/docs/references/`](.please/docs/references/INDEX.md) — includes the [GitHub Projects v2 GraphQL schema](.please/docs/references/github.graphql).
 
 ## Architecture
 
