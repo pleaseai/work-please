@@ -154,6 +154,12 @@ describe('parseArgs - --version / -V flag', () => {
     const result = parseArgs([flag])
     expect(result.command).toBe('version')
   })
+
+  it('preserves --verbose with --version', () => {
+    const result = parseArgs(['--verbose', '--version'])
+    expect(result.command).toBe('version')
+    expect(result.verbose).toBe(true)
+  })
 })
 
 describe('parseArgs - --help / -h flag', () => {
@@ -163,6 +169,12 @@ describe('parseArgs - --help / -h flag', () => {
   ])('returns command help when %s is passed', (flag) => {
     const result = parseArgs([flag])
     expect(result.command).toBe('help')
+  })
+
+  it('preserves --verbose with --help', () => {
+    const result = parseArgs(['--verbose', '--help'])
+    expect(result.command).toBe('help')
+    expect(result.verbose).toBe(true)
   })
 })
 

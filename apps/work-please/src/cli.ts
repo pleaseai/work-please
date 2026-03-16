@@ -149,11 +149,15 @@ export function parseArgs(args: string[]): ParsedArgs {
   }
   catch (err) {
     if (err instanceof CommanderError) {
-      if (err.code === 'commander.version')
-        return { ...result, command: 'version' }
+      if (err.code === 'commander.version') {
+        const globalOpts = program.opts<{ verbose?: boolean }>()
+        return { ...result, command: 'version', verbose: globalOpts.verbose === true }
+      }
       const informational = new Set(['commander.help', 'commander.helpDisplayed'])
-      if (informational.has(err.code))
-        return { ...result, command: 'help' }
+      if (informational.has(err.code)) {
+        const globalOpts = program.opts<{ verbose?: boolean }>()
+        return { ...result, command: 'help', verbose: globalOpts.verbose === true }
+      }
       log.error(err.message)
       process.exit(err.exitCode)
     }
