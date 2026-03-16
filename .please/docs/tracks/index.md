@@ -1,6 +1,6 @@
 # Tracks Index
 
-> Auto-maintained by /please:plan and /please:finalize.
+> Auto-maintained by /please:new-track and /please:finalize.
 
 ## Active
 

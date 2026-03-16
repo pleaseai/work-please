@@ -18,8 +18,8 @@
 | `docs/product-specs/` | Product-level specifications → [Product Specs Index](docs/product-specs/index.md) |
 | `docs/decisions/` | Architecture Decision Records → [Decisions Index](docs/decisions/index.md) |
 | `docs/investigations/` | Bug investigation reports |
-| `docs/research/` | Research documents |
-| `docs/references/` | External reference materials (-llms.txt etc.) |
+| `docs/research/` | Research documents → [Research Index](docs/research/index.md) |
+| `docs/references/` | External reference materials (llms.txt, GraphQL schemas, etc.) |
 | `docs/knowledge/` | Stable project context (product, tech-stack, guidelines) |
 | `templates/` | Workflow templates (plugin-provided) |
 | `scripts/` | Utility scripts (plugin-provided) |
