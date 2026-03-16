@@ -1,5 +1,5 @@
 {
     "scripts": {
-        "setup": "bun install"
+        "setup": "(command -v mise >/dev/null || curl -fsSL https://mise.run | sh) && mise trust --yes && mise run setup"
     }
 }
