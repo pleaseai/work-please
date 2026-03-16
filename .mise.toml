@@ -1,0 +1,6 @@
+[tools]
+bun = "1.3"
+
+[tasks.setup]
+description = "Initialize project (submodules + dependencies)"
+run = "git submodule update --init --recursive && bun install"
