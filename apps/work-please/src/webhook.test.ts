@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto'
 import { describe, expect, test } from 'bun:test'
-import { handleWebhook, shouldProcessEvent, verifyGitHubSignature } from './webhook'
+import { createWebhooks, handleWebhook, shouldProcessEvent } from './webhook'
 
 function sign(payload: string, secret: string): string {
   return `sha256=${createHmac('sha256', secret).update(payload).digest('hex')}`
@@ -14,30 +14,30 @@ function makeRequest(body: string, headers: Record<string, string> = {}): Reques
   })
 }
 
-describe('verifyGitHubSignature', () => {
-  const secret = 'test-secret'
-  const payload = '{"action":"opened"}'
+describe('createWebhooks', () => {
+  test('calls triggerRefresh on any event', async () => {
+    let refreshed = false
+    const webhooks = createWebhooks('secret', () => {
+      refreshed = true
+    })
 
-  test('valid signature returns true', () => {
-    const sig = sign(payload, secret)
-    expect(verifyGitHubSignature(payload, sig, secret)).toBe(true)
+    const payload = '{"action":"opened"}'
+    await webhooks.verifyAndReceive({
+      id: 'delivery-1',
+      name: 'issues',
+      payload,
+      signature: sign(payload, 'secret'),
+    })
+    expect(refreshed).toBe(true)
   })
 
-  test('invalid signature returns false', () => {
-    const sig = sign(payload, 'wrong-secret')
-    expect(verifyGitHubSignature(payload, sig, secret)).toBe(false)
-  })
+  test('verify returns false for invalid signature', async () => {
+    const webhooks = createWebhooks('secret', () => {})
+    const payload = '{"action":"opened"}'
+    const wrongSig = sign(payload, 'wrong-secret')
 
-  test('malformed signature without prefix returns false', () => {
-    expect(verifyGitHubSignature(payload, 'not-a-valid-sig', secret)).toBe(false)
-  })
-
-  test('empty signature returns false', () => {
-    expect(verifyGitHubSignature(payload, '', secret)).toBe(false)
-  })
-
-  test('signature with wrong length returns false', () => {
-    expect(verifyGitHubSignature(payload, 'sha256=abc', secret)).toBe(false)
+    const valid = await webhooks.verify(payload, wrongSig)
+    expect(valid).toBe(false)
   })
 })
 

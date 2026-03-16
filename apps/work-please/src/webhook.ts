@@ -1,20 +1,14 @@
-import { Buffer } from 'node:buffer'
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { Webhooks } from '@octokit/webhooks'
 
-const SIGNATURE_PREFIX = 'sha256='
-const NEWLINE_RE = /[\r\n]/g
-
-export function verifyGitHubSignature(payload: string, signature: string, secret: string): boolean {
-  if (!signature.startsWith(SIGNATURE_PREFIX))
-    return false
-
-  const expected = createHmac('sha256', secret).update(payload).digest('hex')
-  const provided = signature.slice(SIGNATURE_PREFIX.length)
-
-  if (expected.length !== provided.length)
-    return false
-
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(provided))
+export function createWebhooks(
+  secret: string,
+  triggerRefresh: () => void,
+): Webhooks {
+  const webhooks = new Webhooks({ secret })
+  webhooks.onAny(() => {
+    triggerRefresh()
+  })
+  return webhooks
 }
 
 export function shouldProcessEvent(event: string, allowedEvents: string[] | null): boolean {
@@ -23,6 +17,8 @@ export function shouldProcessEvent(event: string, allowedEvents: string[] | null
   return allowedEvents.includes(event)
 }
 
+const NEWLINE_RE = /[\r\n]/g
+
 export async function handleWebhook(
   req: Request,
   secret: string | null,
@@ -30,24 +26,27 @@ export async function handleWebhook(
   triggerRefresh: () => void,
 ): Promise<Response> {
   const body = await req.text()
-
-  if (secret) {
-    const signature = req.headers.get('x-hub-signature-256')
-    if (!signature) {
-      return jsonResponse({ error: { code: 'missing_signature', message: 'X-Hub-Signature-256 header required' } }, 401)
-    }
-    if (!verifyGitHubSignature(body, signature, secret)) {
-      return jsonResponse({ error: { code: 'invalid_signature', message: 'Signature verification failed' } }, 401)
-    }
-  }
-
   const event = req.headers.get('x-github-event')
+
   if (!event) {
     return jsonResponse({ error: { code: 'missing_event_header', message: 'X-GitHub-Event header required' } }, 400)
   }
 
   if (!shouldProcessEvent(event, allowedEvents)) {
     return jsonResponse({ accepted: false, reason: 'event_filtered', event })
+  }
+
+  if (secret) {
+    const signature = req.headers.get('x-hub-signature-256')
+    if (!signature) {
+      return jsonResponse({ error: { code: 'missing_signature', message: 'X-Hub-Signature-256 header required' } }, 401)
+    }
+
+    const webhooks = createWebhooks(secret, () => {})
+    const valid = await webhooks.verify(body, signature)
+    if (!valid) {
+      return jsonResponse({ error: { code: 'invalid_signature', message: 'Signature verification failed' } }, 401)
+    }
   }
 
   let action: string | null = null
