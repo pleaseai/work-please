@@ -96,8 +96,7 @@ Each `tick()` triggers:
 | Step | Method | Query | Cost |
 |------|--------|-------|------|
 | Reconcile | `fetchIssueStatesByIds(N)` | ITEMS_BY_IDS_QUERY | ceil((1 + 2N) / 100) = 1 |
-| Watched states | `fetchIssuesByStates()` | PROJECT_ITEMS/BY_ID_QUERY | ~4/page |
-| Candidates | `fetchCandidateIssues()` | PROJECT_ITEMS/BY_ID_QUERY | ~4/page |
+| Candidates + watched (combined) | `fetchCandidateAndWatchedIssues()` | PROJECT_ITEMS/BY_ID_QUERY | ~4/page (no filter) or ~8/page (with filter, 2 parallel calls) |
 
 Per-agent-turn costs (async, not per-tick):
 
@@ -105,21 +104,42 @@ Per-agent-turn costs (async, not per-tick):
 |------|--------|-------|------|
 | Turn refresh (per agent per turn) | `fetchIssueStatesByIds([1])` | ITEMS_BY_IDS_QUERY | 1 |
 
-### Typical tick (5 running, 1 page)
+Since #103, candidates and watched states are fetched in a single combined call
+(`fetchCandidateAndWatchedIssues`). When no filter is configured, one `fetchAllItems()` call
+fetches the union of active + watched statuses and splits results client-side.
+When a filter **is** configured, two parallel calls are made (server-side search for candidates,
+unfiltered for watched) — costing ~8 pts/page.
+
+### Typical tick (5 running, 1 page, no filter)
 
 ```
-Reconcile:        1 pt   (N=5, ceil((1+10)/100) = 1)
-Watched states:   4 pts  (1 page)
-Candidates:       4 pts  (1 page)
-                ────────
-Tick total:       9 pts/tick
+Reconcile:                         1 pt   (N=5, ceil((1+10)/100) = 1)
+Candidates + watched (combined):   4 pts  (1 page)
+                                 ────────
+Tick total:                        5 pts/tick
 
-+ Agent turns:    5 pts  (5 running agents x 1 pt each, async)
-                ────────
-Combined:        14 pts/tick (worst case)
++ Agent turns:                     5 pts  (5 running agents x 1 pt each, async)
+                                 ────────
+Combined:                         10 pts/tick (worst case)
 ```
 
-At 30s polling → ~28 pts/min → **~1,680 pts/hr** (well within 5,000 limit).
+At 30s polling → ~20 pts/min → **~1,200 pts/hr** (well within 5,000 limit).
+
+### Typical tick (5 running, 1 page, with filter)
+
+```
+Reconcile:                         1 pt
+Candidates (filtered):             4 pts  (1 page)
+Watched (unfiltered, parallel):    4 pts  (1 page)
+                                 ────────
+Tick total:                        9 pts/tick
+
++ Agent turns:                     5 pts
+                                 ────────
+Combined:                         14 pts/tick (worst case)
+```
+
+At 30s polling → ~28 pts/min → **~1,680 pts/hr**.
 
 ---
 
@@ -156,11 +176,13 @@ Save 54 pts/tick when feature is unused.
 Add `rateLimit { cost remaining resetAt }` to each query.
 Enables dynamic backoff and accurate cost tracking.
 
-### O5. Merge candidate + watched-state fetches (MEDIUM IMPACT)
+### O5. Merge candidate + watched-state fetches (MEDIUM IMPACT) — APPLIED
 
-Both call `fetchAllItems()` with different status filters.
-Could merge into a single paginated fetch with a union of statuses.
-Save ~4 pts/tick.
+**Applied in #103** (`fetchCandidateAndWatchedIssues`). When no filter is configured,
+a single `fetchAllItems()` call uses a union of statuses and splits results client-side.
+When a filter is active, two parallel calls are made (server-side search for candidates,
+unfiltered for watched) to avoid missing issues whose labels/assignees exceed pagination limits.
+Saves ~4 pts/tick in the no-filter case.
 
 ### O6. Increase polling interval (SIMPLE)
 
@@ -170,9 +192,13 @@ Double interval from 30s to 60s halves hourly cost.
 
 ## Projected Cost After Optimizations
 
-| Scenario | Before | After O1 (remove reviewThreads) | After O1+O5 |
-|----------|--------|--------------------------------|-------------|
+| Scenario | Before | After O1 (remove reviewThreads) | After O1+O5 (current) |
+|----------|--------|--------------------------------|----------------------|
 | Per page | 54 pts | 4 pts | 4 pts |
-| Per tick (5 running) | 114 pts | 14 pts | 10 pts |
-| Per hour (30s poll) | 13,680 pts | 1,680 pts | 1,200 pts |
-| Per hour (60s poll) | 6,840 pts | 840 pts | 600 pts |
+| Per tick (5 running, no filter) | 114 pts | 14 pts | 10 pts |
+| Per tick (5 running, with filter) | 114 pts | 14 pts | 14 pts |
+| Per hour (30s poll, no filter) | 13,680 pts | 1,680 pts | 1,200 pts |
+| Per hour (30s poll, with filter) | 13,680 pts | 1,680 pts | 1,680 pts |
+| Per hour (60s poll, no filter) | 6,840 pts | 840 pts | 600 pts |
+
+O1 and O5 are both applied as of 2026-03-15.
