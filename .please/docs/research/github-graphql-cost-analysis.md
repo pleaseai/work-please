@@ -128,7 +128,7 @@ At 30s polling → ~20 pts/min → **~1,200 pts/hr** (well within 5,000 limit).
 ### Typical tick (5 running, 1 page, with filter)
 
 ```
-Reconcile:                         1 pt
+Reconcile:                         1 pt   (N=5, ceil((1+10)/100) = 1)
 Candidates (filtered):             4 pts  (1 page)
 Watched (unfiltered, parallel):    4 pts  (1 page)
                                  ────────
@@ -200,5 +200,6 @@ Double interval from 30s to 60s halves hourly cost.
 | Per hour (30s poll, no filter) | 13,680 pts | 1,680 pts | 1,200 pts |
 | Per hour (30s poll, with filter) | 13,680 pts | 1,680 pts | 1,680 pts |
 | Per hour (60s poll, no filter) | 6,840 pts | 840 pts | 600 pts |
+| Per hour (60s poll, with filter) | 6,840 pts | 840 pts | 840 pts |
 
 O1 and O5 are both applied as of 2026-03-15.
