@@ -38,6 +38,17 @@ export class HttpServer {
   }
 
   private handleRequest(req: Request): Response | Promise<Response> {
+    const result = this.routeRequest(req)
+    if (result instanceof Promise) {
+      return result.catch((err) => {
+        console.error(`[server] unhandled error in request handler: ${err}`)
+        return errorResponse(500, 'internal_error', 'Internal server error')
+      })
+    }
+    return result
+  }
+
+  private routeRequest(req: Request): Response | Promise<Response> {
     const orchestrator = this.orchestrator
     const url = new URL(req.url)
     const pathname = url.pathname
