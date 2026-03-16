@@ -1,5 +1,5 @@
 {
     "scripts": {
-        "setup": "git submodule update --init --recursive && bun install"
+        "setup": "command -v mise >/dev/null || curl https://mise.run | sh && mise run setup"
     }
 }
