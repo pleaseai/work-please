@@ -39,7 +39,7 @@
 - English as the primary language for code, comments, and documentation.
 - README available in multiple languages (EN, KO, JA, ZH-CN).
 - ARCHITECTURE.md provides the bird's-eye view for contributors.
-- WORKFLOW.md is the primary configuration file for agent behavior and runtime settings.
+- WORKFLOW.md is a user-created runtime workflow file in target repositories; use `.please/config.yml` for this workspace's configuration.
 
 ## Design Principles
 
