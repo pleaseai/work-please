@@ -44,6 +44,7 @@
 | Technology | Purpose |
 |---|---|
 | `@anthropic-ai/claude-agent-sdk` | Claude Code agent session management (`query()`) |
+| `@libsql/client` | Agent run history storage (embedded libsql / Turso cloud) |
 | LiquidJS | Prompt template rendering (Liquid-compatible syntax) |
 | `@octokit/auth-app` | GitHub App installation token authentication |
 | Chat SDK (`chat`) | Unified chat bot framework |
