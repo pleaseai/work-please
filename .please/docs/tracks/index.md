@@ -6,7 +6,7 @@
 
 | Track | Feature | Type | Issue | Started | Status |
 |-------|---------|------|-------|---------|--------|
-| [fix-issue-dispatch-20260317](active/fix-issue-dispatch-20260317/plan.md) | Fix watched_states dispatch for Issue-type items | bugfix | #119 | 2026-03-17 | planned |
+| [fix-issue-dispatch-20260317](active/fix-issue-dispatch-20260317/plan.md) | Fix watched_states dispatch for Issue-type items | bugfix | #119 | 2026-03-17 | in_progress |
 
 ## Recently Completed
 
