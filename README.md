@@ -484,7 +484,7 @@ repo_overrides: true                  # Optional: allow target repos to override
                                       # Default: false (repo WORKFLOW.md files are ignored).
                                       # Can also be an object for granular control:
                                       # repo_overrides:
-                                      #   allow: [agent, claude, env, hooks]  # restrict which sections repos can override
+                                      #   allow: [agent, claude, env, prompt_template]  # restrict which sections repos can override
 
 server:
   port: 3000                          # Optional: enable HTTP dashboard on this port
@@ -576,18 +576,15 @@ configuration.
 | `server` | No | Service-level concern |
 | `agent` | **Yes** | `max_turns`, retry, concurrency |
 | `claude` | **Yes** | `model`, `effort`, `allowed_tools`, `system_prompt`, `permission_mode` |
-| `hooks.before_run` | **Yes** | Per-repo pre-agent setup |
-| `hooks.after_run` | **Yes** | Per-repo post-agent cleanup |
-| `hooks.after_create` | No | Runs before repo WORKFLOW.md is available |
-| `hooks.before_remove` | No | Workspace lifecycle, not agent concern |
+| `hooks` | No | Shell script execution — security boundary |
 | `env` | **Yes** | Additional env vars for agent |
 | Prompt template | **Yes** | Per-repo prompt customization |
 
-Use the granular form to restrict which sections repos can override:
+Use the granular form to restrict which config sections repos can override. Repo prompt templates are still applied whenever the repo `WORKFLOW.md` provides a non-empty body, unless `prompt_template` is omitted from the allow list:
 
 ```yaml
 repo_overrides:
-  allow: [agent, claude, env]         # hooks excluded
+  allow: [agent, claude, env, prompt_template]
 ```
 
 ### Example

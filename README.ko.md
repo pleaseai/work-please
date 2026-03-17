@@ -466,7 +466,7 @@ repo_overrides: true                  # 선택: 대상 저장소가 자체 WORKF
                                       # 기본값: false (저장소 WORKFLOW.md 파일은 무시됨).
                                       # 세분화된 제어를 위해 객체로도 설정 가능:
                                       # repo_overrides:
-                                      #   allow: [agent, claude, env, hooks]  # 저장소가 오버라이드할 수 있는 섹션 제한
+                                      #   allow: [agent, claude, env, prompt_template]  # 저장소가 오버라이드할 수 있는 섹션 제한
 
 server:
   port: 3000                          # 선택: 이 포트에서 HTTP 대시보드 활성화
@@ -549,18 +549,15 @@ server:
 | `server` | 불가 | 서비스 수준 관심사 |
 | `agent` | **가능** | `max_turns`, 재시도, 동시성 |
 | `claude` | **가능** | `model`, `effort`, `allowed_tools`, `system_prompt`, `permission_mode` |
-| `hooks.before_run` | **가능** | 저장소별 에이전트 전 설정 |
-| `hooks.after_run` | **가능** | 저장소별 에이전트 후 정리 |
-| `hooks.after_create` | 불가 | 저장소 WORKFLOW.md를 사용할 수 있기 전에 실행됨 |
-| `hooks.before_remove` | 불가 | 워크스페이스 라이프사이클, 에이전트 관심사 아님 |
+| `hooks` | 불가 | 셸 스크립트 실행 — 보안 경계 |
 | `env` | **가능** | 에이전트용 추가 환경 변수 |
 | 프롬프트 템플릿 | **가능** | 저장소별 프롬프트 커스터마이즈 |
 
-세분화된 형태로 저장소가 오버라이드할 수 있는 섹션을 제한할 수 있습니다:
+세분화된 형태로 저장소가 오버라이드할 수 있는 config 섹션을 제한할 수 있습니다. 저장소 프롬프트 템플릿은 `prompt_template`이 allow 목록에서 제외되지 않는 한 적용됩니다:
 
 ```yaml
 repo_overrides:
-  allow: [agent, claude, env]         # hooks 제외
+  allow: [agent, claude, env, prompt_template]
 ```
 
 ### 예시

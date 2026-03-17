@@ -807,7 +807,7 @@ describe('parseRepoOverridesSetting', () => {
   it('returns enabled with default sections when repo_overrides is true', () => {
     const result = parseRepoOverridesSetting({ repo_overrides: true })
     expect(result.enabled).toBe(true)
-    expect(result.allowed_sections).toEqual(['agent', 'claude', 'env', 'hooks'])
+    expect(result.allowed_sections).toEqual(['agent', 'claude', 'env', 'prompt_template'])
   })
 
   it('returns enabled with custom allow list', () => {

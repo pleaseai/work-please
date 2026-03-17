@@ -153,7 +153,7 @@ export function mergeWorkflows(
 
     // Deep-merge for object sections (agent, claude, env)
     if (isPlainObject(merged[key]) && isPlainObject(value)) {
-      merged[key] = { ...(merged[key] as Record<string, unknown>), ...(value as Record<string, unknown>) }
+      merged[key] = deepMerge(merged[key] as Record<string, unknown>, value as Record<string, unknown>)
     }
     else {
       merged[key] = deepClone(value)
@@ -163,7 +163,8 @@ export function mergeWorkflows(
   // Strip repo_overrides from merged result
   delete merged.repo_overrides
 
-  const prompt_template = repoOverride.prompt_template
+  // Prompt template: only override if allowed and non-empty
+  const prompt_template = (allowed.has('prompt_template') && repoOverride.prompt_template)
     ? repoOverride.prompt_template
     : base.prompt_template
 
@@ -172,6 +173,21 @@ export function mergeWorkflows(
 
 function isPlainObject(val: unknown): val is Record<string, unknown> {
   return val !== null && typeof val === 'object' && !Array.isArray(val)
+}
+
+function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
+  const output: Record<string, unknown> = { ...target }
+  for (const key of Object.keys(source)) {
+    const sourceValue = source[key]
+    const targetValue = output[key]
+    if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
+      output[key] = deepMerge(targetValue, sourceValue)
+    }
+    else {
+      output[key] = sourceValue
+    }
+  }
+  return output
 }
 
 function deepClone<T>(val: T): T {

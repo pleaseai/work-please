@@ -167,13 +167,22 @@ describe('mergeWorkflows', () => {
     expect((result.config.agent as Record<string, unknown>).max_turns).toBe(40)
   })
 
-  it('replaces prompt_template when override provides a non-empty one', () => {
+  it('replaces prompt_template when override provides a non-empty one and prompt_template is allowed', () => {
+    const override: WorkflowDefinition = {
+      config: {},
+      prompt_template: 'Custom repo prompt',
+    }
+    const result = mergeWorkflows(base, override, ['agent', 'prompt_template'])
+    expect(result.prompt_template).toBe('Custom repo prompt')
+  })
+
+  it('keeps base prompt_template when prompt_template is not in allowed sections', () => {
     const override: WorkflowDefinition = {
       config: {},
       prompt_template: 'Custom repo prompt',
     }
     const result = mergeWorkflows(base, override, ['agent'])
-    expect(result.prompt_template).toBe('Custom repo prompt')
+    expect(result.prompt_template).toBe('Default prompt {{ issue.title }}')
   })
 
   it('keeps base prompt_template when override prompt is empty', () => {
@@ -181,7 +190,7 @@ describe('mergeWorkflows', () => {
       config: { agent: { max_turns: 50 } },
       prompt_template: '',
     }
-    const result = mergeWorkflows(base, override, ['agent'])
+    const result = mergeWorkflows(base, override, ['agent', 'prompt_template'])
     expect(result.prompt_template).toBe('Default prompt {{ issue.title }}')
   })
 
@@ -195,6 +204,29 @@ describe('mergeWorkflows', () => {
     expect((result.config.claude as Record<string, unknown>).effort).toBe('max')
     // model preserved from base
     expect((result.config.claude as Record<string, unknown>).model).toBe('claude-sonnet-4-20250514')
+  })
+
+  it('recursively deep-merges nested objects (e.g. claude.settings.attribution)', () => {
+    const baseWithSettings: WorkflowDefinition = {
+      config: {
+        claude: { model: 'opus', settings: { attribution: { commit: 'base-commit', pr: 'base-pr' } } },
+      },
+      prompt_template: '',
+    }
+    const override: WorkflowDefinition = {
+      config: { claude: { settings: { attribution: { commit: 'repo-commit' } } } },
+      prompt_template: '',
+    }
+    const result = mergeWorkflows(baseWithSettings, override, ['claude'])
+    const claude = result.config.claude as Record<string, unknown>
+    const settings = claude.settings as Record<string, unknown>
+    const attribution = settings.attribution as Record<string, unknown>
+    // commit overridden by repo
+    expect(attribution.commit).toBe('repo-commit')
+    // pr preserved from base
+    expect(attribution.pr).toBe('base-pr')
+    // model preserved from base
+    expect(claude.model).toBe('opus')
   })
 
   it('merges env additively', () => {
@@ -236,7 +268,7 @@ describe('mergeWorkflows', () => {
       config: { agent: { max_turns: 99 } },
       prompt_template: 'New prompt',
     }
-    mergeWorkflows(base, override, ['agent'])
+    mergeWorkflows(base, override, ['agent', 'prompt_template'])
     expect(base).toEqual(baseCopy)
   })
 

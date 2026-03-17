@@ -199,10 +199,9 @@ Two-layer configuration via `WORKFLOW.md`:
 
 - **Global WORKFLOW.md** (operator) — Defines service-level settings (tracker, polling, workspace)
   and default agent config. Read at startup and watched for live reload.
-- **Repo WORKFLOW.md** (target repository, optional) — Overrides agent-level settings (`agent`,
-  `claude`, `hooks.before_run`, `hooks.after_run`, `env`) and prompt template for issues from that
-  repo. Only read when `repo_overrides: true` is set in the global workflow. Service-level sections
-  are never overridable (security boundary).
+- **Repo WORKFLOW.md** (target repository, optional) — Overrides selected agent-level settings and
+  the prompt template for issues from that repo. Only read when `repo_overrides: true` is set in
+  the global workflow. Service-level sections are never overridable (security boundary).
 - **Merge semantics** — Allowed config sections are deep-merged (repo values win); prompt template
   is replaced if repo provides a non-empty one. Merge happens per-issue at dispatch time via
   `resolveEffectiveWorkflow()` in the orchestrator.

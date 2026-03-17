@@ -466,7 +466,7 @@ function buildEnvConfig(raw: Record<string, unknown>): Record<string, string> {
 }
 
 const OVERRIDABLE_SECTIONS = new Set(['agent', 'claude', 'env', 'hooks', 'prompt_template'])
-const DEFAULT_ALLOWED_SECTIONS = ['agent', 'claude', 'env', 'hooks']
+const DEFAULT_ALLOWED_SECTIONS = ['agent', 'claude', 'env', 'prompt_template']
 
 export function parseRepoOverridesSetting(config: Record<string, unknown>): RepoOverridesConfig {
   const val = config.repo_overrides
