@@ -117,6 +117,32 @@ export interface SandboxConfig {
   }
 }
 
+export interface DbConfig {
+  path: string
+  turso_url: string | null
+  turso_auth_token: string | null
+}
+
+export type AgentRunStatus = 'success' | 'failure' | 'terminated'
+
+export interface AgentRunRecord {
+  id: number
+  issue_id: string
+  identifier: string
+  issue_state: string
+  session_id: string | null
+  started_at: string
+  finished_at: string
+  duration_ms: number
+  status: AgentRunStatus
+  error: string | null
+  turn_count: number
+  retry_attempt: number | null
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+}
+
 export interface ServiceConfig {
   tracker: TrackerConfig
   polling: { mode: PollingMode, interval_ms: number }
@@ -157,6 +183,7 @@ export interface ServiceConfig {
     }
   }
   env: Record<string, string>
+  db: DbConfig
   server: {
     port: number | null
     webhook: {

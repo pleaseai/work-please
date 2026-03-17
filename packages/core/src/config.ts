@@ -1,4 +1,4 @@
-import type { ClaudeEffort, IssueFilter, PollingMode, SandboxConfig, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { ClaudeEffort, DbConfig, IssueFilter, PollingMode, SandboxConfig, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -44,6 +44,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
   const hooks = sectionMap(raw, 'hooks')
   const agent = sectionMap(raw, 'agent')
   const claude = sectionMap(raw, 'claude')
+  const db = sectionMap(raw, 'db')
   const server = sectionMap(raw, 'server')
 
   const kind = normalizeTrackerKind(stringValue(tracker.kind))
@@ -72,10 +73,21 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
     },
     claude: buildClaudeConfig(claude),
     env: buildEnvConfig(raw),
+    db: buildDbConfig(db),
     server: {
       port: nonNegIntOrNull(server.port),
       webhook: buildWebhookConfig(sectionMap(server, 'webhook')),
     },
+  }
+}
+
+const DEFAULT_DB_PATH = '.work-please/agent_runs.db'
+
+function buildDbConfig(db: Record<string, unknown>): DbConfig {
+  return {
+    path: stringValue(db.path) ?? DEFAULT_DB_PATH,
+    turso_url: resolveEnvValue(stringValue(db.turso_url), process.env.TURSO_DATABASE_URL),
+    turso_auth_token: resolveEnvValue(stringValue(db.turso_auth_token), process.env.TURSO_AUTH_TOKEN),
   }
 }
 
