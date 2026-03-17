@@ -1200,6 +1200,61 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     expect(capturedEffort).toBe('low')
   })
 
+  it('passes sandbox to SDK options when configured', async () => {
+    const sessionId = 'sdk-sandbox-session'
+    let capturedSandbox: unknown
+
+    const config = buildConfig({
+      config: {
+        tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+        workspace: { root: tmpRoot },
+        claude: {
+          command: 'claude',
+          read_timeout_ms: 2000,
+          turn_timeout_ms: 5000,
+          sandbox: { enabled: true, autoAllowBashIfSandboxed: true },
+        },
+      },
+      prompt_template: '',
+    })
+
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedSandbox = (options as Record<string, unknown>)?.sandbox
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedSandbox).toEqual({ enabled: true, autoAllowBashIfSandboxed: true })
+  })
+
+  it('does not set sandbox when not configured', async () => {
+    const sessionId = 'sdk-no-sandbox-session'
+    let capturedSandbox: unknown = 'INITIAL'
+
+    const config = makeConfig()
+    const client = new AppServerClient(config, wsPath, ({ options }) => {
+      capturedSandbox = (options as Record<string, unknown>)?.sandbox
+      return (async function* () {
+        yield makeInitMsg(sessionId, wsPath)
+        yield makeSuccessMsg(sessionId)
+      })()
+    })
+
+    const session = await client.startSession()
+    if (session instanceof Error)
+      return
+
+    await client.runTurn(session, 'hello', makeIssue(), () => {})
+    expect(capturedSandbox).toBeUndefined()
+  })
+
   it('passes agentEnv as options.env to SDK query when set', async () => {
     const sessionId = 'sdk-env-session'
     let capturedEnv: Record<string, string> | undefined

@@ -87,6 +87,36 @@ export type SettingSource = 'user' | 'project' | 'local'
 
 export type PollingMode = 'poll' | 'webhook'
 
+export interface SandboxConfig {
+  /** SDK's SandboxSettings uses z.core.$loose, producing an index signature. Required for assignability. */
+  [key: string]: unknown
+  enabled?: boolean
+  autoAllowBashIfSandboxed?: boolean
+  allowUnsandboxedCommands?: boolean
+  network?: {
+    allowedDomains?: string[]
+    allowManagedDomainsOnly?: boolean
+    allowUnixSockets?: string[]
+    allowAllUnixSockets?: boolean
+    allowLocalBinding?: boolean
+    httpProxyPort?: number
+    socksProxyPort?: number
+  }
+  filesystem?: {
+    allowWrite?: string[]
+    denyWrite?: string[]
+    denyRead?: string[]
+  }
+  ignoreViolations?: Record<string, string[]>
+  enableWeakerNestedSandbox?: boolean
+  enableWeakerNetworkIsolation?: boolean
+  excludedCommands?: string[]
+  ripgrep?: {
+    command: string
+    args?: string[]
+  }
+}
+
 export interface ServiceConfig {
   tracker: TrackerConfig
   polling: { mode: PollingMode, interval_ms: number }
@@ -117,6 +147,7 @@ export interface ServiceConfig {
     turn_timeout_ms: number
     read_timeout_ms: number
     stall_timeout_ms: number
+    sandbox: SandboxConfig | null
     system_prompt: SystemPromptConfig
     settings: {
       attribution: {

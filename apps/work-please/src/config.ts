@@ -1,4 +1,4 @@
-import type { ClaudeEffort, IssueFilter, PollingMode, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { ClaudeEffort, IssueFilter, PollingMode, SandboxConfig, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -93,6 +93,7 @@ function buildClaudeConfig(claude: Record<string, unknown>): ServiceConfig['clau
     turn_timeout_ms: intValue(claude.turn_timeout_ms, DEFAULTS.CLAUDE_TURN_TIMEOUT_MS),
     read_timeout_ms: intValue(claude.read_timeout_ms, DEFAULTS.CLAUDE_READ_TIMEOUT_MS),
     stall_timeout_ms: intValue(claude.stall_timeout_ms, DEFAULTS.CLAUDE_STALL_TIMEOUT_MS),
+    sandbox: sandboxValue(claude.sandbox),
     system_prompt: systemPromptValue(claude.system_prompt),
     settings: {
       attribution: {
@@ -260,6 +261,156 @@ export function maxConcurrentForState(config: ServiceConfig, state: string): num
 }
 
 // --- helpers ---
+
+function sandboxValue(val: unknown): SandboxConfig | null {
+  if (val == null || typeof val !== 'object' || Array.isArray(val))
+    return null
+  const obj = val as Record<string, unknown>
+  const result: SandboxConfig = {}
+  let hasField = false
+
+  if (typeof obj.enabled === 'boolean') {
+    result.enabled = obj.enabled
+    hasField = true
+  }
+  if (typeof obj.autoAllowBashIfSandboxed === 'boolean') {
+    result.autoAllowBashIfSandboxed = obj.autoAllowBashIfSandboxed
+    hasField = true
+  }
+  if (typeof obj.allowUnsandboxedCommands === 'boolean') {
+    result.allowUnsandboxedCommands = obj.allowUnsandboxedCommands
+    hasField = true
+  }
+  if (typeof obj.enableWeakerNestedSandbox === 'boolean') {
+    result.enableWeakerNestedSandbox = obj.enableWeakerNestedSandbox
+    hasField = true
+  }
+  if (typeof obj.enableWeakerNetworkIsolation === 'boolean') {
+    result.enableWeakerNetworkIsolation = obj.enableWeakerNetworkIsolation
+    hasField = true
+  }
+
+  const network = parseSandboxNetwork(obj.network)
+  if (network) {
+    result.network = network
+    hasField = true
+  }
+  const filesystem = parseSandboxFilesystem(obj.filesystem)
+  if (filesystem) {
+    result.filesystem = filesystem
+    hasField = true
+  }
+  const violations = parseSandboxIgnoreViolations(obj.ignoreViolations)
+  if (violations) {
+    result.ignoreViolations = violations
+    hasField = true
+  }
+  const excluded = csvValue(obj.excludedCommands)
+  if (excluded) {
+    result.excludedCommands = excluded
+    hasField = true
+  }
+  const rg = parseSandboxRipgrep(obj.ripgrep)
+  if (rg) {
+    result.ripgrep = rg
+    hasField = true
+  }
+
+  return hasField ? result : null
+}
+
+function parseSandboxNetwork(val: unknown): SandboxConfig['network'] | null {
+  if (val == null || typeof val !== 'object' || Array.isArray(val))
+    return null
+  const obj = val as Record<string, unknown>
+  const result: NonNullable<SandboxConfig['network']> = {}
+  let hasField = false
+
+  const domains = csvValue(obj.allowedDomains)
+  if (domains) {
+    result.allowedDomains = domains
+    hasField = true
+  }
+  if (typeof obj.allowManagedDomainsOnly === 'boolean') {
+    result.allowManagedDomainsOnly = obj.allowManagedDomainsOnly
+    hasField = true
+  }
+  const sockets = csvValue(obj.allowUnixSockets)
+  if (sockets) {
+    result.allowUnixSockets = sockets
+    hasField = true
+  }
+  if (typeof obj.allowAllUnixSockets === 'boolean') {
+    result.allowAllUnixSockets = obj.allowAllUnixSockets
+    hasField = true
+  }
+  if (typeof obj.allowLocalBinding === 'boolean') {
+    result.allowLocalBinding = obj.allowLocalBinding
+    hasField = true
+  }
+  if (typeof obj.httpProxyPort === 'number') {
+    result.httpProxyPort = obj.httpProxyPort
+    hasField = true
+  }
+  if (typeof obj.socksProxyPort === 'number') {
+    result.socksProxyPort = obj.socksProxyPort
+    hasField = true
+  }
+
+  return hasField ? result : null
+}
+
+function parseSandboxFilesystem(val: unknown): SandboxConfig['filesystem'] | null {
+  if (val == null || typeof val !== 'object' || Array.isArray(val))
+    return null
+  const obj = val as Record<string, unknown>
+  const result: NonNullable<SandboxConfig['filesystem']> = {}
+  let hasField = false
+
+  const allowWrite = csvValue(obj.allowWrite)
+  if (allowWrite) {
+    result.allowWrite = allowWrite
+    hasField = true
+  }
+  const denyWrite = csvValue(obj.denyWrite)
+  if (denyWrite) {
+    result.denyWrite = denyWrite
+    hasField = true
+  }
+  const denyRead = csvValue(obj.denyRead)
+  if (denyRead) {
+    result.denyRead = denyRead
+    hasField = true
+  }
+
+  return hasField ? result : null
+}
+
+function parseSandboxIgnoreViolations(val: unknown): Record<string, string[]> | null {
+  if (val == null || typeof val !== 'object' || Array.isArray(val))
+    return null
+  const result: Record<string, string[]> = {}
+  let hasField = false
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    const arr = csvValue(v)
+    if (arr) {
+      result[k] = arr
+      hasField = true
+    }
+  }
+  return hasField ? result : null
+}
+
+function parseSandboxRipgrep(val: unknown): SandboxConfig['ripgrep'] | null {
+  if (val == null || typeof val !== 'object' || Array.isArray(val))
+    return null
+  const obj = val as Record<string, unknown>
+  const cmd = stringValue(obj.command)
+  if (!cmd)
+    return null
+  const args = csvValue(obj.args)
+  return args ? { command: cmd, args } : { command: cmd }
+}
 
 const DEFAULT_SYSTEM_PROMPT: SystemPromptConfig = { type: 'preset', preset: 'claude_code' }
 
