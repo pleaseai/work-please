@@ -1,6 +1,6 @@
 # Architecture
 
-This document provides a bird's-eye view of the Work Please codebase. It is intended to help
+This document provides a bird's-eye view of the Please Work codebase. It is intended to help
 contributors (human and AI) orient themselves quickly and understand how the pieces fit together.
 
 For the full specification, see [SPEC.md](SPEC.md). For the upstream reference implementation,
@@ -8,7 +8,7 @@ see [vendor/symphony/SPEC.md](vendor/symphony/SPEC.md).
 
 ## System Purpose
 
-Work Please is a long-running TypeScript daemon that turns issue tracker tasks into autonomous
+Please Work is a long-running TypeScript daemon that turns issue tracker tasks into autonomous
 Claude Code agent sessions. It continuously polls an issue tracker (GitHub Projects v2 or Asana),
 creates an isolated workspace for each eligible issue, renders a Liquid prompt template, and
 launches a Claude Code agent session inside that workspace via the
@@ -23,17 +23,17 @@ runtime environment.
 
 | File | Purpose |
 |------|---------|
-| `apps/work-please/src/index.ts` | Binary entry point — calls `runCli()` |
-| `apps/work-please/src/cli.ts` | CLI argument parsing (`run`, `init`, `--port`) and startup sequence |
-| `apps/work-please/src/orchestrator.ts` | Core poll/dispatch/retry loop — start reading here for runtime behavior |
-| `apps/work-please/src/server.ts` | Optional HTTP dashboard (`/`) and JSON API (`/api/v1/state`, `/api/v1/refresh`, `/api/v1/<identifier>`) |
+| `apps/work/src/index.ts` | Binary entry point — calls `runCli()` |
+| `apps/work/src/cli.ts` | CLI argument parsing (`run`, `init`, `--port`) and startup sequence |
+| `apps/work/src/orchestrator.ts` | Core poll/dispatch/retry loop — start reading here for runtime behavior |
+| `apps/work/src/server.ts` | Optional HTTP dashboard (`/`) and JSON API (`/api/v1/state`, `/api/v1/refresh`, `/api/v1/<identifier>`) |
 | `WORKFLOW.md` | User-authored config file in the **target repository** (not this repo) — defines tracker settings, hooks, agent limits, and the Liquid prompt template |
 
 ## Module Structure
 
 ```
-work-please/                      # Monorepo root (Bun + Turborepo)
-├── apps/work-please/src/         # Main application (@pleaseai/work)
+work/                             # Monorepo root (Bun + Turborepo)
+├── apps/work/src/         # Main application (@pleaseai/work)
 │   ├── index.ts                  # Binary entry point
 │   ├── cli.ts                    # CLI parsing and startup (Commander)
 │   ├── orchestrator.ts           # Core loop: poll → reconcile → dispatch → retry
@@ -46,7 +46,7 @@ work-please/                      # Monorepo root (Bun + Turborepo)
 │   ├── tools.ts                  # MCP tool server (asana_api, github_graphql) injected into agent
 │   ├── label.ts                  # GitHub label management (dispatched/done/failed)
 │   ├── filter.ts                 # Assignee and label filter matching
-│   ├── init.ts                   # `work-please init` — scaffolds GitHub Project + WORKFLOW.md
+│   ├── init.ts                   # `please-work init` — scaffolds GitHub Project + WORKFLOW.md
 │   ├── types.ts                  # Shared type definitions (Issue, ServiceConfig, OrchestratorState)
 │   └── tracker/                  # Issue tracker adapters
 │       ├── index.ts              # Factory: createTrackerAdapter() → GitHub or Asana adapter
@@ -172,7 +172,7 @@ The codebase uses discriminated union types for expected errors rather than exce
 - `ValidationError` — Missing or invalid config fields
 - `WorkflowError` — YAML parse errors, missing files, invalid front matter
 - `PromptBuildError` — Liquid template parse/render failures
-- `InitError` — GitHub API failures during `work-please init`
+- `InitError` — GitHub API failures during `please-work init`
 
 Each error type has a `code` field for programmatic matching. The `isTrackerError()`,
 `isWorkflowError()`, `isPromptBuildError()`, and `isInitError()` type guards are used
@@ -185,12 +185,12 @@ for narrowing.
 - **Mocking:** `AppServerClient` accepts an injectable `queryFn` for testing without the real
   Claude CLI. Tracker adapters are tested against mock GraphQL/REST responses. Workspace operations
   use `spyOn(_git, 'spawnSync')` to mock git commands.
-- **Commands:** `bun run test` (all), `bun run test:app` (work-please only)
+- **Commands:** `bun run test` (all), `bun run test:app` (please-work only)
 
 ### Logging
 
 Structured `key=value` format on stderr via `console.warn()` and `console.error()`. All log lines
-are prefixed with `[work-please]` or `[orchestrator]`. No log framework — kept intentionally
+are prefixed with `[please-work]` or `[orchestrator]`. No log framework — kept intentionally
 simple for daemon operation.
 
 ### Configuration

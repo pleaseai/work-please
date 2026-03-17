@@ -17,8 +17,8 @@
 
 ## Files of Interest
 
-- `apps/work-please/src/orchestrator.ts` -- main dispatch/worker loop, many error handling paths
-- `apps/work-please/src/tracker/github-status-update.ts` -- GraphQL status field resolution + update
-- `apps/work-please/src/tracker/github.ts` -- GitHub Projects v2 adapter
-- `apps/work-please/src/tracker/types.ts` -- TrackerError, TrackerAdapter, StatusFieldInfo types
-- `apps/work-please/src/tracker/index.ts` -- createTrackerAdapter factory
+- `apps/work/src/orchestrator.ts` -- main dispatch/worker loop, many error handling paths
+- `apps/work/src/tracker/github-status-update.ts` -- GraphQL status field resolution + update
+- `apps/work/src/tracker/github.ts` -- GitHub Projects v2 adapter
+- `apps/work/src/tracker/types.ts` -- TrackerError, TrackerAdapter, StatusFieldInfo types
+- `apps/work/src/tracker/index.ts` -- createTrackerAdapter factory

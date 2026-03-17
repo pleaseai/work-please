@@ -6,11 +6,11 @@
   "license": "FSL-1.1-MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pleaseai/work-please.git",
-    "directory": "apps/work-please"
+    "url": "https://github.com/pleaseai/work.git",
+    "directory": "apps/work"
   },
   "bin": {
-    "work-please": "./dist/index.js"
+    "please-work": "./dist/index.js"
   },
   "files": [
     "LICENSE",

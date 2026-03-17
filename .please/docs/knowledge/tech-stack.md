@@ -12,7 +12,7 @@
 | Technology | Purpose |
 |---|---|
 | Turborepo | Monorepo task orchestration (`build`, `test`, `lint`, `check`) |
-| `bun build` | Application bundling (`apps/work-please`) |
+| `bun build` | Application bundling (`apps/work`) |
 | Bun workspaces | Monorepo package management (`apps/*`, `packages/*`) |
 
 ## Code Quality
@@ -48,8 +48,8 @@
 ## Project Structure
 
 ```
-work-please/                      # Monorepo root
-├── apps/work-please/             # Main application (@pleaseai/work)
+work/                      # Monorepo root
+├── apps/work/             # Main application (@pleaseai/work)
 ├── packages/                     # Shared libraries (none yet)
 └── vendor/symphony/              # Upstream reference spec (read-only)
 ```
@@ -61,7 +61,7 @@ bun install                       # Install dependencies
 bun run dev                       # Development (watch mode, all workspaces)
 bun run build                     # Build all packages
 bun run test                      # Run all tests
-bun run test:app                  # Run work-please tests only
+bun run test:app                  # Run work tests only
 bun run check                     # Type-check all workspaces
 bun run lint                      # Lint all workspaces
 bun run lint:fix                  # Lint with auto-fix

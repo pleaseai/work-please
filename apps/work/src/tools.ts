@@ -302,5 +302,5 @@ export function createToolsMcpServer(config: ServiceConfig): ReturnType<typeof c
     ) as unknown as SdkMcpToolDefinition<AnyZodRawShape>)
   }
 
-  return createSdkMcpServer({ name: 'work-please-tools', tools })
+  return createSdkMcpServer({ name: 'please-work-tools', tools })
 }

@@ -524,10 +524,10 @@ describe('label_prefix parsing', () => {
         api_key: 'token',
         owner: 'myorg',
         project_number: 1,
-        label_prefix: 'work-please',
+        label_prefix: 'please-work',
       },
     }))
-    expect(config.tracker.label_prefix).toBe('work-please')
+    expect(config.tracker.label_prefix).toBe('please-work')
   })
 
   it('defaults label_prefix to null when omitted', () => {

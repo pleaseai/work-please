@@ -4,7 +4,7 @@
   "bump-patch-for-minor-pre-major": true,
   "initial-version": "0.1.0",
   "packages": {
-    "apps/work-please": {
+    "apps/work": {
       "release-type": "node",
       "package-name": "@pleaseai/work",
       "changelog-path": "CHANGELOG.md",

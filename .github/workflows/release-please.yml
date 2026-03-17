@@ -15,7 +15,7 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
-      app_release_created: ${{ steps.release.outputs['apps/work-please--release_created'] }}
+      app_release_created: ${{ steps.release.outputs['apps/work--release_created'] }}
     steps:
       - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
         id: app-token
@@ -61,7 +61,7 @@ jobs:
       - run: bun run build
 
       - name: Copy root files into package directory
-        run: cp LICENSE README.md apps/work-please/
+        run: cp LICENSE README.md apps/work/
 
       - run: npm publish --provenance --access public
-        working-directory: apps/work-please
+        working-directory: apps/work

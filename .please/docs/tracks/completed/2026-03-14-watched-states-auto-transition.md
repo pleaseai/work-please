@@ -44,19 +44,19 @@ The GitHub adapter caches the Status field ID and option IDs on first use (they 
 
 ## Tasks
 
-- [ ] T001 Add watched_states and auto_transitions to config types and parsing (file: apps/work-please/src/types.ts, apps/work-please/src/config.ts)
-- [ ] T002 Add has_unresolved_threads and unresolved_thread_authors to Issue type (file: apps/work-please/src/types.ts)
-- [ ] T003 Add reviewThreads to GitHub GraphQL queries and normalize into Issue (file: apps/work-please/src/tracker/github.ts) (depends on T002)
-- [ ] T004 Add updateItemStatus to TrackerAdapter interface (file: apps/work-please/src/tracker/types.ts)
-- [ ] T005 Implement updateItemStatus for GitHub adapter with field/option ID caching (file: apps/work-please/src/tracker/github.ts) (depends on T004)
-- [ ] T006 Implement stub updateItemStatus for Asana adapter (file: apps/work-please/src/tracker/asana.ts) (depends on T004)
-- [ ] T007 Add getWatchedStates and getAutoTransitions config helpers (file: apps/work-please/src/config.ts) (depends on T001)
-- [ ] T008 Implement processWatchedStates in orchestrator tick loop (file: apps/work-please/src/orchestrator.ts) (depends on T003, T005, T007)
-- [x] T009 Update generateWorkflow template with watched_states and auto_transitions (file: apps/work-please/src/init.ts) (depends on T001)
+- [ ] T001 Add watched_states and auto_transitions to config types and parsing (file: apps/work/src/types.ts, apps/work/src/config.ts)
+- [ ] T002 Add has_unresolved_threads and unresolved_thread_authors to Issue type (file: apps/work/src/types.ts)
+- [ ] T003 Add reviewThreads to GitHub GraphQL queries and normalize into Issue (file: apps/work/src/tracker/github.ts) (depends on T002)
+- [ ] T004 Add updateItemStatus to TrackerAdapter interface (file: apps/work/src/tracker/types.ts)
+- [ ] T005 Implement updateItemStatus for GitHub adapter with field/option ID caching (file: apps/work/src/tracker/github.ts) (depends on T004)
+- [ ] T006 Implement stub updateItemStatus for Asana adapter (file: apps/work/src/tracker/asana.ts) (depends on T004)
+- [ ] T007 Add getWatchedStates and getAutoTransitions config helpers (file: apps/work/src/config.ts) (depends on T001)
+- [ ] T008 Implement processWatchedStates in orchestrator tick loop (file: apps/work/src/orchestrator.ts) (depends on T003, T005, T007)
+- [x] T009 Update generateWorkflow template with watched_states and auto_transitions (file: apps/work/src/init.ts) (depends on T001)
 - [ ] T010 Update WORKFLOW.md and README.md with new config fields (file: WORKFLOW.md, README.md) (depends on T009)
-- [ ] T011 [P] Add config tests for watched_states and auto_transitions parsing (file: apps/work-please/src/config.test.ts) (depends on T001, T007)
-- [ ] T012 [P] Add tracker tests for reviewThreads normalization and updateItemStatus (file: apps/work-please/src/tracker/tracker.test.ts) (depends on T003, T005)
-- [ ] T013 Add orchestrator tests for processWatchedStates (file: apps/work-please/src/orchestrator.test.ts) (depends on T008)
+- [ ] T011 [P] Add config tests for watched_states and auto_transitions parsing (file: apps/work/src/config.test.ts) (depends on T001, T007)
+- [ ] T012 [P] Add tracker tests for reviewThreads normalization and updateItemStatus (file: apps/work/src/tracker/tracker.test.ts) (depends on T003, T005)
+- [ ] T013 Add orchestrator tests for processWatchedStates (file: apps/work/src/orchestrator.test.ts) (depends on T008)
 
 ## Key Files
 
@@ -64,21 +64,21 @@ The GitHub adapter caches the Status field ID and option IDs on first use (they 
 (none — all changes are modifications to existing files)
 
 ### Modify
-- `apps/work-please/src/types.ts` — Add `watched_statuses`, `auto_transitions` to TrackerConfig; add `has_unresolved_threads` to Issue
-- `apps/work-please/src/config.ts` — Parse new config fields, add `getWatchedStates()`, `getAutoTransitions()` helpers, add defaults
-- `apps/work-please/src/tracker/types.ts` — Add `updateItemStatus()` to TrackerAdapter interface
-- `apps/work-please/src/tracker/github.ts` — Add `reviewThreads` to GraphQL fragments, implement `updateItemStatus()` with field/option ID caching
-- `apps/work-please/src/tracker/asana.ts` — Add stub `updateItemStatus()` returning error
-- `apps/work-please/src/orchestrator.ts` — Add `processWatchedStates()` method in tick loop
-- `apps/work-please/src/init.ts` — Update `generateWorkflow()` template, `STATUS_OPTIONS`
+- `apps/work/src/types.ts` — Add `watched_statuses`, `auto_transitions` to TrackerConfig; add `has_unresolved_threads` to Issue
+- `apps/work/src/config.ts` — Parse new config fields, add `getWatchedStates()`, `getAutoTransitions()` helpers, add defaults
+- `apps/work/src/tracker/types.ts` — Add `updateItemStatus()` to TrackerAdapter interface
+- `apps/work/src/tracker/github.ts` — Add `reviewThreads` to GraphQL fragments, implement `updateItemStatus()` with field/option ID caching
+- `apps/work/src/tracker/asana.ts` — Add stub `updateItemStatus()` returning error
+- `apps/work/src/orchestrator.ts` — Add `processWatchedStates()` method in tick loop
+- `apps/work/src/init.ts` — Update `generateWorkflow()` template, `STATUS_OPTIONS`
 - `WORKFLOW.md` — Add `watched_states` and `auto_transitions` config
 - `README.md` — Document new config fields and template variables
 
 ### Reuse
-- `apps/work-please/src/config.ts:normalizeState()` — state comparison
-- `apps/work-please/src/config.ts:csvValue()` — parse YAML arrays
-- `apps/work-please/src/tracker/github.ts:runGraphql()` — execute GraphQL
-- `apps/work-please/src/tracker/github.ts:createAuthenticatedGraphql()` — auth setup
+- `apps/work/src/config.ts:normalizeState()` — state comparison
+- `apps/work/src/config.ts:csvValue()` — parse YAML arrays
+- `apps/work/src/tracker/github.ts:runGraphql()` — execute GraphQL
+- `apps/work/src/tracker/github.ts:createAuthenticatedGraphql()` — auth setup
 
 ## Verification
 

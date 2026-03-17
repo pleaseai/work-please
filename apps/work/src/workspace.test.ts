@@ -64,15 +64,15 @@ describe('generateClaudeSettings', () => {
     expect(typeof parsed.attribution.pr).toBe('string')
   })
 
-  it('includes Work Please link in commit attribution', () => {
+  it('includes Please Work link in commit attribution', () => {
     const content = generateClaudeSettings()
-    expect(content).toContain('Work Please')
-    expect(content).toContain('github.com/pleaseai/work-please')
+    expect(content).toContain('Please Work')
+    expect(content).toContain('github.com/pleaseai/work')
   })
 
-  it('includes Work Please link in pr attribution', () => {
+  it('includes Please Work link in pr attribution', () => {
     const parsed = JSON.parse(generateClaudeSettings())
-    expect(parsed.attribution.pr).toContain('github.com/pleaseai/work-please')
+    expect(parsed.attribution.pr).toContain('github.com/pleaseai/work')
   })
 
   it('uses provided attribution values instead of defaults', () => {
@@ -83,7 +83,7 @@ describe('generateClaudeSettings', () => {
 
   it('falls back to default when attribution value is null', () => {
     const parsed = JSON.parse(generateClaudeSettings({ commit: null }))
-    expect(parsed.attribution.commit).toContain('Work Please')
+    expect(parsed.attribution.commit).toContain('Please Work')
   })
 })
 
@@ -91,7 +91,7 @@ describe('ensureClaudeSettings', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-settings-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-settings-test-'))
   })
 
   afterEach(() => {
@@ -103,7 +103,7 @@ describe('ensureClaudeSettings', () => {
     const settingsPath = join(tmpRoot, '.claude', 'settings.local.json')
     expect(existsSync(settingsPath)).toBe(true)
     const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8'))
-    expect(parsed.attribution.commit).toContain('Work Please')
+    expect(parsed.attribution.commit).toContain('Please Work')
   })
 
   it('does not overwrite existing .claude/settings.local.json', () => {
@@ -122,7 +122,7 @@ describe('createWorkspace creates attribution settings', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-attr-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-attr-test-'))
   })
 
   afterEach(() => {
@@ -139,8 +139,8 @@ describe('createWorkspace creates attribution settings', () => {
     const settingsPath = join(result.path, '.claude', 'settings.local.json')
     expect(existsSync(settingsPath)).toBe(true)
     const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8'))
-    expect(parsed.attribution.commit).toContain('Work Please')
-    expect(parsed.attribution.pr).toContain('Work Please')
+    expect(parsed.attribution.commit).toContain('Please Work')
+    expect(parsed.attribution.pr).toContain('Please Work')
   })
 
   it('creates .claude/settings.local.json for reused workspace if missing', async () => {
@@ -155,8 +155,8 @@ describe('createWorkspace creates attribution settings', () => {
     const settingsPath = join(result.path, '.claude', 'settings.local.json')
     expect(existsSync(settingsPath)).toBe(true)
     const parsed = JSON.parse(readFileSync(settingsPath, 'utf-8'))
-    expect(parsed.attribution.commit).toContain('Work Please')
-    expect(parsed.attribution.pr).toContain('Work Please')
+    expect(parsed.attribution.commit).toContain('Please Work')
+    expect(parsed.attribution.pr).toContain('Please Work')
   })
 
   it('uses custom attribution from config when generating settings', async () => {
@@ -230,7 +230,7 @@ describe('createWorkspace', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-test-'))
   })
 
   afterEach(() => {
@@ -345,7 +345,7 @@ describe('runBeforeRunHook', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-test-'))
   })
 
   afterEach(() => {
@@ -391,7 +391,7 @@ describe('runAfterRunHook', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-test-'))
   })
 
   afterEach(() => {
@@ -415,7 +415,7 @@ describe('removeWorkspace', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-test-'))
   })
 
   afterEach(() => {
@@ -537,7 +537,7 @@ describe('hook env var injection', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-env-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-env-test-'))
   })
 
   afterEach(() => {
@@ -655,7 +655,7 @@ describe('createWorkspace with GitHub issue URL', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-wt-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-wt-test-'))
   })
 
   afterEach(() => {
@@ -809,7 +809,7 @@ describe('removeWorkspace with GitHub issue URL', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-rm-wt-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-rm-wt-test-'))
   })
 
   afterEach(() => {
@@ -865,7 +865,7 @@ describe('checkoutExistingBranch', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-checkout-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-checkout-test-'))
   })
 
   afterEach(() => {
@@ -917,7 +917,7 @@ describe('createWorkspace uses checkoutExistingBranch for PRs', () => {
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-pr-wt-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-pr-wt-test-'))
   })
 
   afterEach(() => {

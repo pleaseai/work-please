@@ -40,6 +40,6 @@ jobs:
 
       - uses: codecov/codecov-action@4650159d642e33fdc30954ca22638caf0df6cac8 # v5.4.3
         with:
-          files: apps/work-please/coverage/lcov.info
-          flags: work-please
+          files: apps/work/coverage/lcov.info
+          flags: work
           token: ${{ secrets.CODECOV_TOKEN }}

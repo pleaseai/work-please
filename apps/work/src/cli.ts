@@ -9,7 +9,7 @@ import { Orchestrator } from './orchestrator'
 import { HttpServer } from './server'
 import { WORKFLOW_FILE_NAME } from './workflow'
 
-const log = createLogger('work-please')
+const log = createLogger('cli')
 
 export interface ParsedArgs {
   command: 'run' | 'init' | 'version' | 'help'
@@ -46,7 +46,7 @@ export async function runCli(argv: string[]): Promise<void> {
     orchestrator = new Orchestrator(resolvedPath)
   }
   catch (err) {
-    log.fatal(`failed to initialize work-please: ${err}`)
+    log.fatal(`failed to initialize please-work: ${err}`)
     process.exit(1)
   }
 
@@ -145,7 +145,7 @@ export function parseArgs(args: string[]): ParsedArgs {
   })
 
   try {
-    program.parse(['node', 'work-please', ...args])
+    program.parse(['node', 'please-work', ...args])
   }
   catch (err) {
     if (err instanceof CommanderError) {

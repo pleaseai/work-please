@@ -232,7 +232,7 @@ describe('AppServerClient - startSession workspace validation (Section 17.5)', (
   let tmpRoot: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-sdk-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-sdk-test-'))
   })
 
   afterEach(() => {
@@ -343,7 +343,7 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
   let wsPath: string
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'work-please-sdk-test-'))
+    tmpRoot = mkdtempSync(join(tmpdir(), 'please-work-sdk-test-'))
     wsPath = join(tmpRoot, 'ws')
     mkdirSync(wsPath)
   })
@@ -820,7 +820,7 @@ describe('AppServerClient - runTurn with SDK mock (Section 17.5)', () => {
     await client.runTurn(session, 'hello', makeIssue(), () => {})
     expect(capturedMcpServers).toBeDefined()
     expect(typeof capturedMcpServers).toBe('object')
-    expect(Object.keys(capturedMcpServers as object)).toContain('work-please-tools')
+    expect(Object.keys(capturedMcpServers as object)).toContain('please-work-tools')
   })
 
   it('emits notification for rate_limit_event', async () => {

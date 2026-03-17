@@ -402,7 +402,7 @@ Fields:
 Fields:
 
 - `root` (path string or `$VAR`)
-  - Default: `<system-temp>/work-please_workspaces`
+  - Default: `<system-temp>/please-work_workspaces`
   - `~` and strings containing path separators are expanded.
   - Bare strings without path separators are preserved as-is (relative roots are allowed but
     discouraged).
@@ -599,7 +599,7 @@ When `tracker.kind=github_projects`:
 - `tracker.active_statuses`: list/string, default `Todo, In Progress`
 - `tracker.terminal_statuses`: list/string, default `Done, Cancelled`
 - `polling.interval_ms`: integer, default `30000`
-- `workspace.root`: path, default `<system-temp>/work-please_workspaces`
+- `workspace.root`: path, default `<system-temp>/please-work_workspaces`
 - `hooks.after_create`: shell script or null
 - `hooks.before_run`: shell script or null
 - `hooks.after_run`: shell script or null
@@ -969,7 +969,7 @@ Illustrative startup transcript (equivalent payload shapes are acceptable if the
 semantics):
 
 ```json
-{"id":1,"method":"initialize","params":{"clientInfo":{"name":"work-please","version":"1.0"},"capabilities":{}}}
+{"id":1,"method":"initialize","params":{"clientInfo":{"name":"please-work","version":"1.0"},"capabilities":{}}}
 {"method":"initialized","params":{}}
 {"id":2,"method":"thread/start","params":{"approvalPolicy":"<implementation-defined>","sandbox":"<implementation-defined>","cwd":"/abs/workspace"}}
 {"id":3,"method":"turn/start","params":{"threadId":"<thread-id>","input":[{"type":"text","text":"<rendered prompt-or-continuation-guidance>"}],"cwd":"/abs/workspace","title":"ABC-123: Example","approvalPolicy":"<implementation-defined>","sandboxPolicy":{"type":"<implementation-defined>"}}}
@@ -1607,7 +1607,7 @@ Minimum endpoints:
       "issue_id": "abc123",
       "status": "running",
       "workspace": {
-        "path": "/tmp/work-please_workspaces/MT-649"
+        "path": "/tmp/please-work_workspaces/MT-649"
       },
       "attempts": {
         "restart_count": 1,
@@ -1632,7 +1632,7 @@ Minimum endpoints:
         "agent_session_logs": [
           {
             "label": "latest",
-            "path": "/var/log/work-please/agent/MT-649/latest.log",
+            "path": "/var/log/please-work/agent/MT-649/latest.log",
             "url": null
           }
         ]

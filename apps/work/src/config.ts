@@ -13,7 +13,7 @@ const VALID_SETTING_SOURCES = new Set<string>(['user', 'project', 'local'])
 
 const DEFAULTS = {
   POLL_INTERVAL_MS: 30_000,
-  WORKSPACE_ROOT: join(tmpdir(), 'work-please_workspaces'),
+  WORKSPACE_ROOT: join(tmpdir(), 'please-work_workspaces'),
   HOOK_TIMEOUT_MS: 60_000,
   MAX_CONCURRENT_AGENTS: 10,
   AGENT_MAX_TURNS: 20,

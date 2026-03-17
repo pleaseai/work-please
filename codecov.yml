@@ -10,7 +10,7 @@ coverage:
         threshold: 1%
 
 flags:
-  work-please:
+  work:
     paths:
-      - apps/work-please/src/
+      - apps/work/src/
     carryforward: true

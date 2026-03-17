@@ -7,8 +7,8 @@ import { createLogger } from './logger'
 const log = createLogger('workspace')
 
 const CLAUDE_SETTINGS_PATH = '.claude/settings.local.json'
-const WORK_PLEASE_URL = 'https://github.com/pleaseai/work-please'
-const ATTRIBUTION_TEXT = `🙏 Generated with [Work Please](${WORK_PLEASE_URL})`
+const WORK_URL = 'https://github.com/pleaseai/work'
+const ATTRIBUTION_TEXT = `🙏 Generated with [Please Work](${WORK_URL})`
 
 export function generateClaudeSettings(attribution?: { commit?: string | null, pr?: string | null }): string {
   return `${JSON.stringify({

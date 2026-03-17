@@ -4,10 +4,10 @@ import process from 'node:process'
 import { graphql as createGraphql, GraphqlResponseError } from '@octokit/graphql'
 import { createLogger } from './logger'
 
-const log = createLogger('work-please')
+const log = createLogger('init')
 
 const GITHUB_API_ENDPOINT = 'https://api.github.com'
-const DEFAULT_TITLE = 'Work Please'
+const DEFAULT_TITLE = 'Please Work'
 const WORKFLOW_FILE_NAME = 'WORKFLOW.md'
 
 export interface InitOptions {
@@ -239,8 +239,8 @@ claude:
   # system_prompt: null              # optional: custom system prompt string, or { type: preset, preset: claude_code, append: "..." }
   # settings:
   #   attribution:
-  #     commit: "🙏 Generated with Work Please"
-  #     pr: "🙏 Generated with Work Please"
+  #     commit: "🙏 Generated with Please Work"
+  #     pr: "🙏 Generated with Please Work"
 # worker:                            # optional: SSH worker support
 #   ssh_hosts: []                    # list of SSH host aliases for remote execution
 #   max_concurrent_agents_per_host: 5

@@ -52,7 +52,7 @@ function makeAsanaConfig(): ServiceConfig {
       endpoint: 'https://app.asana.com/api/1.0',
       api_key: 'asana-token',
       project_gid: 'gid123',
-      label_prefix: 'work-please',
+      label_prefix: 'please-work',
       filter: { assignee: [], label: [] },
     },
     polling: { interval_ms: 30000 },
@@ -89,9 +89,9 @@ describe('parseGitHubIssueUrl', () => {
 
 describe('formatLabelName', () => {
   it('formats label name as prefix: state', () => {
-    expect(formatLabelName('work-please', 'dispatched')).toBe('work-please: dispatched')
-    expect(formatLabelName('work-please', 'done')).toBe('work-please: done')
-    expect(formatLabelName('work-please', 'failed')).toBe('work-please: failed')
+    expect(formatLabelName('please-work', 'dispatched')).toBe('please-work: dispatched')
+    expect(formatLabelName('please-work', 'done')).toBe('please-work: done')
+    expect(formatLabelName('please-work', 'failed')).toBe('please-work: failed')
   })
 })
 
@@ -109,19 +109,19 @@ describe('createLabelService', () => {
   })
 
   it('returns service for github_projects with non-empty prefix', () => {
-    expect(createLabelService(makeGithubConfig('work-please'))).not.toBeNull()
+    expect(createLabelService(makeGithubConfig('please-work'))).not.toBeNull()
   })
 })
 
 describe('setLabel', () => {
   it('is a no-op when issue url is null', async () => {
-    const service = createLabelService(makeGithubConfig('work-please'))!
+    const service = createLabelService(makeGithubConfig('please-work'))!
     const result = await service.setLabel(makeIssue({ url: null }), 'dispatched')
     expect(result).toBeUndefined()
   })
 
   it('is a no-op when url is not a GitHub issue/PR URL', async () => {
-    const service = createLabelService(makeGithubConfig('work-please'))!
+    const service = createLabelService(makeGithubConfig('please-work'))!
     const result = await service.setLabel(makeIssue({ url: 'https://linear.app/team/issue/ISS-1' }), 'dispatched')
     expect(result).toBeUndefined()
   })
@@ -138,7 +138,7 @@ describe('setLabel', () => {
     }) as unknown as typeof fetch
 
     try {
-      const service = createLabelService(makeGithubConfig('work-please'))!
+      const service = createLabelService(makeGithubConfig('please-work'))!
       await service.setLabel(makeIssue({ url: 'https://github.com/org/repo/issues/42' }), 'dispatched')
       const urls = calls.map(c => `${c.method} ${c.url}`)
       expect(urls).toContain('POST https://api.github.com/repos/org/repo/labels')
@@ -157,7 +157,7 @@ describe('setLabel', () => {
       calls.push({ method: options.method ?? 'GET', url: String(url) })
       if (options.method === 'GET') {
         return new Response(
-          JSON.stringify([{ name: 'work-please: dispatched' }, { name: 'bug' }]),
+          JSON.stringify([{ name: 'please-work: dispatched' }, { name: 'bug' }]),
           { status: 200, headers: { 'content-type': 'application/json' } },
         )
       }
@@ -165,11 +165,11 @@ describe('setLabel', () => {
     }) as unknown as typeof fetch
 
     try {
-      const service = createLabelService(makeGithubConfig('work-please'))!
+      const service = createLabelService(makeGithubConfig('please-work'))!
       await service.setLabel(makeIssue({ url: 'https://github.com/org/repo/issues/1' }), 'done')
       const deleteCalls = calls.filter(c => c.method === 'DELETE')
       expect(deleteCalls).toHaveLength(1)
-      expect(deleteCalls[0].url).toContain('work-please%3A%20dispatched')
+      expect(deleteCalls[0].url).toContain('please-work%3A%20dispatched')
     }
     finally {
       globalThis.fetch = origFetch
@@ -192,7 +192,7 @@ describe('setLabel', () => {
     }) as unknown as typeof fetch
 
     try {
-      const service = createLabelService(makeGithubConfig('work-please'))!
+      const service = createLabelService(makeGithubConfig('please-work'))!
       const result = await service.setLabel(makeIssue({ url: 'https://github.com/org/repo/issues/5' }), 'done')
       expect(result).toBeUndefined()
     }
@@ -208,7 +208,7 @@ describe('setLabel', () => {
     }) as unknown as typeof fetch
 
     try {
-      const service = createLabelService(makeGithubConfig('work-please'))!
+      const service = createLabelService(makeGithubConfig('please-work'))!
       const result = await service.setLabel(makeIssue({ url: 'https://github.com/org/repo/issues/1' }), 'dispatched')
       expect(result).toBeUndefined()
     }
@@ -228,7 +228,7 @@ describe('setLabel', () => {
     globalThis.fetch = mock(async (_url: string, options: RequestInit) => {
       if (options.method === 'GET') {
         return new Response(
-          JSON.stringify([{ name: 'work-please: dispatched' }]),
+          JSON.stringify([{ name: 'please-work: dispatched' }]),
           { status: 200, headers: { 'content-type': 'application/json' } },
         )
       }
@@ -239,7 +239,7 @@ describe('setLabel', () => {
     }) as unknown as typeof fetch
 
     try {
-      const service = createLabelService(makeGithubConfig('work-please'))!
+      const service = createLabelService(makeGithubConfig('please-work'))!
       await service.setLabel(makeIssue({ url: 'https://github.com/org/repo/issues/1' }), 'done')
       const output = stderrChunks.join('')
       expect(output).toContain('failed to remove label')
@@ -263,7 +263,7 @@ describe('setLabel', () => {
     }) as unknown as typeof fetch
 
     try {
-      const service = createLabelService(makeGithubConfig('work-please'))!
+      const service = createLabelService(makeGithubConfig('please-work'))!
       const result = await service.setLabel(makeIssue({ url: 'https://github.com/org/repo/issues/7' }), 'done')
       expect(result).toBeUndefined()
       const deleteCalls = calls.filter(c => c.method === 'DELETE')

@@ -74,7 +74,7 @@ bun run dev                       # Watch mode (all workspaces via turbo)
 
 ```bash
 bun run test                      # Run all tests
-bun run test:app                  # Run work-please tests only
+bun run test:app                  # Run @pleaseai/work tests only
 bun run test:coverage             # Run tests with coverage
 ```
 
@@ -82,7 +82,7 @@ bun run test:coverage             # Run tests with coverage
 
 ```bash
 bun run check                     # Type-check all workspaces
-bun run check:app                 # Type-check work-please only
+bun run check:app                 # Type-check @pleaseai/work only
 bun run lint                      # Lint all workspaces
 bun run lint:fix                  # Lint with auto-fix
 bun run build                     # Build all packages

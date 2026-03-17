@@ -428,5 +428,5 @@ The `<!-- workpad:issue-<number> -->` HTML comment at the bottom is a machine-re
 
 ---
 <!-- workpad:issue-<number> -->
-🙏 Generated with [Work Please](https://github.com/pleaseai/work-please)
+🙏 Generated with [Please Work](https://github.com/pleaseai/work)
 ````

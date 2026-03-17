@@ -1,14 +1,14 @@
-# Work Please
+# Please Work
 
 English | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please)
-[![codecov](https://codecov.io/gh/pleaseai/work-please/graph/badge.svg?token=do858Z1lsI)](https://codecov.io/gh/pleaseai/work-please)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pleaseai_work) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pleaseai_work) [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=pleaseai_work) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=pleaseai_work)
+[![codecov](https://codecov.io/gh/pleaseai/work/graph/badge.svg?token=do858Z1lsI)](https://codecov.io/gh/pleaseai/work)
 
-Work Please turns issue tracker tasks into isolated, autonomous implementation runs — managing work
+Please Work turns issue tracker tasks into isolated, autonomous implementation runs — managing work
 instead of supervising coding agents.
 
-> **Warning**: Work Please is an engineering preview for use in trusted environments.
+> **Warning**: Please Work is an engineering preview for use in trusted environments.
 
 ## Table of Contents
 
@@ -36,7 +36,7 @@ instead of supervising coding agents.
 
 ## Overview
 
-Work Please is a long-running TypeScript service that:
+Please Work is a long-running TypeScript service that:
 
 1. Polls an issue tracker (GitHub Projects v2 or Asana) for tasks in configured active states.
 2. Creates an isolated workspace directory for each eligible issue.
@@ -50,7 +50,7 @@ For full technical details, see [SPEC.md](SPEC.md).
 
 ## Key Differences from Symphony
 
-| | Symphony (reference) | Work Please |
+| | Symphony (reference) | Please Work |
 |---|---|---|
 | Issue Tracker | Linear | GitHub Projects v2 & Asana (under development) |
 | Coding Agent | Codex (app-server mode) | Claude Code CLI |
@@ -126,8 +126,8 @@ See [SPEC.md](SPEC.md) for the full specification.
 ### Install
 
 ```bash
-git clone https://github.com/pleaseai/work-please.git
-cd work-please
+git clone https://github.com/pleaseai/work.git
+cd please-work
 bun install
 bun run build
 ```
@@ -166,7 +166,7 @@ polling:
   interval_ms: 30000
 
 workspace:
-  root: ~/work-please_workspaces
+  root: ~/please-work_workspaces
 
 hooks:
   after_create: |
@@ -238,7 +238,7 @@ polling:
   interval_ms: 30000
 
 workspace:
-  root: ~/work-please_workspaces
+  root: ~/please-work_workspaces
 
 hooks:
   after_create: |
@@ -299,7 +299,7 @@ polling:
   interval_ms: 30000
 
 workspace:
-  root: ~/work-please_workspaces
+  root: ~/please-work_workspaces
 
 hooks:
   after_create: |
@@ -352,19 +352,19 @@ export GITHUB_APP_INSTALLATION_ID=67890
 # or (Asana — under development)
 export ASANA_ACCESS_TOKEN=your_token_here
 
-# Run Work Please against a WORKFLOW.md in the current directory
-bunx work-please
+# Run Please Work against a WORKFLOW.md in the current directory
+bunx please-work
 
 # Or specify a WORKFLOW.md path
-bunx work-please /path/to/WORKFLOW.md
+bunx please-work /path/to/WORKFLOW.md
 
 # Enable the optional HTTP dashboard on port 3000
-bunx work-please --port 3000
+bunx please-work --port 3000
 ```
 
 ## WORKFLOW.md Configuration
 
-`WORKFLOW.md` is the single source of truth for Work Please's runtime behavior. It combines a YAML
+`WORKFLOW.md` is the single source of truth for Please Work's runtime behavior. It combines a YAML
 front matter configuration block with a Markdown prompt template body.
 
 ### Full Front Matter Schema
@@ -419,7 +419,7 @@ polling:
   interval_ms: 30000                  # Optional: poll cadence in ms, default 30000
 
 workspace:
-  root: ~/work-please_workspaces        # Optional: default <tmpdir>/work-please_workspaces
+  root: ~/please-work_workspaces        # Optional: default <tmpdir>/please-work_workspaces
 
 hooks:
   after_create: |                     # Optional: run once when workspace is first created
@@ -459,8 +459,8 @@ claude:
   system_prompt: "custom prompt"      # Optional: custom system prompt string. Default: built-in claude_code preset
   settings:
     attribution:
-      commit: "🙏 Generated with [Work Please](https://github.com/pleaseai/work-please)"  # Optional: appended to git commit messages. Defaults to Work Please link.
-      pr: "🙏 Generated with [Work Please](https://github.com/pleaseai/work-please)"      # Optional: appended to PR descriptions. Defaults to Work Please link.
+      commit: "🙏 Generated with [Please Work](https://github.com/pleaseai/work)"  # Optional: appended to git commit messages. Defaults to Please Work link.
+      pr: "🙏 Generated with [Please Work](https://github.com/pleaseai/work)"      # Optional: appended to PR descriptions. Defaults to Please Work link.
 
 # worker:                              # Optional: SSH worker support (experimental)
 #   ssh_hosts:                         # List of SSH host aliases for remote execution
@@ -540,23 +540,23 @@ Retry attempt: {{ attempt }}
 
 ```bash
 # Basic usage (reads WORKFLOW.md from current directory)
-work-please
+please-work
 
 # Specify WORKFLOW.md path (positional argument)
-work-please ./WORKFLOW.md
+please-work ./WORKFLOW.md
 
 # Enable HTTP dashboard
-work-please --port 3000
+please-work --port 3000
 
 # Initialize a new GitHub Projects v2 project and scaffold WORKFLOW.md
 # (Requires GITHUB_TOKEN environment variable to be set)
-work-please init --owner <org-or-user> --title "My Project"
+please-work init --owner <org-or-user> --title "My Project"
 
 # Alternatively, provide the token via a flag:
-work-please init --owner <org-or-user> --title "My Project" --token <your-github-token>
+please-work init --owner <org-or-user> --title "My Project" --token <your-github-token>
 
 # Show help
-work-please --help
+please-work --help
 ```
 
 ## GitHub App Authentication
@@ -612,7 +612,7 @@ installation_id: 67890
 
 ### Validation
 
-Work Please validates GitHub App config at startup:
+Please Work validates GitHub App config at startup:
 
 | Scenario | Result |
 |----------|--------|
@@ -623,7 +623,7 @@ Work Please validates GitHub App config at startup:
 
 ## Trust and Safety
 
-Work Please runs Claude Code autonomously. Understand the trust implications before deploying.
+Please Work runs Claude Code autonomously. Understand the trust implications before deploying.
 
 ### Permission Modes
 
@@ -655,5 +655,5 @@ Functional Source License 1.1, MIT Future License (FSL-1.1-MIT). See [LICENSE](L
 
 ### Third-Party Licenses
 
-- Work Please is a TypeScript implementation based on the [Symphony specification](vendor/symphony/SPEC.md) by OpenAI (Apache 2.0).
+- Please Work is a TypeScript implementation based on the [Symphony specification](vendor/symphony/SPEC.md) by OpenAI (Apache 2.0).
 - This project uses the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript), which is subject to Anthropic's [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms).

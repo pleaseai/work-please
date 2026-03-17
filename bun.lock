@@ -13,11 +13,11 @@
         "typescript": "^5.7.0",
       },
     },
-    "apps/work-please": {
+    "apps/work": {
       "name": "@pleaseai/work",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "bin": {
-        "work-please": "./dist/index.js",
+        "please-work": "./dist/index.js",
       },
       "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "^0.2.72",
@@ -154,7 +154,7 @@
 
     "@pkgr/core": ["@pkgr/core@0.2.9", "", {}, "sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA=="],
 
-    "@pleaseai/work": ["@pleaseai/work@workspace:apps/work-please"],
+    "@pleaseai/work": ["@pleaseai/work@workspace:apps/work"],
 
     "@sindresorhus/base62": ["@sindresorhus/base62@1.0.0", "", {}, "sha512-TeheYy0ILzBEI/CO55CP6zJCSdSWeRtGnHy8U8dWSUH4I68iqTsy7HkMktR4xakThc9jotkPQUXT4ITdbV7cHA=="],
 

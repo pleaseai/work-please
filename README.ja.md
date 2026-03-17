@@ -1,13 +1,13 @@
-# Work Please
+# Please Work
 
 [English](README.md) | [한국어](README.ko.md) | 日本語 | [简体中文](README.zh-CN.md)
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work-please&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=pleaseai_work-please)
-[![codecov](https://codecov.io/gh/pleaseai/work-please/graph/badge.svg?token=do858Z1lsI)](https://codecov.io/gh/pleaseai/work-please)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pleaseai_work) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pleaseai_work) [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=pleaseai_work) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=pleaseai_work&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=pleaseai_work)
+[![codecov](https://codecov.io/gh/pleaseai/work/graph/badge.svg?token=do858Z1lsI)](https://codecov.io/gh/pleaseai/work)
 
-Work Pleaseはイシュートラッカーのタスクを隔離された自律的な実装実行に変換します — コーディングエージェントを監視する代わりに作業を管理します。
+Please Workはイシュートラッカーのタスクを隔離された自律的な実装実行に変換します — コーディングエージェントを監視する代わりに作業を管理します。
 
-> **警告**: Work Pleaseは信頼できる環境での使用を前提としたエンジニアリングプレビューです。
+> **警告**: Please Workは信頼できる環境での使用を前提としたエンジニアリングプレビューです。
 
 ## 目次
 
@@ -35,7 +35,7 @@ Work Pleaseはイシュートラッカーのタスクを隔離された自律的
 
 ## 概要
 
-Work Pleaseは以下を実行する長期稼働TypeScriptサービスです：
+Please Workは以下を実行する長期稼働TypeScriptサービスです：
 
 1. イシュートラッカー（GitHub Projects v2またはAsana）から設定されたアクティブ状態のタスクをポーリングします。
 2. 対象となる各イシューに対して隔離されたワークスペースディレクトリを作成します。
@@ -49,7 +49,7 @@ GitHub Projects v2 / AsanaおよびClaude Codeに適応されています（Line
 
 ## Symphonyとの主な違い
 
-| | Symphony（リファレンス） | Work Please |
+| | Symphony（リファレンス） | Please Work |
 |---|---|---|
 | イシュートラッカー | Linear | GitHub Projects v2 & Asana（開発中） |
 | コーディングエージェント | Codex（app-serverモード） | Claude Code CLI |
@@ -122,8 +122,8 @@ Config Layer ──> Orchestrator ──> Workspace Manager ──> Agent Runner
 ### インストール
 
 ```bash
-git clone https://github.com/pleaseai/work-please.git
-cd work-please
+git clone https://github.com/pleaseai/work.git
+cd please-work
 bun install
 bun run build
 ```
@@ -162,7 +162,7 @@ polling:
   interval_ms: 30000
 
 workspace:
-  root: ~/work-please_workspaces
+  root: ~/please-work_workspaces
 
 hooks:
   after_create: |
@@ -234,7 +234,7 @@ polling:
   interval_ms: 30000
 
 workspace:
-  root: ~/work-please_workspaces
+  root: ~/please-work_workspaces
 
 hooks:
   after_create: |
@@ -295,7 +295,7 @@ polling:
   interval_ms: 30000
 
 workspace:
-  root: ~/work-please_workspaces
+  root: ~/please-work_workspaces
 
 hooks:
   after_create: |
@@ -348,19 +348,19 @@ export GITHUB_APP_INSTALLATION_ID=67890
 # または（Asana — 開発中）
 export ASANA_ACCESS_TOKEN=your_token_here
 
-# カレントディレクトリのWORKFLOW.mdを使用してWork Pleaseを実行
-bunx work-please
+# カレントディレクトリのWORKFLOW.mdを使用してPlease Workを実行
+bunx please-work
 
 # またはWORKFLOW.mdパスを指定
-bunx work-please /path/to/WORKFLOW.md
+bunx please-work /path/to/WORKFLOW.md
 
 # ポート3000でオプションHTTPダッシュボードを有効化
-bunx work-please --port 3000
+bunx please-work --port 3000
 ```
 
 ## WORKFLOW.md設定
 
-`WORKFLOW.md`はWork Pleaseのランタイム動作の唯一の信頼できるソースです。YAML front matter
+`WORKFLOW.md`はPlease Workのランタイム動作の唯一の信頼できるソースです。YAML front matter
 設定ブロックとMarkdownプロンプトテンプレート本文を組み合わせます。
 
 ### 完全なFront Matterスキーマ
@@ -415,7 +415,7 @@ polling:
   interval_ms: 30000                  # 任意: ポーリング間隔（ms）、デフォルト 30000
 
 workspace:
-  root: ~/work-please_workspaces        # 任意: デフォルト <tmpdir>/work-please_workspaces
+  root: ~/please-work_workspaces        # 任意: デフォルト <tmpdir>/please-work_workspaces
 
 hooks:
   after_create: |                     # 任意: ワークスペース初回作成時に一度実行
@@ -452,8 +452,8 @@ claude:
   stall_timeout_ms: 300000            # 任意: ストール検出タイムアウト、デフォルト 300000
   settings:
     attribution:
-      commit: "🙏 Generated with [Work Please](https://github.com/pleaseai/work-please)"  # 任意: gitコミットメッセージに追加。デフォルトはWork Pleaseリンク。
-      pr: "🙏 Generated with [Work Please](https://github.com/pleaseai/work-please)"      # 任意: PR説明に追加。デフォルトはWork Pleaseリンク。
+      commit: "🙏 Generated with [Please Work](https://github.com/pleaseai/work)"  # 任意: gitコミットメッセージに追加。デフォルトはPlease Workリンク。
+      pr: "🙏 Generated with [Please Work](https://github.com/pleaseai/work)"      # 任意: PR説明に追加。デフォルトはPlease Workリンク。
 
 server:
   port: 3000                          # 任意: このポートでHTTPダッシュボードを有効化
@@ -514,23 +514,23 @@ server:
 
 ```bash
 # 基本的な使い方（カレントディレクトリからWORKFLOW.mdを読み込む）
-work-please
+please-work
 
 # WORKFLOW.mdパスを指定（位置引数）
-work-please ./WORKFLOW.md
+please-work ./WORKFLOW.md
 
 # HTTPダッシュボードを有効化
-work-please --port 3000
+please-work --port 3000
 
 # 新しいGitHub Projects v2プロジェクトを初期化し、WORKFLOW.mdをスキャフォールド
 # （GITHUB_TOKEN環境変数の設定が必要）
-work-please init --owner <org-or-user> --title "My Project"
+please-work init --owner <org-or-user> --title "My Project"
 
 # またはフラグでトークンを指定：
-work-please init --owner <org-or-user> --title "My Project" --token <your-github-token>
+please-work init --owner <org-or-user> --title "My Project" --token <your-github-token>
 
 # ヘルプを表示
-work-please --help
+please-work --help
 ```
 
 ## GitHub App認証
@@ -585,7 +585,7 @@ installation_id: 67890
 
 ### 検証
 
-Work Pleaseは起動時にGitHub App設定を検証します：
+Please Workは起動時にGitHub App設定を検証します：
 
 | シナリオ | 結果 |
 |----------|--------|
@@ -596,7 +596,7 @@ Work Pleaseは起動時にGitHub App設定を検証します：
 
 ## 信頼と安全性
 
-Work PleaseはClaude Codeを自律的に実行します。デプロイ前に信頼に関する影響を理解してください。
+Please WorkはClaude Codeを自律的に実行します。デプロイ前に信頼に関する影響を理解してください。
 
 ### 権限モード
 
@@ -628,5 +628,5 @@ Functional Source License 1.1, MIT Future License (FSL-1.1-MIT)。詳細は[LICE
 
 ### サードパーティライセンス
 
-- Work PleaseはOpenAIの[Symphony仕様](vendor/symphony/SPEC.md)（Apache 2.0）に基づくTypeScript実装です。
+- Please WorkはOpenAIの[Symphony仕様](vendor/symphony/SPEC.md)（Apache 2.0）に基づくTypeScript実装です。
 - 本プロジェクトは[Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript)を使用しており、Anthropicの[商用利用規約](https://www.anthropic.com/legal/commercial-terms)が適用されます。
