@@ -857,6 +857,17 @@ describe('processWatchedStates dispatch logic', () => {
     expect(shouldDispatchWatched(issue, new Map(), new Set())).toBe(false)
   })
 
+  it('dispatches Issue-type item with review_decision promoted from linked PR', () => {
+    const issue = makeIssue({
+      id: 'w-issue',
+      review_decision: 'approved',
+      pull_requests: [
+        { number: 50, title: 'Linked PR', url: null, state: 'open', branch_name: 'fix/issue', review_decision: 'approved', updated_at: new Date('2024-06-01T12:00:00Z') },
+      ],
+    })
+    expect(shouldDispatchWatched(issue, new Map(), new Set())).toBe(true)
+  })
+
   it('skips already running issues', () => {
     const issue = makeIssue({ id: 'w4', review_decision: 'approved' })
     const running = new Map([['w4', {}]])

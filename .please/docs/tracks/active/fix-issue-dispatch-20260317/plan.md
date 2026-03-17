@@ -30,16 +30,16 @@ The orchestrator's `dispatchWatchedIssues()` guard (`if (!issue.review_decision)
 ## Tasks
 
 <!-- Phase A: Tests (Red phase — write failing tests first) -->
-- [ ] T001 [P] Add test: normalizeProjectItem promotes review_decision from open linked PR (file: apps/work-please/src/tracker/tracker.test.ts) [TR-1]
-- [ ] T002 [P] Add test: normalizeProjectItem returns null for Issue with no linked PRs (file: apps/work-please/src/tracker/tracker.test.ts) [TR-2]
-- [ ] T003 [P] Add test: normalizeProjectItem ignores closed linked PRs when promoting (file: apps/work-please/src/tracker/tracker.test.ts) [TR-3]
+- [x] T001 [P] Add test: normalizeProjectItem promotes review_decision from open linked PR (file: apps/work-please/src/tracker/tracker.test.ts) [TR-1]
+- [x] T002 [P] Add test: normalizeProjectItem returns null for Issue with no linked PRs (file: apps/work-please/src/tracker/tracker.test.ts) [TR-2]
+- [x] T003 [P] Add test: normalizeProjectItem ignores closed linked PRs when promoting (file: apps/work-please/src/tracker/tracker.test.ts) [TR-3]
 
 <!-- Phase B: Fix (Green phase — make tests pass) -->
-- [ ] T004 Promote linked PR review_decision in normalizeProjectItem (file: apps/work-please/src/tracker/github.ts) (depends on T001, T002, T003) [FR-1, FR-2]
+- [x] T004 Promote linked PR review_decision in normalizeProjectItem (file: apps/work-please/src/tracker/github.ts) (depends on T001, T002, T003) [FR-1, FR-2]
 
 <!-- Phase C: Integration tests -->
-- [ ] T005 Add test: dispatchWatchedIssues dispatches Issue-type with promoted review_decision (file: apps/work-please/src/orchestrator.test.ts) (depends on T004) [TR-4]
-- [ ] T006 Add regression test: PR-type items retain direct reviewDecision unchanged (file: apps/work-please/src/tracker/tracker.test.ts) (depends on T004) [TR-5]
+- [x] T005 Add test: dispatchWatchedIssues dispatches Issue-type with promoted review_decision (file: apps/work-please/src/orchestrator.test.ts) (depends on T004) [TR-4]
+- [x] T006 Add regression test: PR-type items retain direct reviewDecision unchanged (file: apps/work-please/src/tracker/tracker.test.ts) (depends on T004) [TR-5]
 
 ## Dependencies
 
@@ -71,7 +71,10 @@ graph LR
 
 ## Progress
 
-_Updated by /please:implement_
+- 2026-03-17: T001-T003 completed (Red phase — failing tests)
+- 2026-03-17: T004 completed (Green phase — fix applied)
+- 2026-03-17: T005-T006 completed (Integration + regression tests)
+- 2026-03-17: All 6/6 tasks complete. 138 tests pass, 0 failures.
 
 ## Decision Log
 

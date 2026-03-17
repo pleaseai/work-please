@@ -1402,6 +1402,156 @@ describe('github_projects review_decision normalization', () => {
     }
     finally { globalThis.fetch = origFetch }
   })
+
+  test('promotes review_decision from open linked PR for Issue content', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_PROMOTE',
+                  fieldValues: { nodes: [{ name: 'Human Review', field: { name: 'Status' } }] },
+                  content: {
+                    number: 99,
+                    title: 'Issue with linked PR review',
+                    body: null,
+                    url: 'https://github.com/org/repo/issues/99',
+                    labels: { nodes: [] },
+                    assignees: { nodes: [] },
+                    createdAt: null,
+                    updatedAt: null,
+                    closedByPullRequestsReferences: {
+                      nodes: [
+                        { number: 100, title: 'Fix PR', url: 'https://github.com/org/repo/pull/100', state: 'OPEN', headRefName: 'fix/99', reviewDecision: 'APPROVED', updatedAt: '2024-06-01T12:00:00Z' },
+                      ],
+                    },
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['Human Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBe('approved')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('returns null review_decision for Issue with no linked PRs', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_NOPRS',
+                  fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
+                  content: {
+                    number: 101,
+                    title: 'Issue without PRs',
+                    body: null,
+                    url: 'https://github.com/org/repo/issues/101',
+                    labels: { nodes: [] },
+                    assignees: { nodes: [] },
+                    createdAt: null,
+                    updatedAt: null,
+                    closedByPullRequestsReferences: { nodes: [] },
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Progress'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBeNull()
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('ignores closed linked PRs when promoting review_decision', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              nodes: [
+                {
+                  id: 'PVTI_CLOSED',
+                  fieldValues: { nodes: [{ name: 'Human Review', field: { name: 'Status' } }] },
+                  content: {
+                    number: 102,
+                    title: 'Issue with only closed PRs',
+                    body: null,
+                    url: 'https://github.com/org/repo/issues/102',
+                    labels: { nodes: [] },
+                    assignees: { nodes: [] },
+                    createdAt: null,
+                    updatedAt: null,
+                    closedByPullRequestsReferences: {
+                      nodes: [
+                        { number: 200, title: 'Closed PR', url: 'https://github.com/org/repo/pull/200', state: 'CLOSED', headRefName: 'fix/closed', reviewDecision: 'APPROVED', updatedAt: '2024-06-01T12:00:00Z' },
+                        { number: 201, title: 'Merged PR', url: 'https://github.com/org/repo/pull/201', state: 'MERGED', headRefName: 'fix/merged', reviewDecision: 'CHANGES_REQUESTED', updatedAt: '2024-06-01T12:00:00Z' },
+                      ],
+                    },
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['Human Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBeNull()
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+  test('PR-type content retains direct reviewDecision unchanged', async () => {
+    const config = makeGitHubConfig()
+    const adapter = createGitHubAdapter(config)
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => makePrResponse('CHANGES_REQUESTED')) as unknown as typeof fetch
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Review'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result[0].review_decision).toBe('changes_requested')
+      expect(result[0].branch_name).toBe('feature/rd')
+    }
+    finally { globalThis.fetch = origFetch }
+  })
 })
 
 describe('fetchCandidateAndWatchedIssues', () => {

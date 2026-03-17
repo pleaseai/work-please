@@ -413,6 +413,8 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string, pro
 
   const headRefName = content?.headRefName ? String(content.headRefName) : null
   const reviewDecision = normalizeReviewDecision(content?.reviewDecision)
+    ?? pullRequests.find(pr => pr.state === 'open' && pr.review_decision)?.review_decision
+    ?? null
 
   return {
     id: String(node.id ?? ''),
