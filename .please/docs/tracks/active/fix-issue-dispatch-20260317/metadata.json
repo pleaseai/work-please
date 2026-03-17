@@ -1,0 +1,9 @@
+{
+  "track_id": "fix-issue-dispatch-20260317",
+  "type": "bugfix",
+  "status": "planned",
+  "created_at": "2026-03-17T14:47:00+09:00",
+  "updated_at": "2026-03-17T14:47:00+09:00",
+  "issue": "#119",
+  "pr": ""
+}
