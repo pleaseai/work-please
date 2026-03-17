@@ -9,27 +9,30 @@ export function useIssueDetail(identifier: () => string, intervalMs = 3000) {
   const error = ref<string | null>(null)
   const loading = ref(true)
 
-  let fetching = false
+  let fetchId = 0
   async function load() {
     const id = identifier()
     if (!id) {
       loading.value = false
       return
     }
-    if (fetching)
-      return
-    fetching = true
+    const thisId = ++fetchId
     try {
-      detail.value = await fetchIssueDetail(id)
+      const result = await fetchIssueDetail(id)
+      if (thisId !== fetchId)
+        return
+      detail.value = result
       error.value = null
     }
     catch (e) {
+      if (thisId !== fetchId)
+        return
       console.error('[dashboard]', e)
       error.value = toMessage(e)
     }
     finally {
-      fetching = false
-      loading.value = false
+      if (thisId === fetchId)
+        loading.value = false
     }
   }
 
@@ -40,7 +43,7 @@ export function useIssueDetail(identifier: () => string, intervalMs = 3000) {
   })
 
   load()
-  const { pause } = useIntervalFn(load, intervalMs)
+  const { pause } = useIntervalFn(load, intervalMs, { immediate: false })
   onScopeDispose(pause)
 
   return { detail, error, loading, refresh: load }

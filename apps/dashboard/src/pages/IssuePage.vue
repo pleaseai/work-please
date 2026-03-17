@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIssueDetail } from '@/composables/useIssueDetail'
+import { formatDateTime, formatTokens } from '@/lib/format'
 
 const route = useRoute()
 const identifier = () => route.params.identifier as string
@@ -22,17 +23,6 @@ const tokens = computed(() => {
     return null
   return detail.value.running.tokens
 })
-
-function formatTokens(n: number): string {
-  return new Intl.NumberFormat().format(n)
-}
-
-function formatDateTime(iso: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'medium',
-  }).format(new Date(iso))
-}
 </script>
 
 <template>
@@ -171,7 +161,7 @@ function formatDateTime(iso: string): string {
             <Badge variant="outline" class="shrink-0">
               {{ event.event }}
             </Badge>
-            <span v-if="event.message" class="truncate text-muted-foreground">
+            <span v-if="event.message" class="truncate text-muted-foreground" :title="event.message">
               {{ event.message }}
             </span>
           </div>

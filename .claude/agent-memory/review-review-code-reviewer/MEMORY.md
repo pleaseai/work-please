@@ -14,12 +14,10 @@
 - Composables: useOrchestratorState, useIssueDetail — polling via useIntervalFn
 - server.ts serves static dashboard dist with path traversal guard using normalize+startsWith
 
-## Known issues found in PR review (iteration 2)
-- package.json root: lucide-vue-next added as a runtime dep of the root workspace — should be in apps/dashboard only
-- serveStatic: path traversal guard uses `sep` (OS path separator), which fails on Windows with URL-encoded paths — low impact for server-side Bun app
-- useIssueDetail: interval continues running even when the component unmounts (no cleanup of useIntervalFn pause/resume)
-- useOrchestratorState: same missing cleanup concern
-- ThemeToggle.vue: useColorMode() from @vueuse/core — composables/useTheme.ts also referenced in git status as untracked but ThemeToggle uses useColorMode directly; no conflict
-- DashboardPage: refreshError is never cleared on subsequent successful auto-polls — stale error persists
+## Known issues found in PR review (resolved)
+- FIXED: package.json root lucide-vue-next dep removed
+- FIXED: useIssueDetail/useOrchestratorState cleanup via onScopeDispose(pause)
+- FIXED: refreshError cleared on successful refresh
+- serveStatic: path traversal guard uses `sep` (OS path separator) — low impact for Bun-only server
 
 See patterns.md for detailed notes.

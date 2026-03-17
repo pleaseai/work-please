@@ -20,7 +20,7 @@
 - **res.json() SyntaxError now wrapped**: iter 2 added `parseJson()` helper that catches SyntaxError and rethrows with better message. Original cause still discarded (not passed as `{ cause }`). Flagged in iter 2.
 - **Polling continues after persistent error**: `useIntervalFn` keeps firing even after repeated failures. No backoff, no cap, no overlap guard. Still present in iter 2. Flagged in iter 2 review.
 - **refreshError never cleared**: DashboardPage sets refreshError on failure but never clears it on success. Stale error banner persists across successful refreshes. Flagged in iter 2.
-- **loading stuck on empty identifier**: useIssueDetail early-returns without setting `loading.value = false` when identifier is empty. Skeleton shows forever. Flagged in iter 2.
+- **loading stuck on empty identifier FIXED**: `useIssueDetail` now sets `loading.value = false` before returning when the identifier is empty.
 - **No Vue error boundary in App.vue**: Render-time exceptions (e.g. formatDateTime receiving null) produce blank page with no user feedback. Flagged in iter 2.
 - **No request timeout on fetch calls**: All three fetch helpers have no AbortSignal timeout, enabling infinite hangs that compound the overlap issue. Flagged in iter 2.
 

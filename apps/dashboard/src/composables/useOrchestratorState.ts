@@ -29,7 +29,7 @@ export function useOrchestratorState(intervalMs = 3000) {
   }
 
   load()
-  const { pause } = useIntervalFn(load, intervalMs)
+  const { pause } = useIntervalFn(load, intervalMs, { immediate: false })
   onScopeDispose(pause)
 
   return { state, error, loading, refresh: load }

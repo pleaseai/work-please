@@ -3,8 +3,6 @@ import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
-const apiPort = process.env.API_PORT ?? '6100'
-
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
   resolve: {
@@ -14,7 +12,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': `http://127.0.0.1:${apiPort}`,
+      // eslint-disable-next-line node/prefer-global/process
+      '/api': `http://127.0.0.1:${process.env.API_PORT ?? '6100'}`,
     },
   },
 })

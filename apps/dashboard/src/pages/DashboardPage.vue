@@ -6,6 +6,7 @@ import RetryTable from '@/components/RetryTable.vue'
 import RunningTable from '@/components/RunningTable.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useOrchestratorState } from '@/composables/useOrchestratorState'
+import { formatDateTime, formatTokens } from '@/lib/format'
 
 onMounted(() => {
   document.title = 'Work Please \u2014 Dashboard'
@@ -23,17 +24,6 @@ const secondsRunning = computed(() => {
   const m = Math.floor(s / 60)
   return `${m}m ${s % 60}s`
 })
-
-function formatTokens(n: number): string {
-  return new Intl.NumberFormat().format(n)
-}
-
-function formatDateTime(iso: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'medium',
-  }).format(new Date(iso))
-}
 
 function handleRefreshed() {
   refreshError.value = null
