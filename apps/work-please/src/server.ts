@@ -1,5 +1,7 @@
 import type { Orchestrator } from './orchestrator'
 import type { OrchestratorState, RetryEntry, RunningEntry } from './types'
+import type { VerifySignature } from './webhook'
+import { createVerify, handleWebhook } from './webhook'
 import { workspacePath } from './workspace'
 
 const DEFAULT_HOST = '127.0.0.1'
@@ -11,6 +13,8 @@ const ESC_QUOT_RE = /"/g
 
 export class HttpServer {
   private server: ReturnType<typeof Bun.serve> | null = null
+  private cachedVerify: VerifySignature | null = null
+  private cachedSecret: string | null = null
 
   constructor(
     private orchestrator: Orchestrator,
@@ -36,7 +40,34 @@ export class HttpServer {
     return this.server?.port ?? null
   }
 
-  private handleRequest(req: Request): Response {
+  private getVerify(secret: string | null): VerifySignature | null {
+    if (!secret)
+      return null
+    if (secret !== this.cachedSecret) {
+      this.cachedVerify = createVerify(secret)
+      this.cachedSecret = secret
+    }
+    return this.cachedVerify
+  }
+
+  private handleRequest(req: Request): Response | Promise<Response> {
+    try {
+      const result = this.routeRequest(req)
+      if (result instanceof Promise) {
+        return result.catch((err) => {
+          console.error(`[server] unhandled error in request handler: ${err}`)
+          return errorResponse(500, 'internal_error', 'Internal server error')
+        })
+      }
+      return result
+    }
+    catch (err) {
+      console.error(`[server] unhandled error in request handler: ${err}`)
+      return errorResponse(500, 'internal_error', 'Internal server error')
+    }
+  }
+
+  private routeRequest(req: Request): Response | Promise<Response> {
     const orchestrator = this.orchestrator
     const url = new URL(req.url)
     const pathname = url.pathname
@@ -55,6 +86,15 @@ export class HttpServer {
       if (req.method !== 'POST')
         return methodNotAllowed()
       return refreshResponse(orchestrator)
+    }
+
+    if (pathname === '/api/v1/webhook') {
+      if (req.method !== 'POST')
+        return methodNotAllowed()
+      const config = orchestrator.getConfig()
+      const { secret, events } = config.server.webhook
+      const verify = this.getVerify(secret)
+      return handleWebhook(req, verify, events, () => orchestrator.triggerRefresh())
     }
 
     const issueMatch = pathname.match(ISSUE_PATH_RE)

@@ -1,4 +1,5 @@
 import type { OrchestratorState, RetryEntry, RunningEntry, ServiceConfig } from './types'
+import { createHmac } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { HttpServer } from './server'
 
@@ -6,13 +7,13 @@ function makeConfig(overrides: Partial<ServiceConfig> = {}): ServiceConfig {
   return {
 
     tracker: { kind: 'asana', endpoint: '', api_key: null, label_prefix: null, filter: { assignee: [], label: [] } },
-    polling: { interval_ms: 30000 },
+    polling: { mode: 'poll' as const, interval_ms: 30000 },
     workspace: { root: '/tmp/test_ws' },
     hooks: { after_create: null, before_run: null, after_run: null, before_remove: null, timeout_ms: 60000 },
     agent: { max_concurrent_agents: 5, max_turns: 20, max_retry_backoff_ms: 300000, max_concurrent_agents_by_state: {} },
     claude: { model: null, effort: 'high' as const, command: 'claude', permission_mode: 'bypassPermissions', allowed_tools: [], setting_sources: [], turn_timeout_ms: 3600000, read_timeout_ms: 5000, stall_timeout_ms: 300000, system_prompt: { type: 'preset', preset: 'claude_code' }, settings: { attribution: { commit: null, pr: null } } },
     env: {},
-    server: { port: null },
+    server: { port: null, webhook: { secret: null, events: null } },
     ...overrides,
   }
 }
@@ -219,5 +220,71 @@ describe('HttpServer', () => {
     expect(res.status).toBe(404)
     const body = await res.json() as { error: { code: string } }
     expect(body.error.code).toBe('not_found')
+  })
+
+  test('POST /api/v1/webhook with no secret returns 200 accepted', async () => {
+    let refreshed = false
+    const orchestrator = makeOrchestratorStub()
+    orchestrator.triggerRefresh = () => {
+      refreshed = true
+    }
+    server.stop()
+    server = new HttpServer(orchestrator as never, 0)
+    const port = server.start()
+    baseUrl = `http://127.0.0.1:${port}`
+
+    const res = await fetch(`${baseUrl}/api/v1/webhook`, {
+      method: 'POST',
+      body: '{"action":"opened"}',
+      headers: { 'Content-Type': 'application/json', 'X-GitHub-Event': 'issues' },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(body.accepted).toBe(true)
+    expect(body.event).toBe('issues')
+    expect(refreshed).toBe(true)
+  })
+
+  test('POST /api/v1/webhook with valid signature returns 200', async () => {
+    const secret = 'test-webhook-secret'
+    const payload = '{"action":"synchronize"}'
+    const signature = `sha256=${createHmac('sha256', secret).update(payload).digest('hex')}`
+
+    const orchestrator = makeOrchestratorStub()
+    orchestrator.getConfig = () => makeConfig({ server: { port: null, webhook: { secret, events: null } } })
+    server.stop()
+    server = new HttpServer(orchestrator as never, 0)
+    const port = server.start()
+    baseUrl = `http://127.0.0.1:${port}`
+
+    const res = await fetch(`${baseUrl}/api/v1/webhook`, {
+      method: 'POST',
+      body: payload,
+      headers: { 'Content-Type': 'application/json', 'X-GitHub-Event': 'pull_request', 'X-Hub-Signature-256': signature },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(body.accepted).toBe(true)
+  })
+
+  test('POST /api/v1/webhook with invalid signature returns 401', async () => {
+    const orchestrator = makeOrchestratorStub()
+    orchestrator.getConfig = () => makeConfig({ server: { port: null, webhook: { secret: 'real-secret', events: null } } })
+    server.stop()
+    server = new HttpServer(orchestrator as never, 0)
+    const port = server.start()
+    baseUrl = `http://127.0.0.1:${port}`
+
+    const res = await fetch(`${baseUrl}/api/v1/webhook`, {
+      method: 'POST',
+      body: '{"action":"opened"}',
+      headers: { 'Content-Type': 'application/json', 'X-GitHub-Event': 'issues', 'X-Hub-Signature-256': 'sha256=invalid' },
+    })
+    expect(res.status).toBe(401)
+  })
+
+  test('GET /api/v1/webhook returns 405', async () => {
+    const res = await fetch(`${baseUrl}/api/v1/webhook`, { method: 'GET' })
+    expect(res.status).toBe(405)
   })
 })

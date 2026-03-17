@@ -62,6 +62,9 @@ export class Orchestrator {
     // Watch workflow file for changes
     this.startFileWatcher()
 
+    const { mode, interval_ms } = this.config.polling
+    log.info(`starting mode=${mode} interval_ms=${interval_ms}`)
+
     // Schedule immediate first tick
     this.scheduleTick(0)
   }
@@ -105,6 +108,13 @@ export class Orchestrator {
     this.pollTimer = setTimeout(() => this.tick(), delayMs)
   }
 
+  private scheduleNextPoll(): void {
+    // state.poll_interval_ms is kept in sync by reloadWorkflow().
+    // In webhook mode it acts as a long fallback safety net;
+    // the primary trigger is webhook → triggerRefresh() → scheduleTick(0).
+    this.scheduleTick(this.state.poll_interval_ms)
+  }
+
   private async tick(): Promise<void> {
     // 1. Reconcile running issues
     await this.reconcileRunningIssues()
@@ -113,7 +123,7 @@ export class Orchestrator {
     const validationErr = validateConfig(this.config)
     if (validationErr) {
       log.error(`config validation failed: ${validationErr.code} — skipping dispatch`)
-      this.scheduleTick(this.state.poll_interval_ms)
+      this.scheduleNextPoll()
       return
     }
 
@@ -121,7 +131,7 @@ export class Orchestrator {
     const adapter = createTrackerAdapter(this.config)
     if (isTrackerError(adapter)) {
       log.error(`tracker adapter error: ${formatTrackerError(adapter)}`)
-      this.scheduleTick(this.state.poll_interval_ms)
+      this.scheduleNextPoll()
       return
     }
 
@@ -130,7 +140,7 @@ export class Orchestrator {
     const combinedResult = await adapter.fetchCandidateAndWatchedIssues(watchedStates)
     if (isTrackerError(combinedResult)) {
       log.error(`tracker fetch failed (candidates + watched dispatch skipped): ${formatTrackerError(combinedResult)}`)
-      this.scheduleTick(this.state.poll_interval_ms)
+      this.scheduleNextPoll()
       return
     }
 
@@ -153,7 +163,7 @@ export class Orchestrator {
     }
 
     // 6. Schedule next tick
-    this.scheduleTick(this.state.poll_interval_ms)
+    this.scheduleNextPoll()
   }
 
   private availableSlots(): number {

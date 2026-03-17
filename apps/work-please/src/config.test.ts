@@ -79,6 +79,26 @@ describe('buildConfig', () => {
     expect(config.tracker.active_sections).toEqual(['Todo', 'In Progress'])
   })
 
+  it('defaults polling.mode to "poll"', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.polling.mode).toBe('poll')
+  })
+
+  it('parses polling.mode "webhook"', () => {
+    const config = buildConfig(makeWorkflow({ polling: { mode: 'webhook' } }))
+    expect(config.polling.mode).toBe('webhook')
+  })
+
+  it('falls back to "poll" for invalid polling.mode', () => {
+    const config = buildConfig(makeWorkflow({ polling: { mode: 'invalid' } }))
+    expect(config.polling.mode).toBe('poll')
+  })
+
+  it('parses polling.mode case-insensitively', () => {
+    const config = buildConfig(makeWorkflow({ polling: { mode: 'Webhook' } }))
+    expect(config.polling.mode).toBe('webhook')
+  })
+
   it('parses string integer for polling interval', () => {
     const config = buildConfig(makeWorkflow({ polling: { interval_ms: '60000' } }))
     expect(config.polling.interval_ms).toBe(60_000)
@@ -458,6 +478,14 @@ describe('validateConfig', () => {
     expect(err?.code).toBe('missing_tracker_project_config')
   })
 
+  it('returns null for webhook mode (port validation deferred to CLI)', () => {
+    const config = buildConfig(makeWorkflow({
+      tracker: { kind: 'asana', api_key: 'tok', project_gid: 'gid' },
+      polling: { mode: 'webhook' },
+    }))
+    expect(validateConfig(config)).toBeNull()
+  })
+
   it('returns missing_claude_command when claude.command is blank (Section 17.1)', () => {
     // buildConfig always applies default when command is empty, so we test validateConfig
     // directly with a ServiceConfig that has a blank command
@@ -790,5 +818,78 @@ describe('buildConfig - env section', () => {
     expect(config.env.VALID_KEY).toBe('ok')
     expect(config.env.ALSO_VALID).toBe('ok')
     expect(Object.keys(config.env)).toHaveLength(2)
+  })
+})
+
+describe('webhook config', () => {
+  it('defaults to null secret and null events when missing', () => {
+    const prev = process.env.WEBHOOK_SECRET
+    delete process.env.WEBHOOK_SECRET
+    try {
+      const config = buildConfig(makeWorkflow({}))
+      expect(config.server.webhook.secret).toBeNull()
+      expect(config.server.webhook.events).toBeNull()
+    }
+    finally {
+      if (prev === undefined)
+        delete process.env.WEBHOOK_SECRET
+      else
+        process.env.WEBHOOK_SECRET = prev
+    }
+  })
+
+  it('parses webhook secret directly', () => {
+    const config = buildConfig(makeWorkflow({
+      server: { webhook: { secret: 'my-webhook-secret' } },
+    }))
+    expect(config.server.webhook.secret).toBe('my-webhook-secret')
+  })
+
+  it('resolves webhook secret from env var', () => {
+    const prev = process.env.WEBHOOK_SECRET
+    process.env.WEBHOOK_SECRET = 'env-secret-value'
+    try {
+      const config = buildConfig(makeWorkflow({
+        server: { webhook: { secret: '$WEBHOOK_SECRET' } },
+      }))
+      expect(config.server.webhook.secret).toBe('env-secret-value')
+    }
+    finally {
+      if (prev === undefined)
+        delete process.env.WEBHOOK_SECRET
+      else
+        process.env.WEBHOOK_SECRET = prev
+    }
+  })
+
+  it('parses events as array', () => {
+    const config = buildConfig(makeWorkflow({
+      server: { webhook: { events: ['issues', 'pull_request'] } },
+    }))
+    expect(config.server.webhook.events).toEqual(['issues', 'pull_request'])
+  })
+
+  it('parses events as CSV string', () => {
+    const config = buildConfig(makeWorkflow({
+      server: { webhook: { events: 'issues, pull_request, projects_v2_item' } },
+    }))
+    expect(config.server.webhook.events).toEqual(['issues', 'pull_request', 'projects_v2_item'])
+  })
+
+  it('falls back to WEBHOOK_SECRET env when secret not set', () => {
+    const prev = process.env.WEBHOOK_SECRET
+    process.env.WEBHOOK_SECRET = 'fallback-secret'
+    try {
+      const config = buildConfig(makeWorkflow({
+        server: { webhook: {} },
+      }))
+      expect(config.server.webhook.secret).toBe('fallback-secret')
+    }
+    finally {
+      if (prev === undefined)
+        delete process.env.WEBHOOK_SECRET
+      else
+        process.env.WEBHOOK_SECRET = prev
+    }
   })
 })

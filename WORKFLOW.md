@@ -22,7 +22,9 @@ tracker:
   #   label: bug, feature         # CSV or YAML array; case-insensitive OR; at least one label must match
   # (Both fields AND together when both are set)
 polling:
-  interval_ms: 30000                 # default: 30s
+  # mode: poll                         # default: poll
+  # set to 'webhook' only after enabling server.port/--port for /api/v1/webhook
+  interval_ms: 30000                 # default: 30s (in webhook mode, used as fallback safety-net interval)
 workspace:
   root: ~/workspaces
 hooks:

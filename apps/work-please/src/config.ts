@@ -1,4 +1,4 @@
-import type { ClaudeEffort, IssueFilter, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { ClaudeEffort, IssueFilter, PollingMode, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -51,6 +51,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
   return {
     tracker: buildTrackerConfig(kind, tracker),
     polling: {
+      mode: pollingModeValue(polling.mode),
       interval_ms: intValue(polling.interval_ms, DEFAULTS.POLL_INTERVAL_MS),
     },
     workspace: {
@@ -73,6 +74,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
     env: buildEnvConfig(raw),
     server: {
       port: nonNegIntOrNull(server.port),
+      webhook: buildWebhookConfig(sectionMap(server, 'webhook')),
     },
   }
 }
@@ -144,6 +146,13 @@ function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown
     api_key: resolveEnvValue(stringValue(tracker.api_key), undefined),
     label_prefix,
     filter,
+  }
+}
+
+function buildWebhookConfig(webhook: Record<string, unknown>): ServiceConfig['server']['webhook'] {
+  return {
+    secret: resolveEnvValue(stringValue(webhook.secret), process.env.WEBHOOK_SECRET),
+    events: csvValue(webhook.events) ?? null,
   }
 }
 
@@ -334,6 +343,11 @@ function effortValue(val: unknown, fallback: ClaudeEffort): ClaudeEffort {
     default:
       return fallback
   }
+}
+
+function pollingModeValue(val: unknown): PollingMode {
+  const s = typeof val === 'string' ? val.trim().toLowerCase() : ''
+  return s === 'webhook' ? 'webhook' : 'poll'
 }
 
 function commandValue(val: unknown): string | null {

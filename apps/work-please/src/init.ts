@@ -206,7 +206,9 @@ tracker:
   watched_states:
     - Human Review
 polling:
-  interval_ms: 30000
+  # mode: poll                         # default: poll
+  # set to 'webhook' only after enabling server.port/--port for /api/v1/webhook
+  interval_ms: 30000                   # use a longer fallback (e.g. 300000) in webhook mode
 workspace:
   root: ~/workspaces
 hooks:
