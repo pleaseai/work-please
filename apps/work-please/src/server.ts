@@ -1,6 +1,8 @@
 import type { Orchestrator } from './orchestrator'
 import type { OrchestratorState, RetryEntry, RunningEntry } from './types'
 import type { VerifySignature } from './webhook'
+import { existsSync } from 'node:fs'
+import { extname, join, normalize } from 'node:path'
 import { createVerify, handleWebhook } from './webhook'
 import { workspacePath } from './workspace'
 
@@ -10,6 +12,21 @@ const ESC_AMP_RE = /&/g
 const ESC_LT_RE = /</g
 const ESC_GT_RE = />/g
 const ESC_QUOT_RE = /"/g
+
+const DASHBOARD_DIST = Bun.env.DASHBOARD_DIST
+  ?? join(import.meta.dir, '..', '..', '..', 'dashboard', 'dist')
+
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+}
 
 export class HttpServer {
   private server: ReturnType<typeof Bun.serve> | null = null
@@ -72,10 +89,7 @@ export class HttpServer {
     const url = new URL(req.url)
     const pathname = url.pathname
 
-    if (pathname === '/') {
-      return dashboardResponse(orchestrator)
-    }
-
+    // API routes
     if (pathname === '/api/v1/state') {
       if (req.method !== 'GET')
         return methodNotAllowed()
@@ -105,7 +119,37 @@ export class HttpServer {
       return issueResponse(orchestrator, identifier)
     }
 
-    return notFound()
+    // Unknown API routes return 404
+    if (pathname.startsWith('/api/'))
+      return notFound()
+
+    // Static file serving from dashboard dist
+    return this.serveStatic(pathname, orchestrator)
+  }
+
+  private serveStatic(pathname: string, orchestrator: Orchestrator): Response {
+    // Try exact file match from dashboard dist
+    const resolved = normalize(join(DASHBOARD_DIST, pathname))
+    if (!resolved.startsWith(DASHBOARD_DIST))
+      return notFound()
+
+    if (existsSync(resolved) && !Bun.file(resolved).type?.startsWith('inode')) {
+      const ext = extname(resolved)
+      return new Response(Bun.file(resolved), {
+        headers: { 'Content-Type': MIME_TYPES[ext] ?? 'application/octet-stream' },
+      })
+    }
+
+    // SPA fallback: serve index.html for client-side routing
+    const indexPath = join(DASHBOARD_DIST, 'index.html')
+    if (existsSync(indexPath)) {
+      return new Response(Bun.file(indexPath), {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
+    }
+
+    // No dashboard build — fall back to inline HTML
+    return dashboardResponse(orchestrator)
   }
 }
 
