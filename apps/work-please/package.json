@@ -1,7 +1,7 @@
 {
   "name": "@pleaseai/work",
   "type": "module",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Symphony-spec orchestrator for Claude Code + Asana/GitHub Projects v2",
   "license": "FSL-1.1-MIT",
   "repository": {

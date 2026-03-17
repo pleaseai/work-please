@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.11](https://github.com/pleaseai/work-please/compare/work-v0.1.10...work-v0.1.11) (2026-03-17)
+
+
+### Features
+
+* **webhook:** add webhook mode with @octokit/webhooks ([#101](https://github.com/pleaseai/work-please/issues/101)) ([ea891fc](https://github.com/pleaseai/work-please/commit/ea891fcf6b68f86be46853f9857d5399a12cd9b4))
+
+
+### Bug Fixes
+
+* **cli:** prevent --help from starting the server ([#111](https://github.com/pleaseai/work-please/issues/111)) ([73ac406](https://github.com/pleaseai/work-please/commit/73ac4065e1cf1c087110ecfbd8d138c6f673a23f))
+
 ## [0.1.10](https://github.com/pleaseai/work-please/compare/work-v0.1.9...work-v0.1.10) (2026-03-16)
 
 
