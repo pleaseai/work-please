@@ -46,6 +46,13 @@ export function extractContent(msg: { type: string, message: unknown }): Content
           input: typeof b.input === 'string' ? b.input : JSON.stringify(b.input, null, 2),
         })
       }
+      else if (b.type === 'tool_result') {
+        const content = b.content
+        blocks.push({
+          kind: 'text',
+          text: typeof content === 'string' ? content : JSON.stringify(content, null, 2),
+        })
+      }
       else {
         blocks.push({ kind: 'text', text: `[${String(b.type)}]` })
       }

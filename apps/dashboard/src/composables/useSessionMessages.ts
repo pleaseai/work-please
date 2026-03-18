@@ -11,11 +11,20 @@ export function useSessionMessages(sessionId: () => string, intervalMs = 5000) {
 
   let fetchId = 0
   let fetching = false
+  let currentSessionId = sessionId()
+
   async function load() {
     const id = sessionId()
     if (!id) {
       loading.value = false
       return
+    }
+    // If sessionId changed, reset fetching guard so we don't skip this load
+    if (id !== currentSessionId) {
+      currentSessionId = id
+      fetching = false
+      messages.value = []
+      loading.value = true
     }
     if (fetching)
       return

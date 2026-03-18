@@ -311,7 +311,7 @@ function dashboardResponse(orchestrator: Orchestrator): Response {
       <td>${esc(r.identifier)}</td>
       <td>${esc(r.issue.state)}</td>
       <td>${r.turn_count}</td>
-      <td>${r.session_id ? `<a href="/sessions/${esc(r.session_id)}" style="color:#89b4fa">${esc(r.session_id)}</a>` : ''}</td>
+      <td>${r.session_id ? `<a href="/sessions/${esc(r.session_id)}">${esc(r.session_id)}</a>` : ''}</td>
       <td>${esc(r.started_at.toISOString())}</td>
       <td>${esc(r.last_agent_event ?? '')}</td>
       <td>${r.agent_total_tokens}</td>

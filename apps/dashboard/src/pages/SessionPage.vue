@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SessionMessageBlock } from '@/lib/api'
-import { watchEffect } from 'vue'
+import { watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,12 @@ import { useSessionMessages } from '@/composables/useSessionMessages'
 
 const route = useRoute()
 const sessionId = () => route.params.id as string
-const { messages, loading, error } = useSessionMessages(sessionId)
+const { messages, loading, error, refresh } = useSessionMessages(sessionId)
+
+// Trigger a fresh load immediately when the session ID changes
+watch(() => route.params.id, () => {
+  refresh()
+})
 
 watchEffect(() => {
   const id = route.params.id as string
