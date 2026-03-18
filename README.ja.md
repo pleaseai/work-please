@@ -550,7 +550,7 @@ server:
 | `server` | 不可 | サービスレベルの関心事 |
 | `agent` | **可能** | `max_turns`、リトライ、同時実行数 |
 | `claude` | **可能** | `model`、`effort`、`allowed_tools`、`system_prompt`、`permission_mode` |
-| `hooks` | 不可 | シェルスクリプト実行 — セキュリティ境界 |
+| `hooks` | 明示的opt-inのみ | デフォルトには含まれません。`allow`に`hooks`を追加すると`before_run`/`after_run`のオーバーライドが可能 |
 | `env` | **可能** | エージェント用の追加環境変数 |
 | プロンプトテンプレート | **可能** | リポジトリごとのプロンプトカスタマイズ |
 

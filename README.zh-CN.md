@@ -548,7 +548,7 @@ server:
 | `server` | 否 | 服务级别关注点 |
 | `agent` | **是** | `max_turns`、重试、并发 |
 | `claude` | **是** | `model`、`effort`、`allowed_tools`、`system_prompt`、`permission_mode` |
-| `hooks` | 否 | Shell 脚本执行 —— 安全边界 |
+| `hooks` | 仅限显式 opt-in | 默认不包含；将 `hooks` 添加到 `allow` 后可覆盖 `before_run`/`after_run` |
 | `env` | **是** | 代理的额外环境变量 |
 | 提示词模板 | **是** | 仓库级提示词自定义 |
 

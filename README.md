@@ -576,7 +576,7 @@ configuration.
 | `server` | No | Service-level concern |
 | `agent` | **Yes** | `max_turns`, retry, concurrency |
 | `claude` | **Yes** | `model`, `effort`, `allowed_tools`, `system_prompt`, `permission_mode` |
-| `hooks` | No | Shell script execution — security boundary |
+| `hooks` | Opt-in only | Not in defaults; add `hooks` to `allow` to permit `before_run`/`after_run` override |
 | `env` | **Yes** | Additional env vars for agent |
 | Prompt template | **Yes** | Per-repo prompt customization |
 

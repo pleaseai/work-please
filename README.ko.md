@@ -549,7 +549,7 @@ server:
 | `server` | 불가 | 서비스 수준 관심사 |
 | `agent` | **가능** | `max_turns`, 재시도, 동시성 |
 | `claude` | **가능** | `model`, `effort`, `allowed_tools`, `system_prompt`, `permission_mode` |
-| `hooks` | 불가 | 셸 스크립트 실행 — 보안 경계 |
+| `hooks` | 명시적 opt-in만 | 기본값에 미포함; `allow`에 `hooks` 추가 시 `before_run`/`after_run` 오버라이드 허용 |
 | `env` | **가능** | 에이전트용 추가 환경 변수 |
 | 프롬프트 템플릿 | **가능** | 저장소별 프롬프트 커스터마이즈 |
 
