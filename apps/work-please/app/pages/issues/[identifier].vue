@@ -110,7 +110,12 @@ const tokens = computed(() => detail.value?.running?.tokens ?? null)
               <div v-if="detail.running.session_id">
                 <span class="text-muted">Session ID</span>
                 <div class="font-mono text-xs break-all">
-                  {{ detail.running.session_id }}
+                  <NuxtLink
+                    :to="`/sessions/${encodeURIComponent(detail.running.session_id)}`"
+                    class="text-primary hover:underline"
+                  >
+                    {{ detail.running.session_id }}
+                  </NuxtLink>
                 </div>
               </div>
 

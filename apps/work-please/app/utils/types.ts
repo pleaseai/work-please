@@ -72,3 +72,16 @@ export interface IssueDetailResponse {
   }>
   last_error: string | null
 }
+
+export interface SessionMessageBlock {
+  kind: 'text' | 'tool_use'
+  text?: string
+  tool_name?: string
+  input?: string
+}
+
+export interface SessionMessage {
+  type: string
+  uuid: string
+  content: SessionMessageBlock[]
+}

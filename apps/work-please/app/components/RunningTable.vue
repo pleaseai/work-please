@@ -31,9 +31,14 @@ const columns = [
       <span class="tabular-nums">{{ row.original.turn_count }}</span>
     </template>
     <template #session_id-cell="{ row }">
-      <span class="max-w-32 truncate text-muted text-xs font-mono">
-        {{ row.original.session_id ?? '—' }}
-      </span>
+      <NuxtLink
+        v-if="row.original.session_id"
+        :to="`/sessions/${encodeURIComponent(row.original.session_id)}`"
+        class="max-w-32 truncate text-primary text-xs font-mono hover:underline"
+      >
+        {{ row.original.session_id }}
+      </NuxtLink>
+      <span v-else class="text-muted">—</span>
     </template>
     <template #started_at-cell="{ row }">
       <span class="tabular-nums">{{ formatTime(row.original.started_at) }}</span>
