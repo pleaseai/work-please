@@ -87,3 +87,20 @@ graph LR
 
 - The `isWatchedUnchanged()` function already handles linked PR timestamps correctly — no changes needed there
 - The test helper `shouldDispatchWatched` in `orchestrator.test.ts` mirrors the production guard verbatim, treating the skip behavior as correct
+
+## Outcomes & Retrospective
+
+### What Was Shipped
+- 2-line fix in `normalizeProjectItem()` to promote linked open PR's `review_decision` to Issue-level
+- 6 new tests (promotion, null path, closed PRs, skip-null multi-PR, dispatch integration, PR-type regression)
+
+### What Went Well
+- Root cause was clear from the issue description — investigation confirmed it quickly
+- Fix was minimal and targeted at the data layer, requiring no downstream changes
+- TDD workflow worked well — failing test written first, then 2-line fix made it pass
+
+### What Could Improve
+- The orchestrator test helper `shouldDispatchWatched` is a local re-implementation of production logic — could drift over time
+
+### Tech Debt Created
+- None
