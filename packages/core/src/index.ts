@@ -67,6 +67,7 @@ export {
   checkoutExistingBranch,
   buildHookEnv,
   sanitizeIdentifier,
+  workspacePath,
 } from './workspace'
 
 // Tools

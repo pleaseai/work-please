@@ -29,9 +29,12 @@
     "test:coverage": "bun test --coverage --coverage-reporter=lcov"
   },
   "dependencies": {
+    "@nuxt/ui": "^4.5.1",
     "@octokit/graphql": "^9.0.3",
     "@pleaseai/core": "workspace:*",
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "nuxt": "^4.4.2",
+    "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.7.0",
