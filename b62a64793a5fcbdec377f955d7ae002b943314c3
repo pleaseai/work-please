@@ -1,0 +1,23 @@
+.github/workflows/release-please.yml
+  cdaf3fd2fd51d8af 67,108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "b62a64793a5fcbdec377f955d7ae002b943314c3",
+  "prompts": {
+    "cdaf3fd2fd51d8af": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fb3b1619-f71e-4dd8-bdcc-02b0a1662526",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
