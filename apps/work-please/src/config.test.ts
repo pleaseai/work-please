@@ -281,6 +281,95 @@ describe('buildConfig', () => {
   })
 })
 
+describe('buildConfig - claude.sandbox', () => {
+  it('defaults sandbox to null when not configured', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.claude.sandbox).toBeNull()
+  })
+
+  it('returns null for non-object sandbox values', () => {
+    expect(buildConfig(makeWorkflow({ claude: { sandbox: 'yes' } })).claude.sandbox).toBeNull()
+    expect(buildConfig(makeWorkflow({ claude: { sandbox: 42 } })).claude.sandbox).toBeNull()
+    expect(buildConfig(makeWorkflow({ claude: { sandbox: true } })).claude.sandbox).toBeNull()
+    expect(buildConfig(makeWorkflow({ claude: { sandbox: [] } })).claude.sandbox).toBeNull()
+  })
+
+  it('returns null for empty sandbox object', () => {
+    const config = buildConfig(makeWorkflow({ claude: { sandbox: {} } }))
+    expect(config.claude.sandbox).toBeNull()
+  })
+
+  it('parses enabled flag', () => {
+    const config = buildConfig(makeWorkflow({ claude: { sandbox: { enabled: true } } }))
+    expect(config.claude.sandbox?.enabled).toBe(true)
+  })
+
+  it('parses autoAllowBashIfSandboxed flag', () => {
+    const config = buildConfig(makeWorkflow({ claude: { sandbox: { enabled: true, autoAllowBashIfSandboxed: true } } }))
+    expect(config.claude.sandbox?.autoAllowBashIfSandboxed).toBe(true)
+  })
+
+  it('parses network configuration', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: {
+        sandbox: {
+          enabled: true,
+          network: {
+            allowedDomains: ['api.github.com', 'registry.npmjs.org'],
+            allowLocalBinding: true,
+            allowUnixSockets: ['/var/run/docker.sock'],
+          },
+        },
+      },
+    }))
+    expect(config.claude.sandbox?.network?.allowedDomains).toEqual(['api.github.com', 'registry.npmjs.org'])
+    expect(config.claude.sandbox?.network?.allowLocalBinding).toBe(true)
+    expect(config.claude.sandbox?.network?.allowUnixSockets).toEqual(['/var/run/docker.sock'])
+  })
+
+  it('parses filesystem configuration', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: {
+        sandbox: {
+          enabled: true,
+          filesystem: {
+            allowWrite: ['/tmp'],
+            denyRead: ['/etc/shadow'],
+          },
+        },
+      },
+    }))
+    expect(config.claude.sandbox?.filesystem?.allowWrite).toEqual(['/tmp'])
+    expect(config.claude.sandbox?.filesystem?.denyRead).toEqual(['/etc/shadow'])
+  })
+
+  it('parses excludedCommands as array', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: {
+        sandbox: { enabled: true, excludedCommands: ['rm', 'curl'] },
+      },
+    }))
+    expect(config.claude.sandbox?.excludedCommands).toEqual(['rm', 'curl'])
+  })
+
+  it('parses ripgrep configuration', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: {
+        sandbox: { enabled: true, ripgrep: { command: '/usr/bin/rg', args: ['--hidden'] } },
+      },
+    }))
+    expect(config.claude.sandbox?.ripgrep).toEqual({ command: '/usr/bin/rg', args: ['--hidden'] })
+  })
+
+  it('ignores non-boolean enabled values', () => {
+    const config = buildConfig(makeWorkflow({
+      claude: { sandbox: { enabled: 'yes', autoAllowBashIfSandboxed: true } },
+    }))
+    expect(config.claude.sandbox?.enabled).toBeUndefined()
+    expect(config.claude.sandbox?.autoAllowBashIfSandboxed).toBe(true)
+  })
+})
+
 describe('buildConfig - claude.settings.attribution', () => {
   it('defaults attribution to null when not configured', () => {
     const config = buildConfig(makeWorkflow({}))

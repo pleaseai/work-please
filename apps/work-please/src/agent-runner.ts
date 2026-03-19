@@ -125,6 +125,10 @@ export class AppServerClient {
 
     options.effort = this.config.claude.effort
 
+    if (this.config.claude.sandbox) {
+      options.sandbox = this.config.claude.sandbox
+    }
+
     const toolSpecs = getToolSpecs(this.config)
     if (toolSpecs.length > 0) {
       options.mcpServers = {
@@ -155,6 +159,7 @@ export class AppServerClient {
         sessionId: options.sessionId,
         pathToClaudeCodeExecutable: options.pathToClaudeCodeExecutable,
         allowedTools: options.allowedTools,
+        sandbox: options.sandbox,
         settingSources: options.settingSources,
         systemPrompt: options.systemPrompt && typeof options.systemPrompt === 'object'
           ? { type: (options.systemPrompt as Record<string, unknown>).type }
