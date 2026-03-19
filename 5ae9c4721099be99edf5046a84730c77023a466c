@@ -1,0 +1,25 @@
+apps/dashboard/src/composables/useSessionMessages.ts
+  9aaecf5aecd5dbb7 27
+apps/work-please/src/session-renderer.ts
+  9aaecf5aecd5dbb7 53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "5ae9c4721099be99edf5046a84730c77023a466c",
+  "prompts": {
+    "9aaecf5aecd5dbb7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c2a5f502-03b4-4779-b70d-798ed36583f8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
