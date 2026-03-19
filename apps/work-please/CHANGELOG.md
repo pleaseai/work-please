@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.13](https://github.com/pleaseai/work-please/compare/work-v0.1.12...work-v0.1.13) (2026-03-19)
+
+
+### Features
+
+* **agent-runner:** add sandbox config support for Claude execution ([#114](https://github.com/pleaseai/work-please/issues/114)) ([29888c4](https://github.com/pleaseai/work-please/commit/29888c434f5d32832a47150cef9bab61e76d4e31))
+
 ## [0.1.12](https://github.com/pleaseai/work-please/compare/work-v0.1.11...work-v0.1.12) (2026-03-18)
 
 
