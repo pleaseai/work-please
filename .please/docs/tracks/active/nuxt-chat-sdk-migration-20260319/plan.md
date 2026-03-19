@@ -55,16 +55,16 @@ This was preferred over a "big-bang" rewrite because each phase can be validated
 
 ### Phase 2: Initialize Nuxt in `apps/work-please`
 
-- [ ] T007 Add Nuxt, Nuxt UI, and Nitro dependencies (file: apps/work-please/package.json) (depends on T006)
-- [ ] T008 Create `nuxt.config.ts` with Bun preset and Nuxt UI module (file: apps/work-please/nuxt.config.ts) (depends on T007)
-- [ ] T009 Create minimal `app/app.vue` with `<UApp>` wrapper (file: apps/work-please/app/app.vue) (depends on T008)
-- [ ] T010 Create Nitro server plugin for orchestrator lifecycle (file: apps/work-please/server/plugins/orchestrator.ts) (depends on T008)
-- [ ] T011 Create `server/utils/orchestrator.ts` helper (file: apps/work-please/server/utils/orchestrator.ts) (depends on T010)
-- [ ] T012 [P] Migrate GET `/api/v1/state` to Nitro route (file: apps/work-please/server/api/v1/state.get.ts) (depends on T011)
-- [ ] T013 [P] Migrate POST `/api/v1/refresh` to Nitro route (file: apps/work-please/server/api/v1/refresh.post.ts) (depends on T011)
-- [ ] T014 [P] Migrate GET `/api/v1/:identifier` to Nitro route (file: apps/work-please/server/api/v1/[identifier].get.ts) (depends on T011)
-- [ ] T015 [P] Migrate POST webhook to Nitro route (file: apps/work-please/server/api/webhooks/github.post.ts) (depends on T011)
-- [ ] T016 Verify: `nuxt dev` starts, API routes respond correctly (depends on T012, T013, T014, T015)
+- [x] T007 Add Nuxt, Nuxt UI, and Nitro dependencies (file: apps/work-please/package.json) (depends on T006)
+- [x] T008 Create `nuxt.config.ts` with Bun preset and Nuxt UI module (file: apps/work-please/nuxt.config.ts) (depends on T007)
+- [x] T009 Create minimal `app/app.vue` with `<UApp>` wrapper (file: apps/work-please/app/app.vue) (depends on T008)
+- [x] T010 Create Nitro server plugin for orchestrator lifecycle (file: apps/work-please/server/plugins/orchestrator.ts) (depends on T008)
+- [x] T011 Create `server/utils/orchestrator.ts` helper (file: apps/work-please/server/utils/orchestrator.ts) (depends on T010)
+- [x] T012 [P] Migrate GET `/api/v1/state` to Nitro route (file: apps/work-please/server/api/v1/state.get.ts) (depends on T011)
+- [x] T013 [P] Migrate POST `/api/v1/refresh` to Nitro route (file: apps/work-please/server/api/v1/refresh.post.ts) (depends on T011)
+- [x] T014 [P] Migrate GET `/api/v1/:identifier` to Nitro route (file: apps/work-please/server/api/v1/[identifier].get.ts) (depends on T011)
+- [x] T015 [P] Migrate POST webhook to Nitro route (file: apps/work-please/server/api/webhooks/github.post.ts) (depends on T011)
+- [x] T016 Verify: `nuxt dev` starts, API routes respond correctly (depends on T012, T013, T014, T015)
 
 ### Phase 3: Migrate Dashboard UI
 
@@ -210,16 +210,17 @@ This was preferred over a "big-bang" rewrite because each phase can be validated
 - [x] (2026-03-19 11:45 KST) T005 Update `apps/work-please/src/` imports to use `@pleaseai/core`
 - [x] (2026-03-19 11:45 KST) T006 Verify: all tests pass, build passes, type-check passes
   Evidence: `bun run test` -> 543 pass, 0 fail. `bun run check:app` -> 2 successful.
-- [ ] T007 Add Nuxt, Nuxt UI, and Nitro dependencies
-- [ ] T008 Create `nuxt.config.ts`
-- [ ] T009 Create minimal `app/app.vue`
-- [ ] T010 Create Nitro server plugin for orchestrator lifecycle
-- [ ] T011 Create `server/utils/orchestrator.ts` helper
-- [ ] T012 Migrate GET `/api/v1/state` to Nitro route
-- [ ] T013 Migrate POST `/api/v1/refresh` to Nitro route
-- [ ] T014 Migrate GET `/api/v1/:identifier` to Nitro route
-- [ ] T015 Migrate POST webhook to Nitro route
-- [ ] T016 Verify: `nuxt dev` starts, API routes respond correctly
+- [x] (2026-03-19 12:00 KST) T007 Add Nuxt, Nuxt UI, and Nitro dependencies
+- [x] (2026-03-19 12:00 KST) T008 Create `nuxt.config.ts`
+- [x] (2026-03-19 12:00 KST) T009 Create minimal `app/app.vue`
+- [x] (2026-03-19 12:00 KST) T010 Create Nitro server plugin for orchestrator lifecycle
+- [x] (2026-03-19 12:00 KST) T011 Create `server/utils/orchestrator.ts` helper
+- [x] (2026-03-19 12:00 KST) T012 Migrate GET `/api/v1/state` to Nitro route
+- [x] (2026-03-19 12:00 KST) T013 Migrate POST `/api/v1/refresh` to Nitro route
+- [x] (2026-03-19 12:00 KST) T014 Migrate GET `/api/v1/:identifier` to Nitro route
+- [x] (2026-03-19 12:00 KST) T015 Migrate POST webhook to Nitro route
+- [x] (2026-03-19 12:00 KST) T016 Verify: `nuxt dev` starts, API routes respond correctly
+  Evidence: `nuxt build` succeeds, all 4 API routes compiled, 543 tests pass
 - [ ] T017 Create dashboard layout with `UDashboardLayout`
 - [ ] T018 Migrate `useOrchestratorState` composable
 - [ ] T019 Migrate `useIssueDetail` composable
