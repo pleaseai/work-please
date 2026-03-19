@@ -65,7 +65,7 @@ jobs:
         run: cp LICENSE README.md apps/work-please/
 
       - name: 'Pack with bun (resolves workspace: protocol)'
-        run: bun pm pack
+        run: bun pm pack --ignore-scripts
         working-directory: apps/work-please
 
       - name: Publish tarball with npm (supports --provenance)
@@ -106,7 +106,7 @@ jobs:
         run: cp LICENSE README.md packages/core/
 
       - name: 'Pack with bun (resolves workspace: protocol)'
-        run: bun pm pack
+        run: bun pm pack --ignore-scripts
         working-directory: packages/core
 
       - name: Publish tarball with npm (supports --provenance)
