@@ -3,14 +3,7 @@ import { workspacePath } from '@pleaseai/core'
 
 export default defineEventHandler((event) => {
   const orchestrator = useOrchestrator(event)
-  const raw = getRouterParam(event, 'identifier') ?? ''
-  let identifier: string
-  try {
-    identifier = decodeURIComponent(raw)
-  }
-  catch {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid identifier encoding' })
-  }
+  const identifier = getRouterParam(event, 'identifier') ?? ''
 
   if (!identifier) {
     throw createError({ statusCode: 400, statusMessage: 'Missing identifier' })

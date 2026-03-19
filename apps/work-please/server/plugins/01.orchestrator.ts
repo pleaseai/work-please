@@ -3,7 +3,7 @@ import { createLogger, Orchestrator } from '@pleaseai/core'
 
 const log = createLogger('orchestrator')
 
-export default defineNitroPlugin((nitroApp) => {
+export default defineNitroPlugin(async (nitroApp) => {
   const config = useRuntimeConfig()
   const workflowPath = config.workflowPath as string
 
@@ -17,10 +17,13 @@ export default defineNitroPlugin((nitroApp) => {
   // Store on nitroApp for access by server routes
   ;(nitroApp as any).orchestrator = orchestrator
 
-  orchestrator.start().catch((err) => {
+  try {
+    await orchestrator.start()
+  }
+  catch (err) {
     log.error('startup failed:', err)
     process.exit(1)
-  })
+  }
 
   nitroApp.hooks.hook('close', () => {
     try {

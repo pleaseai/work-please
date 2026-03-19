@@ -19,6 +19,11 @@ const WORKFLOW_FILE_NAME = 'WORKFLOW.md'
 export async function runCli(argv: string[]): Promise<void> {
   const parsed = parseArgs(argv.slice(2))
 
+  if (parsed.verbose) {
+    process.env.VERBOSE = 'true'
+    setVerbose(true)
+  }
+
   if (parsed.command === 'version' || parsed.command === 'help')
     return
 
@@ -39,10 +44,6 @@ export async function runCli(argv: string[]): Promise<void> {
   process.env.NUXT_WORKFLOW_PATH = resolvedPath
   if (parsed.portOverride !== null) {
     process.env.PORT = String(parsed.portOverride)
-  }
-  if (parsed.verbose) {
-    process.env.VERBOSE = 'true'
-    setVerbose(true)
   }
 
   // Start the Nuxt server
