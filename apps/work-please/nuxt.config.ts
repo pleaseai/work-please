@@ -23,9 +23,11 @@ export default defineNuxtConfig({
 
   vite: {
     server: {
-      allowedHosts: process.env.NUXT_VITE_ALLOWED_HOSTS
-        ? process.env.NUXT_VITE_ALLOWED_HOSTS.split(',')
-        : true,
+      allowedHosts: (() => {
+        const hosts = process.env.NUXT_VITE_ALLOWED_HOSTS
+        if (!hosts) return true
+        return hosts.split(',').map(h => h.trim()).filter(Boolean)
+      })(),
     },
   },
 
