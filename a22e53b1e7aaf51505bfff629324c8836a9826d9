@@ -1,0 +1,51 @@
+apps/work-please/server/plugins/02.chat-bot.ts
+  ec3ba566973ae6f3 1,5
+.github/workflows/release-please.yml
+  ec3ba566973ae6f3 19,34,69-104
+apps/work-please/server/api/v1/[identifier].get.ts
+  ec3ba566973ae6f3 1-2
+ARCHITECTURE.md
+  ec3ba566973ae6f3 65
+apps/work-please/server/api/v1/state.get.ts
+  ec3ba566973ae6f3 1
+packages/core/package.json
+  ec3ba566973ae6f3 2,7-11,17-22
+.please/docs/knowledge/tech-stack.md
+  ec3ba566973ae6f3 71
+apps/work-please/src/init.ts
+  ec3ba566973ae6f3 5
+apps/work-please/src/cli.ts
+  ec3ba566973ae6f3 4
+apps/work-please/server/plugins/01.orchestrator.ts
+  ec3ba566973ae6f3 2
+release-please-config.json
+  ec3ba566973ae6f3 12-17
+apps/work-please/package.json
+  ec3ba566973ae6f3 37
+apps/work-please/server/utils/orchestrator.ts
+  ec3ba566973ae6f3 1
+.release-please-manifest.json
+  ec3ba566973ae6f3 3
+apps/work-please/server/api/webhooks/github.post.ts
+  ec3ba566973ae6f3 1,3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "a22e53b1e7aaf51505bfff629324c8836a9826d9",
+  "prompts": {
+    "ec3ba566973ae6f3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1673f7a-4430-40f8-96f8-c8daf990c9a3",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 105,
+      "total_deletions": 16,
+      "accepted_lines": 105,
+      "overriden_lines": 0
+    }
+  }
+}
