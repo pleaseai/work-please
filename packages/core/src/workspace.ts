@@ -1,4 +1,5 @@
 import type { Issue, ServiceConfig, Workspace } from './types'
+import { Buffer } from 'node:buffer'
 import { spawnSync as nodeSpawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'

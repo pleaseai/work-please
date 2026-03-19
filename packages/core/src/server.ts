@@ -53,7 +53,7 @@ export class HttpServer {
 
   start(): number {
     if (typeof globalThis.Bun === 'undefined') {
-      throw new Error('HttpServer requires the Bun runtime')
+      throw new TypeError('HttpServer requires the Bun runtime')
     }
     const srv = globalThis.Bun.serve({
       hostname: this.host,
