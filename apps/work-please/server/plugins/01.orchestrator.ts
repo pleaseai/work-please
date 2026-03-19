@@ -5,8 +5,7 @@ const log = createLogger('orchestrator')
 
 export default defineNitroPlugin((nitroApp) => {
   const config = useRuntimeConfig()
-  // Check runtimeConfig (NUXT_WORKFLOW_PATH) then process.env (WORKFLOW_PATH from CLI)
-  const workflowPath = config.workflowPath || process.env.WORKFLOW_PATH || ''
+  const workflowPath = config.workflowPath as string
 
   if (!workflowPath) {
     log.warn('no WORKFLOW_PATH configured — orchestrator not started')

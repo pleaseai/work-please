@@ -35,7 +35,8 @@ export async function runCli(argv: string[]): Promise<void> {
   }
 
   // Set environment variables for the Nuxt/Nitro server
-  process.env.WORKFLOW_PATH = resolvedPath
+  // NUXT_ prefix required for Nuxt runtimeConfig auto-mapping
+  process.env.NUXT_WORKFLOW_PATH = resolvedPath
   if (parsed.portOverride !== null) {
     process.env.PORT = String(parsed.portOverride)
   }
