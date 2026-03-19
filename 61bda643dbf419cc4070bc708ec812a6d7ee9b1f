@@ -1,0 +1,27 @@
+.gitignore
+  eea92607f83fda9b 16
+apps/work-please/package.json
+  eea92607f83fda9b 24
+turbo.json
+  eea92607f83fda9b 16-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "61bda643dbf419cc4070bc708ec812a6d7ee9b1f",
+  "prompts": {
+    "eea92607f83fda9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1a7ec1b-1175-4faa-a64f-194dc6285a84",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 41,
+      "total_deletions": 4,
+      "accepted_lines": 40,
+      "overriden_lines": 0
+    }
+  }
+}
