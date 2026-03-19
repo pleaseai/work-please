@@ -46,12 +46,12 @@ This was preferred over a "big-bang" rewrite because each phase can be validated
 
 ### Phase 1: Extract `packages/core`
 
-- [ ] T001 Create `packages/core` package scaffold (file: packages/core/package.json)
-- [ ] T002 [P] Move orchestrator source files to `packages/core/src/` (file: packages/core/src/index.ts) (depends on T001)
-- [ ] T003 [P] Move co-located test files to `packages/core/` (depends on T001)
-- [ ] T004 Create barrel export `packages/core/src/index.ts` (depends on T002)
-- [ ] T005 Update `apps/work-please/src/` imports to use `@pleaseai/core` (file: apps/work-please/src/cli.ts) (depends on T004)
-- [ ] T006 Verify: all tests pass, build passes, type-check passes (depends on T005)
+- [x] T001 Create `packages/core` package scaffold (file: packages/core/package.json)
+- [x] T002 [P] Move orchestrator source files to `packages/core/src/` (file: packages/core/src/index.ts) (depends on T001)
+- [x] T003 [P] Move co-located test files to `packages/core/` (depends on T001)
+- [x] T004 Create barrel export `packages/core/src/index.ts` (depends on T002)
+- [x] T005 Update `apps/work-please/src/` imports to use `@pleaseai/core` (file: apps/work-please/src/cli.ts) (depends on T004)
+- [x] T006 Verify: all tests pass, build passes, type-check passes (depends on T005)
 
 ### Phase 2: Initialize Nuxt in `apps/work-please`
 
@@ -200,3 +200,45 @@ This was preferred over a "big-bang" rewrite because each phase can be validated
 - Decision: CLI entry point starts Nuxt server programmatically (Option A)
   Rationale: Preserves npm `bin` distribution as `@pleaseai/work`, keeps CLI UX (Commander.js `--port`, `--verbose`), and allows fast error handling before Nuxt boot
   Date/Author: 2026-03-19 / User + Claude
+
+## Progress
+
+- [x] (2026-03-19 11:45 KST) T001 Create `packages/core` package scaffold
+- [x] (2026-03-19 11:45 KST) T002 Move orchestrator source files to `packages/core/src/`
+- [x] (2026-03-19 11:45 KST) T003 Move co-located test files to `packages/core/`
+- [x] (2026-03-19 11:45 KST) T004 Create barrel export `packages/core/src/index.ts`
+- [x] (2026-03-19 11:45 KST) T005 Update `apps/work-please/src/` imports to use `@pleaseai/core`
+- [x] (2026-03-19 11:45 KST) T006 Verify: all tests pass, build passes, type-check passes
+  Evidence: `bun run test` -> 543 pass, 0 fail. `bun run check:app` -> 2 successful.
+- [ ] T007 Add Nuxt, Nuxt UI, and Nitro dependencies
+- [ ] T008 Create `nuxt.config.ts`
+- [ ] T009 Create minimal `app/app.vue`
+- [ ] T010 Create Nitro server plugin for orchestrator lifecycle
+- [ ] T011 Create `server/utils/orchestrator.ts` helper
+- [ ] T012 Migrate GET `/api/v1/state` to Nitro route
+- [ ] T013 Migrate POST `/api/v1/refresh` to Nitro route
+- [ ] T014 Migrate GET `/api/v1/:identifier` to Nitro route
+- [ ] T015 Migrate POST webhook to Nitro route
+- [ ] T016 Verify: `nuxt dev` starts, API routes respond correctly
+- [ ] T017 Create dashboard layout with `UDashboardLayout`
+- [ ] T018 Migrate `useOrchestratorState` composable
+- [ ] T019 Migrate `useIssueDetail` composable
+- [ ] T020 Migrate DashboardPage to `pages/index.vue`
+- [ ] T021 Migrate IssuePage to `pages/issues/[identifier].vue`
+- [ ] T022 Migrate domain components
+- [ ] T023 Delete `apps/dashboard/` workspace
+- [ ] T024 Verify: dashboard accessible at `/`
+- [ ] T025 Rewrite CLI to start Nuxt server programmatically
+- [ ] T026 Update build script
+- [ ] T027 Delete old `server.ts` and `server.test.ts`
+- [ ] T028 Verify: `work-please run` starts Nuxt + orchestrator
+- [ ] T029 Add Chat SDK dependencies
+- [ ] T030 Create Chat SDK Nitro plugin
+- [ ] T031 Wire Chat SDK webhook handler
+- [ ] T032 Implement status lookup handler
+- [ ] T033 Verify: @mention triggers bot response
+- [ ] T034 Update `ARCHITECTURE.md`, `CLAUDE.md`, tech-stack docs
+- [ ] T035 Update `turbo.json` task pipeline
+- [ ] T036 Final verification
+
+## Surprises & Discoveries
