@@ -194,6 +194,7 @@ export class HttpServer {
       }
       catch (err) {
         console.error('[server] static file read failed for %s: %s', resolved, err)
+        return errorResponse(500, 'static_file_read_failed', 'Failed to read static asset')
       }
     }
 

@@ -382,6 +382,9 @@ export function runHook(script: string, cwd: string, timeoutMs: number, env: Rec
       env: { ...process.env, ...env },
       stdio: ['pipe', 'pipe', 'pipe'],
     })
+    if (r.error) {
+      return new Error(`hook spawn failed: ${r.error.message}`)
+    }
     result = {
       success: r.status === 0,
       exitCode: r.status,
