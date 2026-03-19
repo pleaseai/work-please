@@ -38,6 +38,9 @@ export type { PromptBuildError } from './prompt-builder'
 // Server
 export { HttpServer } from './server'
 
+// Session Renderer
+export { fetchSessionMessages, isValidSessionId, parsePositiveInt } from './session-renderer'
+
 // Tools
 export { createToolsMcpServer, executeTool, getToolSpecs } from './tools'
 export type { ToolResult, ToolSpec } from './tools'
