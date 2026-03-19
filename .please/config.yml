@@ -9,3 +9,11 @@ docs:
   research: .please/docs/research
   references: .please/docs/references
   knowledge: .please/docs/knowledge
+
+review:
+  cubic:
+    enabled: true
+    default-flags: "--json -b"
+  gemini:
+    enabled: true
+    default-flags: "--sandbox"
