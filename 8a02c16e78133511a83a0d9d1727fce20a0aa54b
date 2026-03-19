@@ -1,0 +1,37 @@
+apps/work-please/package.json
+  fc1391adf4b59ab0 34
+apps/work-please/server/api/webhooks/slack.post.ts
+  fc1391adf4b59ab0 1-52
+README.md
+  fc1391adf4b59ab0 31-32,85-86,483-485,631-702
+README.ja.md
+  fc1391adf4b59ab0 30-31,81-82,464-466,604-675
+README.ko.md
+  fc1391adf4b59ab0 30-31,81-82,464-466,604-675
+apps/work-please/server/plugins/02.chat-bot.ts
+  fc1391adf4b59ab0 4,21,23-24,34,36-49,52-53,57,61,120-121
+README.zh-CN.md
+  fc1391adf4b59ab0 30-31,81-82,464-466,604-675
+WORKFLOW.example.md
+  fc1391adf4b59ab0 72-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "8a02c16e78133511a83a0d9d1727fce20a0aa54b",
+  "prompts": {
+    "fc1391adf4b59ab0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "908ba9f7-dc44-4f99-80d4-16d0add06ec3",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 29,
+      "total_deletions": 7,
+      "accepted_lines": 410,
+      "overriden_lines": 0
+    }
+  }
+}
