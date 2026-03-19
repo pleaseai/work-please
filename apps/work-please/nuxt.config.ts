@@ -21,5 +21,13 @@ export default defineNuxtConfig({
     workflowPath: '',
   },
 
+  vite: {
+    server: {
+      allowedHosts: process.env.NUXT_VITE_ALLOWED_HOSTS
+        ? process.env.NUXT_VITE_ALLOWED_HOSTS.split(',')
+        : true,
+    },
+  },
+
   compatibilityDate: '2026-03-19',
 })
