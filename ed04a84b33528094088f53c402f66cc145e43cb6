@@ -1,0 +1,25 @@
+ARCHITECTURE.md
+  eea92607f83fda9b 36-70,72-76,78-79
+.please/docs/knowledge/tech-stack.md
+  eea92607f83fda9b 15-17,34-41,49-51,58-60,67-71,79-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "ed04a84b33528094088f53c402f66cc145e43cb6",
+  "prompts": {
+    "eea92607f83fda9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1a7ec1b-1175-4faa-a64f-194dc6285a84",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 67,
+      "total_deletions": 32,
+      "accepted_lines": 66,
+      "overriden_lines": 0
+    }
+  }
+}
