@@ -569,7 +569,7 @@ describe('hook env var injection', () => {
       if (args.includes('worktree') && addIdx !== -1) {
         mkdirSync(args[addIdx + 1], { recursive: true })
       }
-      return { exitCode: 0, success: true, stdout: Buffer.from(''), stderr: Buffer.from(''), signalCode: null } as unknown as ReturnType<typeof Bun.spawnSync>
+      return { exitCode: 0, success: true, stdout: Buffer.from(''), stderr: Buffer.from(''), signalCode: null } as unknown as import('./workspace').SpawnSyncResult
     })
 
     await createWorkspace(config, 'ENV-2', issue)
@@ -669,7 +669,7 @@ describe('createWorkspace with GitHub issue URL', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from(''),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const issue = makeIssue({ identifier: 'MT-42', url: 'https://github.com/org/repo/issues/42' })
     const config = makeConfig(tmpRoot)
@@ -705,7 +705,7 @@ describe('createWorkspace with GitHub issue URL', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from(''),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const issue = makeIssue({ identifier: 'MT-10', url: 'https://github.com/org/repo/issues/10' })
     const config = makeConfig(tmpRoot)
@@ -728,7 +728,7 @@ describe('createWorkspace with GitHub issue URL', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from(''),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const issue = makeIssue({ identifier: 'MT-11', url: 'https://github.com/org/repo/issues/11' })
     const config = makeConfig(tmpRoot)
@@ -750,7 +750,7 @@ describe('createWorkspace with GitHub issue URL', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from('repository not found'),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const issue = makeIssue({ identifier: 'MT-99', url: 'https://github.com/org/repo/issues/99' })
     const config = makeConfig(tmpRoot)
@@ -789,7 +789,7 @@ describe('createWorkspace with GitHub issue URL', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from(''),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const issue = makeIssue({ identifier: 'MT-ALREADY-GIT', url: 'https://github.com/org/repo/issues/8' })
     const config = makeConfig(tmpRoot)
@@ -827,7 +827,7 @@ describe('removeWorkspace with GitHub issue URL', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from(''),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const issue = makeIssue({ identifier: 'MT-REM', url: 'https://github.com/org/repo/issues/5' })
     const config = makeConfig(tmpRoot)
@@ -879,7 +879,7 @@ describe('checkoutExistingBranch', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from(''),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const wsPath = join(tmpRoot, 'ws')
     const err = checkoutExistingBranch(tmpRoot, wsPath, 'feature/my-branch')
@@ -902,7 +902,7 @@ describe('checkoutExistingBranch', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from('fatal: not a git repository'),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const wsPath = join(tmpRoot, 'ws')
     const err = checkoutExistingBranch(tmpRoot, wsPath, 'feature/broken')
@@ -931,7 +931,7 @@ describe('createWorkspace uses checkoutExistingBranch for PRs', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from(''),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const issue = makeIssue({
       identifier: '#77',
@@ -959,7 +959,7 @@ describe('createWorkspace uses checkoutExistingBranch for PRs', () => {
       stdout: Buffer.from(''),
       stderr: Buffer.from(''),
       signalCode: null,
-    } as unknown as ReturnType<typeof Bun.spawnSync>)
+    } as unknown as import('./workspace').SpawnSyncResult)
 
     const issue = makeIssue({
       identifier: '#88',

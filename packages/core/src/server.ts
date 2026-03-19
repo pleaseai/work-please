@@ -2,8 +2,10 @@ import type { Orchestrator } from './orchestrator'
 import type { ContentBlock } from './session-renderer'
 import type { OrchestratorState, RetryEntry, RunningEntry } from './types'
 import type { VerifySignature } from './webhook'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize, resolve, sep } from 'node:path'
+import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 import { buildSessionPageHtml, esc, fetchSessionMessages, findRunningBySessionId, isValidSessionId, parsePositiveInt } from './session-renderer'
 import { createVerify, handleWebhook } from './webhook'
 import { workspacePath } from './workspace'
@@ -13,9 +15,10 @@ const ISSUE_PATH_RE = /^\/api\/v1\/([^/]+)$/
 const SESSION_PAGE_RE = /^\/sessions\/([^/]+)$/
 const SESSION_MESSAGES_RE = /^\/api\/v1\/sessions\/([^/]+)\/messages$/
 
+const __dirname = (import.meta as any).dir ?? (import.meta.dirname ?? resolve(fileURLToPath(import.meta.url), '..'))
 const DASHBOARD_DIST = resolve(
-  Bun.env.DASHBOARD_DIST
-  ?? join(import.meta.dir, '..', '..', '..', 'dashboard', 'dist'),
+  process.env.DASHBOARD_DIST
+  ?? join(__dirname, '..', '..', '..', 'dashboard', 'dist'),
 )
 const DASHBOARD_DIST_PREFIX = DASHBOARD_DIST + sep
 
@@ -38,7 +41,7 @@ const MIME_TYPES: Record<string, string> = {
 }
 
 export class HttpServer {
-  private server: ReturnType<typeof Bun.serve> | null = null
+  private server: { port: number, stop: () => void } | null = null
   private cachedVerify: VerifySignature | null = null
   private cachedSecret: string | null = null
 
@@ -49,12 +52,16 @@ export class HttpServer {
   ) {}
 
   start(): number {
-    this.server = Bun.serve({
+    if (typeof globalThis.Bun === 'undefined') {
+      throw new TypeError('HttpServer requires the Bun runtime')
+    }
+    const srv = globalThis.Bun.serve({
       hostname: this.host,
       port: this.port,
-      fetch: req => this.handleRequest(req),
+      fetch: (req: Request) => this.handleRequest(req),
     })
-    return this.server.port as number
+    this.server = { port: srv.port ?? this.port, stop: () => srv.stop() }
+    return this.server.port
   }
 
   stop(): void {
@@ -172,17 +179,30 @@ export class HttpServer {
     if (resolved !== DASHBOARD_DIST && !resolved.startsWith(DASHBOARD_DIST_PREFIX))
       return notFound()
 
-    if (existsSync(resolved) && !Bun.file(resolved).type?.startsWith('inode')) {
-      const ext = extname(resolved)
-      return new Response(Bun.file(resolved), {
-        headers: { ...SECURITY_HEADERS, 'Content-Type': MIME_TYPES[ext] ?? 'application/octet-stream' },
-      })
+    if (existsSync(resolved)) {
+      try {
+        if (statSync(resolved).isDirectory()) {
+          // fall through to SPA index
+        }
+        else {
+          const ext = extname(resolved)
+          const content = readFileSync(resolved)
+          return new Response(content, {
+            headers: { ...SECURITY_HEADERS, 'Content-Type': MIME_TYPES[ext] ?? 'application/octet-stream' },
+          })
+        }
+      }
+      catch (err) {
+        console.error('[server] static file read failed for %s: %s', resolved, err)
+        return errorResponse(500, 'static_file_read_failed', 'Failed to read static asset')
+      }
     }
 
     // SPA fallback: serve index.html for client-side routing
     const indexPath = join(DASHBOARD_DIST, 'index.html')
     if (existsSync(indexPath)) {
-      return new Response(Bun.file(indexPath), {
+      const content = readFileSync(indexPath)
+      return new Response(content, {
         headers: { ...SECURITY_HEADERS, 'Content-Type': 'text/html; charset=utf-8' },
       })
     }

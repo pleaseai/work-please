@@ -1,4 +1,6 @@
 import type { Issue, ServiceConfig, Workspace } from './types'
+import { Buffer } from 'node:buffer'
+import { spawnSync as nodeSpawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import process from 'node:process'
@@ -27,9 +29,29 @@ export function ensureClaudeSettings(wsPath: string, attribution?: { commit?: st
   writeFileSync(settingsPath, generateClaudeSettings(attribution), 'utf-8')
 }
 
-// Thin wrapper around Bun.spawnSync — replaced by spyOn(_git, 'spawnSync') in unit tests
+export interface SpawnSyncResult {
+  success: boolean
+  exitCode: number | null
+  stdout: Buffer
+  stderr: Buffer
+  signalCode: string | null
+}
+
+function spawnSyncCompat(args: string[]): SpawnSyncResult {
+  const [cmd, ...rest] = args
+  const result = nodeSpawnSync(cmd, rest, { stdio: ['pipe', 'pipe', 'pipe'] })
+  return {
+    success: result.status === 0,
+    exitCode: result.status,
+    stdout: Buffer.from(result.stdout ?? ''),
+    stderr: Buffer.from(result.stderr ?? ''),
+    signalCode: result.signal as string | null,
+  }
+}
+
+// Thin wrapper around spawnSync — replaced by spyOn(_git, 'spawnSync') in unit tests
 export const _git = {
-  spawnSync: (args: string[]): ReturnType<typeof Bun.spawnSync> => Bun.spawnSync(args),
+  spawnSync: (args: string[]): SpawnSyncResult => spawnSyncCompat(args),
 }
 
 const EXCLUDED_ARTIFACTS = ['.elixir_ls', 'tmp']
@@ -352,13 +374,24 @@ export async function runAfterRunHook(config: ServiceConfig, wsPath: string, iss
 }
 
 export function runHook(script: string, cwd: string, timeoutMs: number, env: Record<string, string> = {}): Error | null {
-  let result: ReturnType<typeof Bun.spawnSync>
+  let result: SpawnSyncResult
   try {
-    result = Bun.spawnSync(['sh', '-lc', script], {
+    const r = nodeSpawnSync('sh', ['-lc', script], {
       cwd,
       timeout: timeoutMs,
       env: { ...process.env, ...env },
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
+    if (r.error) {
+      return new Error(`hook spawn failed: ${r.error.message}`)
+    }
+    result = {
+      success: r.status === 0,
+      exitCode: r.status,
+      stdout: Buffer.from(r.stdout ?? ''),
+      stderr: Buffer.from(r.stderr ?? ''),
+      signalCode: r.signal as string | null,
+    }
   }
   catch (err) {
     return new Error(`hook spawn failed: ${err instanceof Error ? err.message : String(err)}`)
