@@ -980,7 +980,6 @@ describe('webhook config', () => {
       else
         process.env.WEBHOOK_SECRET = prev
     }
-    }
   })
 })
 
