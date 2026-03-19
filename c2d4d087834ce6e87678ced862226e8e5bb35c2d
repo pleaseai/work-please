@@ -1,0 +1,27 @@
+turbo.json
+  eea92607f83fda9b 3
+apps/work-please/src/cli.ts
+  eea92607f83fda9b 38-39
+apps/work-please/server/plugins/01.orchestrator.ts
+  eea92607f83fda9b 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "c2d4d087834ce6e87678ced862226e8e5bb35c2d",
+  "prompts": {
+    "eea92607f83fda9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1a7ec1b-1175-4faa-a64f-194dc6285a84",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 5,
+      "accepted_lines": 5,
+      "overriden_lines": 0
+    }
+  }
+}
