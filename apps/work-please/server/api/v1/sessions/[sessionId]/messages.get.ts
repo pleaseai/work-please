@@ -17,8 +17,9 @@ export default defineEventHandler(async (event) => {
     return await fetchSessionMessages(sessionId, config.workspace.root, { limit, offset })
   }
   catch (err) {
+    const code = err && typeof err === 'object' && 'code' in err ? (err as any).code : undefined
     const msg = err instanceof Error ? err.message : String(err)
-    if (msg.includes('ENOENT') || msg.toLowerCase().includes('not found'))
+    if (code === 'ENOENT' || msg.toLowerCase().includes('not found'))
       return []
     console.error('[server] sessionMessagesResponse error:', err)
     throw createError({ statusCode: 500, statusMessage: 'Failed to load session messages' })
