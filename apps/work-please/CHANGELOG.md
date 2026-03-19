@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.15](https://github.com/pleaseai/work-please/compare/work-v0.1.14...work-v0.1.15) (2026-03-19)
+
+
+### Features
+
+* **chat:** add Slack webhook adapter and documentation ([#139](https://github.com/pleaseai/work-please/issues/139)) ([c842e44](https://github.com/pleaseai/work-please/commit/c842e447a18a4a5179677bd779a69dfd86b7f8e8))
+
 ## [0.1.14](https://github.com/pleaseai/work-please/compare/work-v0.1.13...work-v0.1.14) (2026-03-19)
 
 
