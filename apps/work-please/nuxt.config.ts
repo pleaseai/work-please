@@ -1,3 +1,5 @@
+import process from 'node:process'
+
 export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@nuxt/eslint', '@vueuse/nuxt'],
 
@@ -19,6 +21,17 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     workflowPath: '',
+  },
+
+  vite: {
+    server: {
+      allowedHosts: (() => {
+        const hosts = process.env.NUXT_VITE_ALLOWED_HOSTS
+        if (!hosts)
+          return []
+        return hosts.split(',').map(h => h.trim()).filter(Boolean)
+      })(),
+    },
   },
 
   compatibilityDate: '2026-03-19',
