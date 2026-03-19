@@ -39,7 +39,8 @@
     "nuxt@pleaseai": true,
     "nuxt-ui@pleaseai": true,
     "chat-sdk@pleaseai": true,
-    "ai-sdk@pleaseai": true
+    "ai-sdk@pleaseai": true,
+    "mastra@pleaseai": true
   },
   "extraKnownMarketplaces": {
     "passionfactory": {
