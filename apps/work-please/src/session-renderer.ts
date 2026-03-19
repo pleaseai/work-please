@@ -50,7 +50,7 @@ export function extractContent(msg: { type: string, message: unknown }): Content
         const content = b.content
         blocks.push({
           kind: 'text',
-          text: typeof content === 'string' ? content : JSON.stringify(content, null, 2),
+          text: typeof content === 'string' ? content : (JSON.stringify(content, null, 2) ?? ''),
         })
       }
       else {

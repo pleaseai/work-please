@@ -24,6 +24,7 @@ export function useSessionMessages(sessionId: () => string, intervalMs = 5000) {
       currentSessionId = id
       fetching = false
       messages.value = []
+      error.value = null
       loading.value = true
     }
     if (fetching)
