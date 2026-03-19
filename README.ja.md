@@ -27,6 +27,8 @@ Work Pleaseはイシュートラッカーのタスクを隔離された自律的
 - [GitHub App認証](#github-app認証)
   - [GitHub App資格情報の設定](#github-app資格情報の設定)
   - [検証](#検証)
+- [Slack通知](#slack通知)
+  - [Slackアプリの設定](#slackアプリの設定)
 - [信頼と安全性](#信頼と安全性)
   - [権限モード](#権限モード)
   - [ワークスペースの隔離](#ワークスペースの隔離)
@@ -76,6 +78,8 @@ GitHub Projects v2 / AsanaおよびClaude Codeに適応されています（Line
 - **ワークスペースフック** — `after_create`、`before_run`、`after_run`、`before_remove`ライフサイクル
   イベントでシェルスクリプトを実行します。
 - **構造化ロギング** — 安定した`key=value`形式のオペレーター可視ログを提供します。
+- **Slack通知** — Slackでボットを@メンションしてオーケストレーターの状態を確認できます。
+  [Chat SDK](https://chat-sdk.dev/) Slackアダプターを使用します。
 - **オプションHTTPダッシュボード** — `--port`で有効化して、ランタイム状態とJSON APIを確認できます。
 
 ## アーキテクチャ
@@ -457,6 +461,9 @@ claude:
 
 server:
   port: 3000                          # 任意: このポートでHTTPダッシュボードを有効化
+  # Webhookエンドポイント:
+  #   GitHub: POST /api/webhooks/github (server.webhook.secret が必要)
+  #   Slack:  POST /api/webhooks/slack  (SLACK_BOT_TOKEN + SLACK_SIGNING_SECRET 環境変数が必要)
 ---
 
 プロンプトテンプレートをここに記述します。使用可能な変数：
@@ -593,6 +600,78 @@ Work Pleaseは起動時にGitHub App設定を検証します：
 | 3フィールドすべて設定済み（`app_id`、`private_key`、`installation_id`） | App認証 |
 | 一部のappフィールドのみ設定 | `incomplete_github_app_config`エラー |
 | 認証未設定 | `missing_tracker_api_key`エラー |
+
+## Slack通知
+
+Work Pleaseは[Chat SDK](https://chat-sdk.dev/) Slackアダプターを通じて、Slackを通知チャネルとして
+サポートしています。設定すると、Slackチャネルでボットを@メンションしてリアルタイムの
+オーケストレーター状態（実行中のイシュー、リトライキュー、トークン使用量）を確認できます。
+
+### 環境変数
+
+```bash
+SLACK_BOT_TOKEN=xoxb-...           # Bot User OAuth Token
+SLACK_SIGNING_SECRET=...           # Webhook検証用の署名シークレット
+```
+
+両方の環境変数が設定されると、設定済みのトラッカー（GitHub Projects v2またはAsana）と共に
+Slackアダプターが自動的に有効になります。
+
+### Webhook URL
+
+SlackアプリのEvent SubscriptionsおよびInteractivityのリクエストURLを以下に設定してください：
+
+```
+https://your-domain.com/api/webhooks/slack
+```
+
+### Slackアプリの設定
+
+1. [api.slack.com/apps](https://api.slack.com/apps)で**Create New App** > **From an app manifest**をクリックします。
+2. ワークスペースを選択し、以下のマニフェストを貼り付けます：
+
+```yaml
+display_information:
+  name: Work Please
+  description: オーケストレーターステータスボット
+features:
+  bot_user:
+    display_name: Work Please
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - chat:write
+      - groups:history
+      - groups:read
+      - im:history
+      - im:read
+      - reactions:read
+      - reactions:write
+      - users:read
+settings:
+  event_subscriptions:
+    request_url: https://your-domain.com/api/webhooks/slack
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+  interactivity:
+    is_enabled: true
+    request_url: https://your-domain.com/api/webhooks/slack
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+```
+
+3. `https://your-domain.com/api/webhooks/slack`をデプロイ済みのWebhook URLに置き換えます。
+4. **Create**をクリックし、**Basic Information** > **App Credentials**で**Signing Secret**を`SLACK_SIGNING_SECRET`としてコピーします。
+5. **OAuth & Permissions**で**Install to Workspace**をクリックし、**Bot User OAuth Token**（`xoxb-...`）を`SLACK_BOT_TOKEN`としてコピーします。
+6. チャネルにボットを招待し、@メンションしてオーケストレーターの状態を確認します。
 
 ## 信頼と安全性
 

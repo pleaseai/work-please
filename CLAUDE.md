@@ -18,6 +18,7 @@ Key skills for this project:
 | GitHub issues / PRs              | `github:github-workflow`          |
 | Creating a commit                | `github:commit`                   |
 | Commit + push + PR               | `github:commit-push-pr`           |
+| Chat bot / adapters              | `chat-sdk:chat-sdk`               |
 
 ## Package Manager
 
@@ -92,6 +93,10 @@ Code + Asana/GitHub Projects v2. The reference implementation in Elixir/OTP live
 
 **WORKFLOW.md** is a user-created file in a _target repository_ (not this repo). It contains YAML front matter (tracker
 config, hooks, agent limits) and a Liquid prompt template body. Work Please reads it at runtime.
+
+## Multilingual Documentation
+
+READMEs exist in 4 languages: `README.md` (en), `README.ko.md`, `README.ja.md`, `README.zh-CN.md`. Keep all translations synchronized when updating documentation.
 
 ## Code Style
 

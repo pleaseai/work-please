@@ -28,6 +28,8 @@ instead of supervising coding agents.
 - [GitHub App Authentication](#github-app-authentication)
   - [Setting up GitHub App credentials](#setting-up-github-app-credentials)
   - [Validation](#validation)
+- [Slack Notifications](#slack-notifications)
+  - [Slack App Setup](#slack-app-setup)
 - [Trust and Safety](#trust-and-safety)
   - [Permission Modes](#permission-modes)
   - [Workspace Isolation](#workspace-isolation)
@@ -80,6 +82,8 @@ For full technical details, see [SPEC.md](SPEC.md).
 - **Workspace hooks** — Shell scripts run at `after_create`, `before_run`, `after_run`, and
   `before_remove` lifecycle events.
 - **Structured logging** — Operator-visible logs with stable `key=value` format.
+- **Slack notifications** — @mention the bot in Slack to get orchestrator status. Uses
+  [Chat SDK](https://chat-sdk.dev/) Slack adapter.
 - **Optional HTTP dashboard** — Enable with `--port` for runtime status and JSON API.
 
 ## Architecture
@@ -476,6 +480,9 @@ claude:
 server:
   port: 3000                          # Optional: enable HTTP dashboard on this port
   host: "127.0.0.1"                   # Optional: bind address, default "127.0.0.1"
+  # Webhook endpoints:
+  #   GitHub: POST /api/webhooks/github (requires server.webhook.secret)
+  #   Slack:  POST /api/webhooks/slack  (requires SLACK_BOT_TOKEN + SLACK_SIGNING_SECRET env vars)
 ---
 
 Your prompt template goes here. Available variables:
@@ -620,6 +627,78 @@ Work Please validates GitHub App config at startup:
 | All three app fields set (`app_id`, `private_key`, `installation_id`) | App auth |
 | Only some app fields set | `incomplete_github_app_config` error |
 | No auth configured | `missing_tracker_api_key` error |
+
+## Slack Notifications
+
+Work Please supports Slack as a notification channel via the [Chat SDK](https://chat-sdk.dev/)
+Slack adapter. When configured, you can @mention the bot in any Slack channel to get real-time
+orchestrator status (running issues, retry queue, token usage).
+
+### Environment Variables
+
+```bash
+SLACK_BOT_TOKEN=xoxb-...           # Bot User OAuth Token
+SLACK_SIGNING_SECRET=...           # Signing secret for webhook verification
+```
+
+When both environment variables are set, the Slack adapter is automatically enabled alongside any
+configured tracker (GitHub Projects v2 or Asana).
+
+### Webhook URL
+
+Point your Slack app's Event Subscriptions and Interactivity request URL to:
+
+```
+https://your-domain.com/api/webhooks/slack
+```
+
+### Slack App Setup
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** > **From an app manifest**.
+2. Select your workspace and paste the following manifest:
+
+```yaml
+display_information:
+  name: Work Please
+  description: Orchestrator status bot
+features:
+  bot_user:
+    display_name: Work Please
+    always_online: true
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - chat:write
+      - groups:history
+      - groups:read
+      - im:history
+      - im:read
+      - reactions:read
+      - reactions:write
+      - users:read
+settings:
+  event_subscriptions:
+    request_url: https://your-domain.com/api/webhooks/slack
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+  interactivity:
+    is_enabled: true
+    request_url: https://your-domain.com/api/webhooks/slack
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+```
+
+3. Replace `https://your-domain.com/api/webhooks/slack` with your deployed webhook URL.
+4. Click **Create**, then go to **Basic Information** > **App Credentials** and copy the **Signing Secret** as `SLACK_SIGNING_SECRET`.
+5. Go to **OAuth & Permissions**, click **Install to Workspace**, and copy the **Bot User OAuth Token** (`xoxb-...`) as `SLACK_BOT_TOKEN`.
+6. Invite the bot to a channel and @mention it to see the orchestrator status.
 
 ## Trust and Safety
 

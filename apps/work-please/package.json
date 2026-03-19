@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@chat-adapter/github": "^4.20.2",
+    "@chat-adapter/slack": "^4.20.2",
     "@chat-adapter/state-memory": "^4.20.2",
     "@nuxt/ui": "^4.5.1",
     "@octokit/graphql": "^9.0.3",

@@ -1,6 +1,7 @@
 import type { Orchestrator } from '@pleaseai/work-core'
 import process from 'node:process'
 import { createGitHubAdapter } from '@chat-adapter/github'
+import { createSlackAdapter } from '@chat-adapter/slack'
 import { createMemoryState } from '@chat-adapter/state-memory'
 import { createLogger } from '@pleaseai/work-core'
 import { Chat } from 'chat'
@@ -17,39 +18,47 @@ export default defineNitroPlugin((nitroApp) => {
   const config = orchestrator.getConfig()
   const tracker = config.tracker
 
-  // Only initialize if GitHub tracker is configured
-  if (tracker.kind !== 'github_projects') {
-    log.warn('tracker is not github_projects — chat bot not started')
-    return
-  }
+  const adapters: Record<string, any> = {}
 
-  // Build GitHub adapter options from orchestrator config
-  const adapterOpts: Record<string, any> = {}
-  if (tracker.api_key) {
-    adapterOpts.token = tracker.api_key
-  }
-  else if (tracker.app_id && tracker.private_key) {
-    adapterOpts.appId = String(tracker.app_id)
-    adapterOpts.privateKey = tracker.private_key
-    if (tracker.installation_id) {
-      adapterOpts.installationId = tracker.installation_id
+  // GitHub adapter: requires github_projects tracker + webhook secret
+  if (tracker.kind === 'github_projects') {
+    const adapterOpts: Record<string, any> = {}
+    if (tracker.api_key) {
+      adapterOpts.token = tracker.api_key
+    }
+    else if (tracker.app_id && tracker.private_key) {
+      adapterOpts.appId = String(tracker.app_id)
+      adapterOpts.privateKey = tracker.private_key
+      if (tracker.installation_id) {
+        adapterOpts.installationId = tracker.installation_id
+      }
+    }
+
+    const webhookSecret = config.server.webhook.secret
+    if (webhookSecret) {
+      adapterOpts.webhookSecret = webhookSecret
+      adapters.github = createGitHubAdapter(adapterOpts)
+    }
+    else {
+      log.warn('no webhook secret configured — GitHub chat adapter skipped')
     }
   }
 
-  const webhookSecret = config.server.webhook.secret
-  if (!webhookSecret) {
-    log.warn('no webhook secret configured — chat bot requires webhook mode')
+  // Slack adapter: requires SLACK_BOT_TOKEN + SLACK_SIGNING_SECRET env vars
+  if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_SIGNING_SECRET) {
+    adapters.slack = createSlackAdapter()
+  }
+
+  if (Object.keys(adapters).length === 0) {
+    log.warn('no chat adapters configured — chat bot not started')
     return
   }
-  adapterOpts.webhookSecret = webhookSecret
 
-  const botUsername = process.env.GITHUB_BOT_USERNAME || 'work-please'
+  const botUsername = process.env.CHAT_BOT_USERNAME || process.env.GITHUB_BOT_USERNAME || 'work-please'
 
   const bot = new Chat({
     userName: botUsername,
-    adapters: {
-      github: createGitHubAdapter(adapterOpts),
-    },
+    adapters,
     state: createMemoryState(),
   })
 
@@ -108,5 +117,6 @@ export default defineNitroPlugin((nitroApp) => {
     }
   })
 
-  log.info('GitHub adapter initialized')
+  const adapterNames = Object.keys(adapters).join(', ')
+  log.info(`chat adapters initialized: ${adapterNames}`)
 })

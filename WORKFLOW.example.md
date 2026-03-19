@@ -69,6 +69,9 @@ claude:
 # server:
 #   port: 3000                      # optional HTTP dashboard
 #   host: "127.0.0.1"               # default: localhost only
+#   # Webhook endpoints:
+#   #   GitHub: POST /api/webhooks/github (requires server.webhook.secret)
+#   #   Slack:  POST /api/webhooks/slack  (requires SLACK_BOT_TOKEN + SLACK_SIGNING_SECRET env vars)
 ---
 
 You are working on issue `{{ issue.identifier }}`.
