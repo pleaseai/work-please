@@ -349,7 +349,8 @@ const VALID_RUN_STATUSES = new Set<AgentRunStatus>(['success', 'failure', 'termi
 
 async function runsResponse(orchestrator: Orchestrator, params: URLSearchParams): Promise<Response> {
   const db = orchestrator.getDb()
-  const identifier = params.get('identifier') ?? undefined
+  const rawIdentifier = params.get('identifier') ?? undefined
+  const identifier = rawIdentifier && rawIdentifier.length <= 256 ? rawIdentifier : undefined
   const statusParam = params.get('status') ?? undefined
   const status = statusParam && VALID_RUN_STATUSES.has(statusParam as AgentRunStatus)
     ? statusParam as AgentRunStatus

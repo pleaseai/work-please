@@ -359,6 +359,13 @@ describe('HttpServer', () => {
     expect(body).toEqual([])
   })
 
+  test('GET /api/v1/runs ignores invalid status param', async () => {
+    const res = await fetch(`${baseUrl}/api/v1/runs?status=bogus`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as unknown[]
+    expect(body).toEqual([])
+  })
+
   test('POST /api/v1/sessions/<id>/messages returns 405', async () => {
     const res = await fetch(`${baseUrl}/api/v1/sessions/sess-1/messages`, { method: 'POST' })
     expect(res.status).toBe(405)

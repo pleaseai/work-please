@@ -40,7 +40,7 @@ export function resolveDbPath(dbPath: string, workspaceRoot: string): string | n
 
 export function createDbClient(config: DbConfig, workspaceRoot: string): Client | null {
   if (config.turso_url) {
-    const allowedSchemes = ['libsql:', 'libsqls:', 'http:', 'https:']
+    const allowedSchemes = ['libsql:', 'libsqls:', 'https:']
     let scheme: string
     try {
       scheme = new URL(config.turso_url).protocol
@@ -157,6 +157,8 @@ export interface QueryRunsOptions {
   offset?: number
 }
 
+const VALID_STATUSES = new Set<string>(['success', 'failure', 'terminated'])
+
 export async function queryRuns(client: Client | null, options: QueryRunsOptions = {}): Promise<AgentRunRecord[]> {
   if (!client)
     return []
@@ -183,23 +185,26 @@ export async function queryRuns(client: Client | null, options: QueryRunsOptions
       args: { ...args, limit, offset },
     })
 
-    return rs.rows.map(row => ({
-      id: row.id as number,
-      issue_id: row.issue_id as string,
-      identifier: row.identifier as string,
-      issue_state: row.issue_state as string,
-      session_id: row.session_id as string | null,
-      started_at: row.started_at as string,
-      finished_at: row.finished_at as string,
-      duration_ms: row.duration_ms as number,
-      status: row.status as AgentRunStatus,
-      error: row.error as string | null,
-      turn_count: row.turn_count as number,
-      retry_attempt: row.retry_attempt as number | null,
-      input_tokens: row.input_tokens as number,
-      output_tokens: row.output_tokens as number,
-      total_tokens: row.total_tokens as number,
-    }))
+    return rs.rows.map((row) => {
+      const rawStatus = row.status as string
+      return {
+        id: row.id as number,
+        issue_id: row.issue_id as string,
+        identifier: row.identifier as string,
+        issue_state: row.issue_state as string,
+        session_id: row.session_id as string | null,
+        started_at: row.started_at as string,
+        finished_at: row.finished_at as string,
+        duration_ms: row.duration_ms as number,
+        status: VALID_STATUSES.has(rawStatus) ? rawStatus as AgentRunStatus : 'failure',
+        error: row.error as string | null,
+        turn_count: row.turn_count as number,
+        retry_attempt: row.retry_attempt as number | null,
+        input_tokens: row.input_tokens as number,
+        output_tokens: row.output_tokens as number,
+        total_tokens: row.total_tokens as number,
+      }
+    })
   }
   catch (err) {
     log.error(`db query failed: ${err}`, err)

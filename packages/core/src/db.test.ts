@@ -82,7 +82,7 @@ describe('createDbClient', () => {
 
   it('returns null for invalid turso URL', () => {
     const client = createDbClient(makeDbConfig({ turso_url: 'not-a-valid-url' }), tmpRoot)
-    // @libsql/client may accept invalid URLs at creation time; test is for graceful handling
+    expect(client).toBeNull()
     if (client)
       client.close()
   })
