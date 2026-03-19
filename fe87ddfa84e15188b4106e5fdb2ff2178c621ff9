@@ -1,0 +1,41 @@
+apps/work-please/app/pages/issues/[identifier].vue
+  eea92607f83fda9b 1-183
+apps/work-please/app/layouts/dashboard.vue
+  eea92607f83fda9b 1-36
+apps/work-please/app/components/RetryTable.vue
+  eea92607f83fda9b 1-34
+apps/work-please/app/composables/useIssueDetail.ts
+  eea92607f83fda9b 1-18
+apps/work-please/app/components/RunningTable.vue
+  eea92607f83fda9b 1-48
+apps/work-please/app/utils/format.ts
+  eea92607f83fda9b 1-26
+apps/work-please/app/utils/types.ts
+  eea92607f83fda9b 1-74
+apps/work-please/app/components/StateBadge.vue
+  eea92607f83fda9b 1-22
+apps/work-please/app/composables/useOrchestratorState.ts
+  eea92607f83fda9b 1-15
+apps/work-please/app/pages/index.vue
+  eea92607f83fda9b 1-32,34-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "fe87ddfa84e15188b4106e5fdb2ff2178c621ff9",
+  "prompts": {
+    "eea92607f83fda9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1a7ec1b-1175-4faa-a64f-194dc6285a84",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 585,
+      "total_deletions": 12,
+      "accepted_lines": 585,
+      "overriden_lines": 0
+    }
+  }
+}
