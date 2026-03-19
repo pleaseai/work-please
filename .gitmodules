@@ -1,3 +1,6 @@
 [submodule "vendor/symphony"]
 	path = vendor/symphony
 	url = https://github.com/openai/symphony.git
+[submodule "vendor/open-swe"]
+	path = vendor/open-swe
+	url = https://github.com/langchain-ai/open-swe
