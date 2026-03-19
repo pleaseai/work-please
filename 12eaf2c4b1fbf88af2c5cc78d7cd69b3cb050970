@@ -1,0 +1,25 @@
+packages/core/src/workspace.ts
+  4289bc8b5d5f2a1a 385-387
+packages/core/src/server.ts
+  4289bc8b5d5f2a1a 197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "12eaf2c4b1fbf88af2c5cc78d7cd69b3cb050970",
+  "prompts": {
+    "4289bc8b5d5f2a1a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3d022d68-0c3b-4759-9d83-bf5e6ff7830c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 0,
+      "accepted_lines": 4,
+      "overriden_lines": 0
+    }
+  }
+}
