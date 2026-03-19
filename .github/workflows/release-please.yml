@@ -64,7 +64,7 @@ jobs:
       - name: Copy root files into package directory
         run: cp LICENSE README.md apps/work-please/
 
-      - name: Pack with bun (resolves workspace: protocol)
+      - name: 'Pack with bun (resolves workspace: protocol)'
         run: bun pm pack
         working-directory: apps/work-please
 
@@ -105,7 +105,7 @@ jobs:
       - name: Copy root files into package directory
         run: cp LICENSE README.md packages/core/
 
-      - name: Pack with bun (resolves workspace: protocol)
+      - name: 'Pack with bun (resolves workspace: protocol)'
         run: bun pm pack
         working-directory: packages/core
 
