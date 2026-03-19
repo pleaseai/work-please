@@ -20,8 +20,8 @@
   "scripts": {
     "prepublishOnly": "cp ../../LICENSE ../../README.md .",
     "postpublish": "rm -f LICENSE README.md",
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun && bun run scripts/add-shebang.ts",
-    "dev": "bun run --watch src/index.ts",
+    "build": "nuxt build && bun build ./src/index.ts --outdir ./dist --target bun && bun run scripts/add-shebang.ts",
+    "dev": "nuxt dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check": "tsc --noEmit",
