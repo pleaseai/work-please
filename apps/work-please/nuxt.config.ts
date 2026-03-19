@@ -1,5 +1,3 @@
-import process from 'node:process'
-
 export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@nuxt/eslint', '@vueuse/nuxt'],
 
@@ -20,7 +18,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    workflowPath: process.env.WORKFLOW_PATH || '',
+    workflowPath: '',
   },
 
   compatibilityDate: '2026-03-19',
