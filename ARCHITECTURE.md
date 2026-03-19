@@ -33,33 +33,50 @@ runtime environment.
 
 ```
 work-please/                      # Monorepo root (Bun + Turborepo)
-├── apps/work-please/src/         # Main application (@pleaseai/work)
-│   ├── index.ts                  # Binary entry point
-│   ├── cli.ts                    # CLI parsing and startup (Commander)
-│   ├── orchestrator.ts           # Core loop: poll → reconcile → dispatch → retry
-│   ├── config.ts                 # YAML front matter → typed ServiceConfig with env-var resolution
-│   ├── workflow.ts               # WORKFLOW.md parser (YAML front matter + Liquid body)
-│   ├── prompt-builder.ts         # Liquid template rendering (issue → prompt string)
-│   ├── agent-runner.ts           # Claude Code agent session via @anthropic-ai/claude-agent-sdk
-│   ├── workspace.ts              # Per-issue directory management, git worktrees, lifecycle hooks
-│   ├── server.ts                 # Optional HTTP dashboard (Bun.serve) and JSON API
-│   ├── tools.ts                  # MCP tool server (asana_api, github_graphql) injected into agent
-│   ├── label.ts                  # GitHub label management (dispatched/done/failed)
-│   ├── filter.ts                 # Assignee and label filter matching
-│   ├── init.ts                   # `work-please init` — scaffolds GitHub Project + WORKFLOW.md
-│   ├── types.ts                  # Shared type definitions (Issue, ServiceConfig, OrchestratorState)
-│   └── tracker/                  # Issue tracker adapters
-│       ├── index.ts              # Factory: createTrackerAdapter() → GitHub or Asana adapter
-│       ├── types.ts              # TrackerAdapter interface and TrackerError union type
-│       ├── github.ts             # GitHub Projects v2 adapter (GraphQL pagination + item normalization)
-│       ├── github-auth.ts        # GitHub authentication (PAT or GitHub App installation token)
-│       ├── github-status-update.ts # GitHub Projects v2 status field mutation
-│       └── asana.ts              # Asana adapter (REST API, section-based state mapping)
-├── packages/                     # Shared libraries (none yet scaffolded)
-├── vendor/symphony/              # Upstream Symphony reference spec (read-only, excluded from lint/TS)
+├── apps/work-please/             # Main Nuxt application (@pleaseai/work)
+│   ├── src/                      # CLI entry point
+│   │   ├── index.ts              # Binary entry point — calls runCli()
+│   │   ├── cli.ts                # CLI parsing (Commander) → starts Nuxt server
+│   │   └── init.ts               # `work-please init` — scaffolds GitHub Project + WORKFLOW.md
+│   ├── app/                      # Nuxt client-side application
+│   │   ├── app.vue               # Root component with <UApp>
+│   │   ├── layouts/dashboard.vue # Nuxt UI Dashboard layout (sidebar + panels)
+│   │   ├── pages/
+│   │   │   ├── index.vue         # Dashboard: metrics, running/retry tables
+│   │   │   └── issues/[identifier].vue  # Issue detail: session, retry, events
+│   │   ├── components/           # StateBadge, RunningTable, RetryTable
+│   │   ├── composables/          # useOrchestratorState, useIssueDetail (useFetch-based)
+│   │   └── utils/                # format.ts, types.ts
+│   ├── server/                   # Nitro server-side
+│   │   ├── plugins/
+│   │   │   ├── orchestrator.ts   # Nitro plugin: creates & starts Orchestrator
+│   │   │   └── chat-bot.ts       # Nitro plugin: Chat SDK GitHub adapter
+│   │   ├── api/
+│   │   │   ├── v1/state.get.ts   # GET /api/v1/state
+│   │   │   ├── v1/refresh.post.ts # POST /api/v1/refresh
+│   │   │   ├── v1/[identifier].get.ts # GET /api/v1/:identifier
+│   │   │   └── webhooks/github.post.ts # POST /api/webhooks/github
+│   │   └── utils/orchestrator.ts # useOrchestrator() helper
+│   └── nuxt.config.ts            # Nuxt config (Bun preset, Nuxt UI)
+├── packages/core/                # @pleaseai/core — orchestrator business logic
+│   └── src/
+│       ├── orchestrator.ts       # Core loop: poll → reconcile → dispatch → retry
+│       ├── config.ts             # YAML front matter → typed ServiceConfig
+│       ├── workflow.ts           # WORKFLOW.md parser
+│       ├── prompt-builder.ts     # Liquid template rendering
+│       ├── agent-runner.ts       # Claude Code agent session via claude-agent-sdk
+│       ├── workspace.ts          # Per-issue directory management, git worktrees
+│       ├── tools.ts              # MCP tool server (asana_api, github_graphql)
+│       ├── label.ts              # GitHub label management
+│       ├── filter.ts             # Assignee and label filter matching
+│       ├── webhook.ts            # GitHub webhook verification + event filtering
+│       ├── types.ts              # Shared type definitions
+│       ├── tracker/              # Issue tracker adapters (GitHub, Asana)
+│       └── index.ts              # Barrel export
+├── vendor/symphony/              # Upstream Symphony reference spec (read-only)
 ├── turbo.json                    # Turborepo task pipeline
-├── eslint.config.ts              # @antfu/eslint-config (2-space, single quotes, no semicolons)
-└── tsconfig.json                 # TypeScript strict mode, ESNext target, bundler resolution
+├── eslint.config.ts              # @antfu/eslint-config
+└── tsconfig.json                 # TypeScript strict mode, ESNext target
 ```
 
 ## Data Flow
