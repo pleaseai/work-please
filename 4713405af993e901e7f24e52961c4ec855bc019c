@@ -1,0 +1,25 @@
+apps/work-please/app/components/RetryTable.vue
+  eea92607f83fda9b 10-13
+apps/work-please/app/components/RunningTable.vue
+  eea92607f83fda9b 10-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "4713405af993e901e7f24e52961c4ec855bc019c",
+  "prompts": {
+    "eea92607f83fda9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1a7ec1b-1175-4faa-a64f-194dc6285a84",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 15,
+      "accepted_lines": 11,
+      "overriden_lines": 0
+    }
+  }
+}
