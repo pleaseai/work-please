@@ -1,15 +1,10 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
+import { setVerbose } from '@pleaseai/core'
 import { Command, CommanderError } from 'commander'
 import pkg from '../package.json' with { type: 'json' }
 import { runInit } from './init'
-import { createLogger, setVerbose } from './logger'
-import { Orchestrator } from './orchestrator'
-import { HttpServer } from './server'
-import { WORKFLOW_FILE_NAME } from './workflow'
-
-const log = createLogger('work-please')
 
 export interface ParsedArgs {
   command: 'run' | 'init' | 'version' | 'help'
@@ -19,10 +14,13 @@ export interface ParsedArgs {
   initOptions: { owner: string | null, title: string | null, token: string | null } | null
 }
 
+const WORKFLOW_FILE_NAME = 'WORKFLOW.md'
+
 export async function runCli(argv: string[]): Promise<void> {
   const parsed = parseArgs(argv.slice(2))
 
   if (parsed.verbose) {
+    process.env.VERBOSE = 'true'
     setVerbose(true)
   }
 
@@ -37,52 +35,26 @@ export async function runCli(argv: string[]): Promise<void> {
   const resolvedPath = resolve(parsed.workflowPath)
 
   if (!existsSync(resolvedPath)) {
-    log.fatal(`workflow file not found: ${resolvedPath}`)
+    console.error(`[work-please] workflow file not found: ${resolvedPath}`)
     process.exit(1)
   }
 
-  let orchestrator: Orchestrator
+  // Set environment variables for the Nuxt/Nitro server
+  // NUXT_ prefix required for Nuxt runtimeConfig auto-mapping
+  process.env.NUXT_WORKFLOW_PATH = resolvedPath
+  if (parsed.portOverride !== null) {
+    process.env.PORT = String(parsed.portOverride)
+  }
+
+  // Start the Nuxt server
+  console.log(`[work-please] starting with workflow: ${resolvedPath}`)
   try {
-    orchestrator = new Orchestrator(resolvedPath)
+    // Compute path at runtime to prevent bun build from bundling Nuxt output
+    const serverEntry = resolve(import.meta.dir, '..', '.output', 'server', 'index.mjs')
+    await import(serverEntry)
   }
   catch (err) {
-    log.fatal(`failed to initialize work-please: ${err}`)
-    process.exit(1)
-  }
-
-  let httpServer: HttpServer | null = null
-
-  // Graceful shutdown
-  const shutdown = () => {
-    log.info('shutting down...')
-    httpServer?.stop()
-    orchestrator.stop()
-    process.exit(0)
-  }
-
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
-
-  log.info(`starting with workflow: ${resolvedPath}`)
-  try {
-    await orchestrator.start()
-    log.success('running')
-  }
-  catch (err) {
-    log.fatal(`startup failed: ${err}`)
-    process.exit(1)
-  }
-
-  // Start optional HTTP server (CLI --port overrides config server.port)
-  const config = orchestrator.getConfig()
-  const serverPort = parsed.portOverride ?? config.server.port
-  if (serverPort !== null) {
-    httpServer = new HttpServer(orchestrator, serverPort)
-    const boundPort = httpServer.start()
-    log.info(`http server listening on 127.0.0.1:${boundPort}`)
-  }
-  else if (config.polling.mode === 'webhook') {
-    log.fatal('webhook mode requires an HTTP server port — use --port or server.port in WORKFLOW.md')
+    console.error('[work-please] failed to start server:', err)
     process.exit(1)
   }
 }
@@ -162,13 +134,12 @@ export function parseArgs(args: string[]): ParsedArgs {
         const globalOpts = program.opts<{ verbose?: boolean }>()
         return { ...result, command: 'help', verbose: globalOpts.verbose === true }
       }
-      log.error(err.message)
+      console.error(err.message)
       process.exit(err.exitCode)
     }
     throw err
   }
 
-  // Read global --verbose option from program level
   const globalOpts = program.opts<{ verbose?: boolean }>()
   result.verbose = globalOpts.verbose === true
 

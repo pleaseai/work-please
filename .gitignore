@@ -13,5 +13,6 @@ coverage/
 apps/work-please/LICENSE
 apps/work-please/README.md
 
+.env.local
 WORKFLOW.local.md
 apps/work-please/WORKFLOW.md

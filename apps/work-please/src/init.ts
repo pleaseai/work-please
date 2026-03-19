@@ -2,7 +2,7 @@ import { existsSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
 import { graphql as createGraphql, GraphqlResponseError } from '@octokit/graphql'
-import { createLogger } from './logger'
+import { createLogger } from '@pleaseai/core'
 
 const log = createLogger('work-please')
 

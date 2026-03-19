@@ -23,10 +23,6 @@
     "test": "turbo run test",
     "test:app": "turbo run test --filter=@pleaseai/work",
     "test:coverage": "turbo run test:coverage",
-    "dev:dashboard": "turbo run dev --filter=@pleaseai/dashboard",
-    "build:dashboard": "turbo run build --filter=@pleaseai/dashboard",
-    "lint:dashboard": "turbo run lint --filter=@pleaseai/dashboard",
-    "lint:dashboard:fix": "turbo run lint:fix --filter=@pleaseai/dashboard",
     "prepare": "husky"
   },
   "workspaces": [

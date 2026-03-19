@@ -1,0 +1,35 @@
+{
+  "name": "@pleaseai/core",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Core orchestrator logic for Work Please",
+  "license": "FSL-1.1-MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.72",
+    "@octokit/auth-app": "^8.2.0",
+    "@octokit/graphql": "^9.0.3",
+    "@octokit/webhooks": "^14.2.0",
+    "consola": "^3.4.2",
+    "js-yaml": "^4.1.1",
+    "liquidjs": "^10.25.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.4.0",
+    "bun-types": "^1.3.10",
+    "typescript": "^5.7.0"
+  }
+}

@@ -6,6 +6,7 @@
 
 | Track | Feature | Type | Issue | Started | Status |
 |-------|---------|------|-------|---------|--------|
+| [nuxt-chat-sdk-migration-20260319](active/nuxt-chat-sdk-migration-20260319/plan.md) | Nuxt + Chat SDK Migration | refactor | TBD | 2026-03-19 | in_progress |
 
 ## Recently Completed
 
