@@ -9,7 +9,7 @@ export function useSessionMessages(sessionId: Ref<string> | (() => string), inte
   )
 
   const error = computed(() => fetchError.value?.message ?? null)
-  const loading = computed(() => status.value === 'pending' && !messages.value)
+  const loading = computed(() => status.value === 'pending' && messages.value.length === 0)
 
   const { pause } = useIntervalFn(refresh, intervalMs)
   onScopeDispose(pause)
