@@ -1,0 +1,35 @@
+apps/work-please/package.json
+  eea92607f83fda9b 33-34
+.please/docs/tracks/active/nuxt-chat-sdk-migration-20260319/metadata.json
+  eea92607f83fda9b 8
+packages/core/package.json
+  eea92607f83fda9b 1-35
+packages/core/tsconfig.json
+  eea92607f83fda9b 1-9
+apps/work-please/src/cli.ts
+  eea92607f83fda9b 6
+apps/work-please/src/init.ts
+  eea92607f83fda9b 5
+packages/core/src/index.ts
+  eea92607f83fda9b 1-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "ceb3fda04ac0a96b13ac1a9f0c0dfb549b63fe24",
+  "prompts": {
+    "eea92607f83fda9b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1a7ec1b-1175-4faa-a64f-194dc6285a84",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 145,
+      "total_deletions": 15,
+      "accepted_lines": 144,
+      "overriden_lines": 0
+    }
+  }
+}
