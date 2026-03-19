@@ -1,7 +1,7 @@
 {
   "name": "@pleaseai/work-core",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Core orchestrator logic for Work Please",
   "license": "FSL-1.1-MIT",
   "repository": {

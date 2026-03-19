@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.16](https://github.com/pleaseai/work-please/compare/work-v0.1.15...work-v0.1.16) (2026-03-19)
+
+
+### Features
+
+* **dashboard:** add configurable vite allowed hosts ([#140](https://github.com/pleaseai/work-please/issues/140)) ([ae24389](https://github.com/pleaseai/work-please/commit/ae24389f78159ad7098417d826da61e46c352c44))
+* **db:** add libsql/Turso agent run history storage ([#116](https://github.com/pleaseai/work-please/issues/116)) ([6c99208](https://github.com/pleaseai/work-please/commit/6c992085a5c65e64f152b1e236daa96a112c430c))
+
+
+### Bug Fixes
+
+* **dashboard:** add missing session messages API route ([#145](https://github.com/pleaseai/work-please/issues/145)) ([55386db](https://github.com/pleaseai/work-please/commit/55386dbf6e8cad07376190df757071752eb13a1d))
+* **dashboard:** prevent flicker on polling refresh ([#146](https://github.com/pleaseai/work-please/issues/146)) ([628da6b](https://github.com/pleaseai/work-please/commit/628da6b89de616ce995fe8c3fadf62f63cbac1fe))
+
 ## [0.1.15](https://github.com/pleaseai/work-please/compare/work-v0.1.14...work-v0.1.15) (2026-03-19)
 
 
