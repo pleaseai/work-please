@@ -187,6 +187,14 @@ export async function queryRuns(client: Client | null, options: QueryRunsOptions
 
     return rs.rows.map((row) => {
       const rawStatus = row.status as string
+      let status: AgentRunStatus
+      if (VALID_STATUSES.has(rawStatus)) {
+        status = rawStatus as AgentRunStatus
+      }
+      else {
+        log.warn(`db: unexpected status value "${rawStatus}", defaulting to "failure"`)
+        status = 'failure'
+      }
       return {
         id: row.id as number,
         issue_id: row.issue_id as string,
@@ -196,7 +204,7 @@ export async function queryRuns(client: Client | null, options: QueryRunsOptions
         started_at: row.started_at as string,
         finished_at: row.finished_at as string,
         duration_ms: row.duration_ms as number,
-        status: VALID_STATUSES.has(rawStatus) ? rawStatus as AgentRunStatus : 'failure',
+        status,
         error: row.error as string | null,
         turn_count: row.turn_count as number,
         retry_attempt: row.retry_attempt as number | null,

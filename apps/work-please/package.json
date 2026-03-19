@@ -30,13 +30,10 @@
     "test:coverage": "bun test --coverage --coverage-reporter=lcov"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.72",
     "@chat-adapter/github": "^4.20.2",
     "@chat-adapter/slack": "^4.20.2",
     "@chat-adapter/state-memory": "^4.20.2",
-    "@libsql/client": "^0.17.0",
     "@nuxt/ui": "^4.5.1",
-    "@octokit/auth-app": "^8.2.0",
     "@octokit/graphql": "^9.0.3",
     "@pleaseai/work-core": "workspace:*",
     "@vueuse/nuxt": "^14.2.1",

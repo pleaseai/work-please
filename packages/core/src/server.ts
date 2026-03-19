@@ -356,7 +356,7 @@ async function runsResponse(orchestrator: Orchestrator, params: URLSearchParams)
     ? statusParam as AgentRunStatus
     : undefined
   const limit = Math.min(Math.max(Number.parseInt(params.get('limit') ?? '50', 10) || 50, 1), 200)
-  const offset = Math.max(Number.parseInt(params.get('offset') ?? '0', 10) || 0, 0)
+  const offset = Math.min(Math.max(Number.parseInt(params.get('offset') ?? '0', 10) || 0, 0), 100_000)
 
   const runs = await queryRuns(db, { identifier, status, limit, offset })
   return jsonResponse(runs)
