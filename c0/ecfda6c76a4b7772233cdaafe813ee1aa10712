@@ -1,0 +1,29 @@
+README.zh-CN.md
+  5a90b720cb2ce5d8 146-147,150-153,220-221,226-229,296-297,299-301,385-400,402-403,419-430,432-438,598-599,604-606
+README.md
+  5a90b720cb2ce5d8 150-151,154-157,224-225,230-233,300-301,303-305,389-404,406-407,423-434,436-442,625-626,631-633
+README.ja.md
+  5a90b720cb2ce5d8 146-147,150-153,220-221,226-229,296-297,299-301,385-400,402-403,419-430,432-438,598-599,604-606
+README.ko.md
+  5a90b720cb2ce5d8 146-147,150-153,220-221,226-229,296-297,299-301,385-400,402-403,419-430,432-438,598-599,604-606
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "c0ecfda6c76a4b7772233cdaafe813ee1aa10712",
+  "prompts": {
+    "5a90b720cb2ce5d8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fe166baf-10df-480f-b5b1-fd9989bde96c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 522,
+      "total_deletions": 402,
+      "accepted_lines": 261,
+      "overriden_lines": 0
+    }
+  }
+}
