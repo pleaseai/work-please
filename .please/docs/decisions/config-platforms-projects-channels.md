@@ -14,6 +14,10 @@ Restructure the WORKFLOW.md front matter config into three top-level sections:
 | `projects` | Where to pull work items from (polling) | N |
 | `channels` | Where to receive conversations and commands (push) | N |
 
+> **Note:** Linear and Asana are shown as extensibility examples. The current
+> `validateConfig` only accepts `'github_projects'` and `'asana'` as tracker kinds.
+> This ADR describes the target architecture, not the current implementation.
+
 ### Config Shape
 
 ```yaml
@@ -92,11 +96,25 @@ interface ServiceConfig {
   // ... agent, workspace, polling, hooks, etc. (unchanged)
 }
 
-interface PlatformConfig {
-  kind: 'github' | 'linear' | 'asana' | 'slack'
-  api_key: string | null
+// Platform name is the map key (e.g., 'github', 'slack')
+// Each platform has different credential fields:
+//   github/linear/asana: api_key (+ optional app_id, private_key, installation_id)
+//   slack: bot_token + signing_secret
+type PlatformConfig = GitHubPlatform | LinearPlatform | AsanaPlatform | SlackPlatform
+
+interface BasePlatform {
   bot_username: string | null
-  // platform-specific fields via discriminated union
+}
+interface GitHubPlatform extends BasePlatform {
+  api_key: string | null
+  owner: string
+  app_id?: string | null         // alternative to api_key
+  private_key?: string | null
+  installation_id?: number | null
+}
+interface SlackPlatform {
+  bot_token: string | null
+  signing_secret: string | null
 }
 
 interface ProjectConfig {
@@ -126,7 +144,7 @@ The existing config has two top-level sections for external service integration:
 
 This creates several problems:
 
-1. **Credential duplication** — GitHub auth appears in both `tracker.api_key` and is needed by `chat.github`. The same platform's credentials have no single source of truth.
+1. **No single credential registry** — Slack auth (`bot_token`, `signing_secret`) lives in `chat.slack`, while tracker auth (`api_key` or App credentials) lives in `tracker`. Each platform's credentials are scattered across sections with no single source of truth. Adding GitHub as a chat channel alongside GitHub Projects as a tracker would require duplicating its credentials.
 2. **"Where is the GitHub config?"** — No single answer. GitHub settings are split across `tracker` (when kind is `github_projects`) and `chat.github`.
 3. **Single tracker limitation** — Only one tracker can be configured. Multi-project polling (e.g., GitHub Projects + Linear simultaneously) is not possible.
 4. **Chat surfaces are implicit** — Adding a new conversational surface (e.g., Google Chat) requires modifying the chat config schema rather than simply adding an entry.
@@ -199,7 +217,7 @@ chat:
 ```
 
 **Rejected because:**
-- Credential duplication across sections
+- No single credential registry (Slack auth in `chat.slack`, tracker auth in `tracker`)
 - Single tracker limitation
 - No natural home for slash commands
 - "Where is the GitHub config?" has no single answer
