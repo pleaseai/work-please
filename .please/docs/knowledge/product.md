@@ -20,16 +20,18 @@ Engineering teams running autonomous coding agents at scale. Teams that need to 
 - **Bounded concurrency** — Global and per-state concurrent agent limits prevent resource exhaustion.
 - **Retry with backoff** — Exponential backoff on failures; short continuation retry on clean exits.
 - **Multi-tracker support** — GitHub Projects v2 (PAT or GitHub App auth) and Asana (under development).
+- **Multi-platform chat integration** — GitHub issue comment bot and Slack bot via Chat SDK adapters. Respond to @mentions with agent status.
 - **Minimal tracker writes** — The orchestrator applies only status labels. All state transitions, PR creation, and comments are performed by the agent itself.
+- **Dashboard & observability** — Nuxt-based HTTP dashboard with real-time orchestrator state, per-issue detail, and session history (libsql/Turso storage).
 
 ## Near-Term Goals
 
+- **Linear integration** — Add Linear as a supported issue tracker alongside GitHub Projects v2 and Asana.
 - **Developer experience** — Easier setup, better documentation, improved `init` command, and streamlined onboarding.
-- Continued improvement of observability (HTTP dashboard, structured logging).
 
 ## Non-Goals
 
-- **Not a general-purpose AI agent framework** — Agent Please is focused specifically on the issue tracker to agent workflow pipeline. It does not aim to be a generic agent orchestration platform.
+- **Not a general-purpose AI agent framework** — Agent Please is focused specifically on the issue tracker to autonomous coding agent pipeline. It does not aim to be a generic agent orchestration platform.
 - **Not a code review tool** — The agent performs implementation tasks. Review remains a human or separate-tool responsibility.
 - **Not a CI/CD replacement** — Agent Please complements existing CI/CD pipelines rather than replacing them.
 
