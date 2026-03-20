@@ -49,29 +49,29 @@ Better Auth is integrated as a Nuxt server-side library with a catch-all API rou
 
 ### Phase 1: Config layer (core package)
 
-- [ ] T001 Add AuthConfig type and extend ServiceConfig (file: packages/core/src/types.ts)
-- [ ] T002 Implement buildAuthConfig() parser with $ENV_VAR resolution (file: packages/core/src/config.ts, depends on T001)
+- [x] T001 Add AuthConfig type and extend ServiceConfig (file: packages/core/src/types.ts)
+- [x] T002 Implement buildAuthConfig() parser with $ENV_VAR resolution (file: packages/core/src/config.ts, depends on T001)
 
 ### Phase 2: Server-side auth setup
 
-- [ ] T003 Install Better Auth and create server instance from ServiceConfig.auth (file: apps/agent-please/lib/auth.ts, depends on T002)
-- [ ] T004 Create auth API catch-all route (file: apps/agent-please/server/api/auth/[...all].ts, depends on T003)
-- [ ] T005 Create auth startup plugin with migrations and admin seeding (file: apps/agent-please/server/plugins/00.auth.ts, depends on T003)
+- [x] T003 Install Better Auth and create server instance from ServiceConfig.auth (file: apps/agent-please/server/utils/auth.ts, depends on T002)
+- [x] T004 Create auth API catch-all route (file: apps/agent-please/server/api/auth/[...all].ts, depends on T003)
+- [x] T005 Create auth startup plugin with migrations and admin seeding (file: apps/agent-please/server/plugins/03.auth.ts, depends on T003)
 
 ### Phase 3: Middleware and route protection
 
-- [ ] T006 Create server-side auth middleware for /api/v1/* routes (file: apps/agent-please/server/middleware/auth.ts, depends on T004)
-- [ ] T007 Create client-side route middleware for page protection (file: apps/agent-please/app/middleware/auth.global.ts, depends on T003)
+- [x] T006 Create server-side auth middleware for /api/v1/* routes (file: apps/agent-please/server/middleware/auth.ts, depends on T004)
+- [x] T007 Create client-side route middleware for page protection (file: apps/agent-please/app/middleware/auth.global.ts, depends on T003)
 
 ### Phase 4: Client-side auth and UI
 
-- [ ] T008 Create auth client with plugins (file: apps/agent-please/lib/auth-client.ts, depends on T003)
-- [ ] T009 Build login page with GitHub OAuth and username/password forms (file: apps/agent-please/app/pages/login.vue, depends on T008)
-- [ ] T010 Add user menu to dashboard sidebar (file: apps/agent-please/app/layouts/dashboard.vue, depends on T008)
+- [x] T008 Create auth client with plugins (file: apps/agent-please/lib/auth-client.ts, depends on T003)
+- [x] T009 Build login page with GitHub OAuth and username/password forms (file: apps/agent-please/app/pages/login.vue, depends on T008)
+- [x] T010 Add user menu to dashboard sidebar (file: apps/agent-please/app/layouts/dashboard.vue, depends on T008)
 
 ### Phase 5: Configuration and documentation
 
-- [ ] T011 Add auth runtime config to nuxt.config.ts (file: apps/agent-please/nuxt.config.ts, depends on T002)
+- [x] T011 Add auth runtime config to nuxt.config.ts (file: apps/agent-please/nuxt.config.ts, depends on T002)
 
 ## Key Files
 
@@ -146,6 +146,19 @@ Better Auth is integrated as a Nuxt server-side library with a catch-all API rou
   Rationale: Better Auth's built-in SQLite adapter requires a raw SQLite driver interface. `bun:sqlite` is native to the Bun runtime and can share the same database file as `@libsql/client`. Two connections to the same SQLite file in WAL mode is safe for concurrent reads.
   Date/Author: 2026-03-21 / Claude
 
-- Decision: Auth plugin numbered `00` to run before orchestrator (`01`)
-  Rationale: Auth migrations must complete before any HTTP requests are served. Plugin ordering in Nitro is alphabetical by filename.
+- Decision: Auth plugin numbered `03` to run after orchestrator (`01`) and chat-bot (`02`)
+  Rationale: Auth initialization reads config from the orchestrator, which must be started first. Nitro plugins all complete before serving requests, so there is no unprotected window.
   Date/Author: 2026-03-21 / Claude
+
+- Decision: Auth server instance placed in `server/utils/auth.ts` instead of `lib/auth.ts`
+  Rationale: Nitro auto-imports from `server/utils/`. Placing it there makes `useAuth()` and `initAuth()` available to all server routes, middleware, and plugins without explicit imports.
+  Date/Author: 2026-03-21 / Claude
+
+- Decision: T011 (nuxt.config.ts changes) skipped — no changes needed
+  Rationale: Auth config flows through WORKFLOW.md → orchestrator → `initAuth()`. Better Auth reads `BETTER_AUTH_URL` from process.env automatically. No Nuxt runtime config keys required.
+  Date/Author: 2026-03-21 / Claude
+
+## Surprises & Discoveries
+
+- Observation: Auth plugin ordering needed to be `03` not `00` because auth config comes from orchestrator
+  Evidence: Orchestrator plugin (`01.orchestrator.ts`) must start first to provide `ServiceConfig.auth`

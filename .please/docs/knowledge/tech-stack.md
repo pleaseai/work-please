@@ -43,6 +43,7 @@
 
 | Technology | Purpose |
 |---|---|
+| Better Auth | Dashboard authentication (GitHub OAuth, username/password, admin roles, `bun:sqlite`) |
 | `@anthropic-ai/claude-agent-sdk` | Claude Code agent session management (`query()`) |
 | `@libsql/client` | Agent run history storage (embedded libsql / Turso cloud) |
 | LiquidJS | Prompt template rendering (Liquid-compatible syntax) |
