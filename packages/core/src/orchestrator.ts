@@ -925,7 +925,7 @@ function nextAttemptFrom(currentAttempt: number | null): number {
 }
 
 export function buildTokenProvider(project: ProjectConfig, platform: GitHubPlatformConfig): import('./agent-env').TokenProvider | undefined {
-  if (project.platform === 'asana')
+  if (platform.kind !== 'github')
     return undefined
 
   const { api_key, app_id, private_key, installation_id } = platform

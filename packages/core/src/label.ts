@@ -41,7 +41,7 @@ export function formatLabelName(prefix: string, state: LabelState): string {
 
 export function createLabelService(config: ServiceConfig): LabelService | null {
   // Use the first github-like project with a label_prefix
-  const project = config.projects.find(p => p.label_prefix && p.platform !== 'asana' && p.platform !== 'slack')
+  const project = config.projects.find(p => p.label_prefix && config.platforms[p.platform]?.kind === 'github')
   if (!project?.label_prefix)
     return null
 

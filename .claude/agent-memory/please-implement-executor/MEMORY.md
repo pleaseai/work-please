@@ -25,11 +25,6 @@ ServiceConfig now has:
 - Run single file: `bun test packages/core/src/config-platforms.test.ts`
 - Run all core: `bun test packages/core/src/`
 
-## Expected Broken Tests (Phase 2 state)
-config.test.ts, tracker.test.ts, orchestrator.test.ts, label.test.ts,
-agent-runner.test.ts, issue-comment-handler.test.ts all use `config.tracker`/`config.chat`
-— they will be fixed in T023-T026.
-
 ## Commit Convention
 `refactor(core): ...` for config shape changes, `feat(core): ...` for new features
 Always run `bun test` on new test file before commit.

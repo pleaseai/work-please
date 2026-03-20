@@ -401,7 +401,7 @@ platforms:
 
 projects:
   - platform: github                  # 필수: platforms의 키와 일치해야 함
-    project_number: 42                # 필수: GitHub Projects v2 프로젝트 번호
+    project_number: 42                # 선택: GitHub Projects v2 프로젝트 번호 (project_id가 없을 때 owner와 함께 필요)
     project_id: PVT_kwDOxxxxx        # 선택: 프로젝트 노드 ID (owner+project_number 조회 생략)
     active_statuses:                  # 선택: 기본값 ["Todo", "In Progress", "Merging", "Rework"]
       - Todo

@@ -61,18 +61,18 @@ const GITHUB_GRAPHQL_SPEC: ToolSpec = {
 }
 
 export function getToolSpecs(config: ServiceConfig): ToolSpec[] {
-  const firstProject = config.projects[0]
-  if (!firstProject) {
+  if (!config.projects.length) {
     log.warn('no projects configured, tool specs unavailable')
     return []
   }
-  const kind = firstProject.platform
-  if (kind === 'asana')
-    return [ASANA_API_SPEC]
-  // github or any github-like platform
-  if (kind !== 'slack')
-    return [GITHUB_GRAPHQL_SPEC]
-  return []
+  const hasAsana = config.projects.some(p => config.platforms[p.platform]?.kind === 'asana')
+  const hasGithub = config.projects.some(p => config.platforms[p.platform]?.kind === 'github')
+  const specs: ToolSpec[] = []
+  if (hasAsana)
+    specs.push(ASANA_API_SPEC)
+  if (hasGithub)
+    specs.push(GITHUB_GRAPHQL_SPEC)
+  return specs
 }
 
 export async function executeTool(
@@ -80,19 +80,20 @@ export async function executeTool(
   toolName: string,
   rawArgs: unknown,
 ): Promise<ToolResult> {
-  const firstProject = config.projects[0]
-  if (!firstProject) {
+  if (!config.projects.length) {
     return failureResult({
       error: { message: 'No projects configured — cannot execute tracker tools. Check your WORKFLOW.md projects section.' },
     })
   }
-  const kind = firstProject.platform
 
-  if (toolName === 'asana_api' && kind === 'asana') {
+  const hasAsana = config.projects.some(p => config.platforms[p.platform]?.kind === 'asana')
+  const hasGithub = config.projects.some(p => config.platforms[p.platform]?.kind === 'github')
+
+  if (toolName === 'asana_api' && hasAsana) {
     return executeAsanaApi(config, rawArgs)
   }
 
-  if (toolName === 'github_graphql' && kind !== 'asana' && kind !== 'slack') {
+  if (toolName === 'github_graphql' && hasGithub) {
     return executeGitHubGraphql(config, rawArgs)
   }
 
@@ -119,7 +120,7 @@ async function executeAsanaApi(config: ServiceConfig, rawArgs: unknown): Promise
     return failureResult({ error: { message: 'Asana auth not configured. Set platforms.asana.api_key or ASANA_ACCESS_TOKEN.' } })
   }
 
-  const firstProject = config.projects.find(p => p.platform === 'asana')
+  const firstProject = config.projects.find(p => config.platforms[p.platform]?.kind === 'asana')
   const base = ((firstProject?.endpoint) ?? 'https://app.asana.com/api/1.0').replace(TRAILING_SLASH_RE, '')
   const url = buildAsanaUrl(base, path, method, params)
   const init: RequestInit = {
@@ -206,7 +207,7 @@ async function executeGitHubGraphql(config: ServiceConfig, rawArgs: unknown): Pr
     return failureResult({ error: args.error })
 
   const { query, variables } = args
-  const firstProject = config.projects.find(p => p.platform !== 'asana' && p.platform !== 'slack')
+  const firstProject = config.projects.find(p => config.platforms[p.platform]?.kind === 'github')
   const rawGithub = firstProject ? config.platforms[firstProject.platform] : null
   const githubPlatform = rawGithub?.kind === 'github' ? rawGithub : null
   if (!githubPlatform) {
@@ -286,11 +287,11 @@ function failureResult(payload: unknown): ToolResult {
 }
 
 export function createToolsMcpServer(config: ServiceConfig): ReturnType<typeof createSdkMcpServer> {
-  const firstProject = config.projects[0]
-  const kind = firstProject?.platform ?? null
+  const hasAsana = config.projects.some(p => config.platforms[p.platform]?.kind === 'asana')
+  const hasGithub = config.projects.some(p => config.platforms[p.platform]?.kind === 'github')
   const tools: SdkMcpToolDefinition<AnyZodRawShape>[] = []
 
-  if (kind === 'asana') {
+  if (hasAsana) {
     tools.push(tool(
       'asana_api',
       ASANA_API_SPEC.description,
@@ -309,7 +310,7 @@ export function createToolsMcpServer(config: ServiceConfig): ReturnType<typeof c
     ) as unknown as SdkMcpToolDefinition<AnyZodRawShape>)
   }
 
-  if (kind && kind !== 'asana' && kind !== 'slack') {
+  if (hasGithub) {
     tools.push(tool(
       'github_graphql',
       GITHUB_GRAPHQL_SPEC.description,

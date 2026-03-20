@@ -389,7 +389,7 @@ front matter configuration block with a Markdown prompt template body.
 platforms:
   github:                             # Platform name used by projects[].platform and channels[].platform
     api_key: $GITHUB_TOKEN            # Required: token or $ENV_VAR (or use GitHub App fields below)
-    owner: your-org                   # Required: GitHub organization or user login
+    owner: your-org                   # Required unless projects[].project_id is set
     bot_username: agent-please        # Optional: bot display name for chat channels
     endpoint: https://api.github.com  # Optional: override GitHub API base URL
     # GitHub App authentication (alternative to api_key — all three required together):

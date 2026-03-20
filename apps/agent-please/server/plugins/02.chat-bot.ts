@@ -72,7 +72,7 @@ export default defineNitroPlugin((nitroApp) => {
     return
   }
 
-  const botUsername = resolvedBotUsername || process.env.GITHUB_BOT_USERNAME || 'agent-please'
+  const botUsername = resolvedBotUsername || process.env.CHAT_BOT_USERNAME || process.env.GITHUB_BOT_USERNAME || 'agent-please'
 
   const bot = new Chat({
     userName: botUsername,

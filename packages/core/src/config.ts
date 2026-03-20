@@ -164,7 +164,8 @@ export function buildProjectsConfig(
     if (!platform)
       continue
 
-    const defaults = buildProjectStatusDefaults(sec, platform === 'asana')
+    const platformKind = _platforms[platform]?.kind
+    const defaults = buildProjectStatusDefaults(sec, platformKind === 'asana')
 
     result.push({
       platform,

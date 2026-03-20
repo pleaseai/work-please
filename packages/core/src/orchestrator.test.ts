@@ -1254,14 +1254,13 @@ describe('buildTokenProvider', () => {
     }
   }
 
-  it('returns undefined for non-github_projects tracker', () => {
-    const result = buildTokenProvider(makeProject('asana'), makePlatform())
+  it('returns undefined for non-github platform kind', () => {
+    const result = buildTokenProvider(makeProject(), makePlatform({ kind: 'asana' as unknown as 'github' }))
     expect(result).toBeUndefined()
   })
 
-  it('returns undefined for null tracker kind', () => {
-    // platform key 'asana' triggers the asana early-return path
-    const result = buildTokenProvider(makeProject('asana'), makePlatform())
+  it('returns undefined for null platform kind', () => {
+    const result = buildTokenProvider(makeProject(), { ...makePlatform(), kind: null } as unknown as GitHubPlatformConfig)
     expect(result).toBeUndefined()
   })
 

@@ -388,7 +388,7 @@ describe('runBeforeRunHook', () => {
     // Node's spawnSync reports timeout via r.error (ETIMEDOUT) on some platforms,
     // or via r.signal (null exitCode) on others — both are a timeout condition
     const msg = err?.message ?? ''
-    expect(msg.includes('hook timeout') || msg.includes('ETIMEDOUT') || msg.includes('hook spawn failed')).toBe(true)
+    expect(msg.includes('hook timeout') || msg.includes('ETIMEDOUT')).toBe(true)
   })
 })
 

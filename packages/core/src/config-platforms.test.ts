@@ -43,13 +43,17 @@ describe('buildPlatformsConfig', () => {
   })
 
   it('resolves $ENV_VAR reference in github api_key', () => {
+    const savedMytest = process.env.MYTEST_GITHUB_TOKEN
     process.env.MYTEST_GITHUB_TOKEN = 'env-token'
     const result = buildPlatformsConfig({
       platforms: {
         github: { api_key: '$MYTEST_GITHUB_TOKEN' },
       },
     })
-    delete process.env.MYTEST_GITHUB_TOKEN
+    if (savedMytest === undefined)
+      delete process.env.MYTEST_GITHUB_TOKEN
+    else
+      process.env.MYTEST_GITHUB_TOKEN = savedMytest
     const gh = result.github as any
     expect(gh.api_key).toBe('env-token')
   })
@@ -62,9 +66,10 @@ describe('buildPlatformsConfig', () => {
         github: { owner: 'org' },
       },
     })
-    process.env.GITHUB_TOKEN = saved ?? ''
-    if (!saved)
+    if (saved === undefined)
       delete process.env.GITHUB_TOKEN
+    else
+      process.env.GITHUB_TOKEN = saved
     const gh = result.github as any
     expect(gh.api_key).toBe('fallback-token')
   })
@@ -84,13 +89,17 @@ describe('buildPlatformsConfig', () => {
   })
 
   it('resolves $ENV_VAR reference in slack bot_token', () => {
+    const savedMytest = process.env.MYTEST_SLACK_TOKEN
     process.env.MYTEST_SLACK_TOKEN = 'slack-env-token'
     const result = buildPlatformsConfig({
       platforms: {
         slack: { bot_token: '$MYTEST_SLACK_TOKEN' },
       },
     })
-    delete process.env.MYTEST_SLACK_TOKEN
+    if (savedMytest === undefined)
+      delete process.env.MYTEST_SLACK_TOKEN
+    else
+      process.env.MYTEST_SLACK_TOKEN = savedMytest
     const slack = result.slack as any
     expect(slack.bot_token).toBe('slack-env-token')
   })
@@ -103,9 +112,10 @@ describe('buildPlatformsConfig', () => {
         slack: {},
       },
     })
-    process.env.SLACK_BOT_TOKEN = saved ?? ''
-    if (!saved)
+    if (saved === undefined)
       delete process.env.SLACK_BOT_TOKEN
+    else
+      process.env.SLACK_BOT_TOKEN = saved
     const slack = result.slack as any
     expect(slack.bot_token).toBe('slack-fallback')
   })
@@ -171,7 +181,7 @@ describe('buildProjectsConfig', () => {
   })
 
   it('applies github defaults for status arrays', () => {
-    const platforms = { github: {} } as unknown as Record<string, PlatformConfig>
+    const platforms = { github: { kind: 'github' } } as unknown as Record<string, PlatformConfig>
     const result = buildProjectsConfig({
       projects: [{ platform: 'github', project_number: 1 }],
     }, platforms)
@@ -182,7 +192,7 @@ describe('buildProjectsConfig', () => {
   })
 
   it('applies asana defaults for status arrays', () => {
-    const platforms = { asana: {} } as unknown as Record<string, PlatformConfig>
+    const platforms = { asana: { kind: 'asana' } } as unknown as Record<string, PlatformConfig>
     const result = buildProjectsConfig({
       projects: [{ platform: 'asana', project_gid: 'gid123' }],
     }, platforms)
