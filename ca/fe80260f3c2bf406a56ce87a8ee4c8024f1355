@@ -1,0 +1,27 @@
+.please/docs/tracks/active/add-auth-20260321/metadata.json
+  a01dc7d6fbcad8ac 8
+.please/docs/tracks/active/add-auth-20260321/plan.md
+  a01dc7d6fbcad8ac 52-53,57-59,63-64,68-70,74,149-150,152-164
+.please/docs/knowledge/tech-stack.md
+  a01dc7d6fbcad8ac 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "cafe80260f3c2bf406a56ce87a8ee4c8024f1355",
+  "prompts": {
+    "a01dc7d6fbcad8ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3c22e3a3-d247-4c61-a76f-15cffca8f457",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 27,
+      "total_deletions": 13,
+      "accepted_lines": 28,
+      "overriden_lines": 0
+    }
+  }
+}
