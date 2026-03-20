@@ -1,0 +1,53 @@
+apps/work-please/server/api/webhooks/github.post.ts
+  0f8745efcf11f1c6 1,3,20-66,89-90,130-157,159-163
+apps/work-please/server/plugins/02.chat-bot.ts
+  0f8745efcf11f1c6 40-42,50-57,64
+packages/core/src/tools.test.ts
+  0f8745efcf11f1c6 16
+packages/core/src/types.ts
+  0f8745efcf11f1c6 146-160,209
+packages/core/src/tracker/github-auth.test.ts
+  0f8745efcf11f1c6 38
+packages/core/src/label.test.ts
+  0f8745efcf11f1c6 46,68
+packages/core/src/index.ts
+  0f8745efcf11f1c6 25-28,62-64
+packages/core/src/server.test.ts
+  0f8745efcf11f1c6 18
+packages/core/src/config.test.ts
+  0f8745efcf11f1c6 1062-1220
+packages/core/src/orchestrator.ts
+  0f8745efcf11f1c6 126-129
+.please/docs/tracks/index.md
+  0f8745efcf11f1c6 9
+.please/docs/tracks/active/github-issue-comment-dispatch-20260320/spec.md
+  0f8745efcf11f1c6 1-82
+packages/core/src/config.ts
+  0f8745efcf11f1c6 1,81,173-190
+.please/docs/tracks/active/github-issue-comment-dispatch-20260320/plan.md
+  0f8745efcf11f1c6 1-42,44-65
+packages/core/src/issue-comment-handler.test.ts
+  0f8745efcf11f1c6 1-212
+packages/core/src/issue-comment-handler.ts
+  0f8745efcf11f1c6 1-3,5-36,40-276
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "98602a42fa606a472de0fafb71acb207baf4b383",
+  "prompts": {
+    "0f8745efcf11f1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "925e4205-392e-4989-91ff-4370a622627b",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 2,
+      "accepted_lines": 938,
+      "overriden_lines": 0
+    }
+  }
+}
