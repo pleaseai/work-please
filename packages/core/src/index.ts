@@ -48,6 +48,9 @@ export type { PromptBuildError } from './prompt-builder'
 
 // Server
 export { HttpServer } from './server'
+// State
+export { createStateFromConfig } from './state'
+
 // Session Renderer
 export { fetchSessionMessages, isValidSessionId, parsePositiveInt } from './session-renderer'
 
