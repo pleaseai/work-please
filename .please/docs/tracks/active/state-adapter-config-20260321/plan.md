@@ -117,6 +117,26 @@ Replace the hardcoded `createMemoryState()` in the Chat bot plugin with a config
 - Only `@chat-adapter/state-memory` is a direct dependency; others are optional peer deps
 - `on_lock_conflict` is parsed in config but applied at `Chat` constructor level
 
+## Outcomes & Retrospective
+
+### What Was Shipped
+- `StateConfig` type and `buildStateConfig()` parser with env-var resolution
+- `createStateFromConfig()` factory with dynamic imports for 4 adapter types
+- Integration into Nitro chat bot plugin replacing hardcoded memory adapter
+- Optional peer dependencies for redis, ioredis, and postgres adapters
+
+### What Went Well
+- Config parsing followed established `buildDbConfig()` pattern — fast implementation
+- Dynamic import pattern with `mock.module()` testing worked cleanly
+- Code review caught a real bug (ioredis `url!` non-null assertion) before merge
+
+### What Could Improve
+- The Nitro plugin's `.then()` pattern for async state creation is a workaround; async plugin support would be cleaner
+
+### Tech Debt Created
+- `Promise<unknown>` return type from `createStateFromConfig()` — could be improved with a minimal `StateAdapter` interface in core
+- `.then()` race condition in `02.chat-bot.ts` — `nitroApp.chatBot` may be undefined during early requests
+
 ## Surprises & Discoveries
 
 - Bun's dynamic import throws `ResolveMessage` (not `instanceof Error`) — needed duck-typed message check for `isModuleNotFound`
