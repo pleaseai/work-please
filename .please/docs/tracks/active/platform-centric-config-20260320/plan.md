@@ -67,9 +67,9 @@ This is a breaking change. No backward compatibility is required — the project
 
 ### Phase 5: App Layer Updates
 
-- [ ] T020 Update chat bot plugin to iterate channels[] (file: apps/agent-please/server/plugins/02.chat-bot.ts, depends on T005, T019)
-- [ ] T021 Update GitHub webhook handler for new config shape (file: apps/agent-please/server/api/webhooks/github.post.ts, depends on T020)
-- [ ] T022 Update Slack webhook handler for new config shape (file: apps/agent-please/server/api/webhooks/slack.post.ts, depends on T020)
+- [x] (2026-03-20 10:30 KST) T020 Update chat bot plugin to iterate channels[] (file: apps/agent-please/server/plugins/02.chat-bot.ts, depends on T005, T019)
+- [x] (2026-03-20 10:30 KST) T021 Update GitHub webhook handler for new config shape (file: apps/agent-please/server/api/webhooks/github.post.ts, depends on T020)
+- [x] (2026-03-20 10:30 KST) T022 Update Slack webhook handler for new config shape (file: apps/agent-please/server/api/webhooks/slack.post.ts, depends on T020)
 
 ### Phase 6: Tests & Documentation
 
