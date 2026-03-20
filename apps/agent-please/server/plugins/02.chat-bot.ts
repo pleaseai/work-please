@@ -7,7 +7,7 @@ import { Chat } from 'chat'
 
 const log = createLogger('chat-bot')
 
-export default defineNitroPlugin((nitroApp) => {
+export default defineNitroPlugin(async (nitroApp) => {
   const orchestrator = (nitroApp as any).orchestrator as Orchestrator | undefined
   if (!orchestrator) {
     log.warn('orchestrator not available — chat bot not started')
@@ -76,7 +76,8 @@ export default defineNitroPlugin((nitroApp) => {
   const stateConfig = config.state
   const onLockConflict = stateConfig.on_lock_conflict === 'force' ? 'force' as const : undefined
 
-  createStateFromConfig(stateConfig).then((stateAdapter) => {
+  try {
+    const stateAdapter = await createStateFromConfig(stateConfig)
     const bot = new Chat({
       userName: botUsername,
       adapters,
@@ -146,7 +147,8 @@ export default defineNitroPlugin((nitroApp) => {
 
     const adapterNames = Object.keys(adapters).join(', ')
     log.info(`chat bot initialized (state: ${stateConfig.adapter}, adapters: ${adapterNames})`)
-  }).catch((err) => {
+  }
+  catch (err) {
     log.error('failed to create state adapter:', err)
-  })
+  }
 })

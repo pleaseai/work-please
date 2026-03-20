@@ -20,7 +20,7 @@ export async function createStateFromConfig(config: StateConfig): Promise<unknow
 
   if (!pkg) {
     log.warn(`unknown state adapter "${adapter}", falling back to memory`)
-    return importAndCreate('memory', null, 'chat-sdk')
+    return importAndCreate('memory', null, keyPrefix)
   }
 
   return importAndCreate(adapter, url, keyPrefix)
@@ -53,9 +53,6 @@ async function importAndCreate(adapter: string, url: string | null, keyPrefix: s
           ...(url ? { url } : {}),
           keyPrefix,
         })
-
-      default:
-        return mod.createMemoryState()
     }
   }
   catch (err: unknown) {

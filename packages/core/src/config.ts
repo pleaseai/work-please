@@ -250,11 +250,13 @@ function buildStateConfig(sec: Record<string, unknown>): StateConfig {
     ? raw as StateAdapterKind
     : 'memory'
 
-  const envFallback = adapter === 'redis' || adapter === 'ioredis'
-    ? process.env.REDIS_URL
-    : adapter === 'postgres'
-      ? (process.env.POSTGRES_URL || process.env.DATABASE_URL)
-      : undefined
+  let envFallback: string | undefined
+  if (adapter === 'redis' || adapter === 'ioredis') {
+    envFallback = process.env.REDIS_URL
+  }
+  else if (adapter === 'postgres') {
+    envFallback = process.env.POSTGRES_URL || process.env.DATABASE_URL
+  }
 
   return {
     adapter,

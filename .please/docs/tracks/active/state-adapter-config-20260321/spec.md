@@ -43,7 +43,7 @@ state:
 |------------|----------------|--------------------------|
 | `memory`   | (none)         | (none)                   |
 | `redis`    | `url` or env `REDIS_URL` | `key_prefix`    |
-| `ioredis`  | `url`          | `key_prefix`             |
+| `ioredis`  | `url` or env `REDIS_URL` | `key_prefix`             |
 | `postgres` | `url` or env `POSTGRES_URL` / `DATABASE_URL` | `key_prefix` |
 
 ## Acceptance Criteria
