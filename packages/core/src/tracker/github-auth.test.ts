@@ -1,4 +1,4 @@
-import type { ServiceConfig } from '../types'
+import type { GitHubPlatformConfig, ProjectConfig } from '../types'
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { createAuthenticatedGraphql } from './github-auth'
 
@@ -17,25 +17,30 @@ mock.module('@octokit/auth-app', () => ({
   }),
 }))
 
-function makeConfig(tracker: Partial<ServiceConfig['tracker']>): ServiceConfig {
+function makeProject(extra: Partial<ProjectConfig> = {}): ProjectConfig {
   return {
-    tracker: {
-      kind: 'github_projects',
-      endpoint: 'https://api.github.com',
-      api_key: null,
-      label_prefix: null,
-      filter: { assignee: [], label: [] },
-      ...tracker,
-    },
-    polling: { mode: 'poll' as const, interval_ms: 30_000 },
-    workspace: { root: '/tmp' },
-    hooks: { after_create: null, before_run: null, after_run: null, before_remove: null, timeout_ms: 60_000 },
-    agent: { max_concurrent_agents: 5, max_turns: 20, max_retry_backoff_ms: 300_000, max_concurrent_agents_by_state: {} },
-    claude: { model: null, effort: 'high' as const, command: 'claude', permission_mode: 'bypassPermissions', allowed_tools: [], setting_sources: [], turn_timeout_ms: 3_600_000, read_timeout_ms: 5_000, stall_timeout_ms: 300_000, sandbox: null, system_prompt: { type: 'preset', preset: 'claude_code' }, settings: { attribution: { commit: null, pr: null } } },
-    env: {},
-    db: { path: '.agent-please/agent_runs.db', turso_url: null, turso_auth_token: null },
-    server: { port: null, webhook: { secret: null, events: null } },
-    chat: { bot_username: null, github: null, slack: null },
+    platform: 'github',
+    project_number: 1,
+    project_id: null,
+    active_statuses: ['Todo', 'In Progress'],
+    terminal_statuses: ['Done', 'Cancelled'],
+    watched_statuses: [],
+    endpoint: 'https://api.github.com',
+    label_prefix: null,
+    filter: { assignee: [], label: [] },
+    ...extra,
+  }
+}
+
+function makePlatform(extra: Partial<GitHubPlatformConfig> = {}): GitHubPlatformConfig {
+  return {
+    api_key: null,
+    owner: null,
+    bot_username: null,
+    app_id: null,
+    private_key: null,
+    installation_id: null,
+    ...extra,
   }
 }
 
@@ -62,21 +67,23 @@ describe('createAuthenticatedGraphql', () => {
       })
     }) as unknown as typeof fetch
 
-    const config = makeConfig({ api_key: 'my-pat-token' })
-    const gql = createAuthenticatedGraphql(config)
+    const project = makeProject()
+    const platform = makePlatform({ api_key: 'my-pat-token' })
+    const gql = createAuthenticatedGraphql(project, platform)
     await gql('{ viewer { login } }')
     expect(capturedAuth).toBe('bearer my-pat-token')
   })
 
   test('App mode: calls createAppAuth with correct credentials', () => {
-    const config = makeConfig({
+    const project = makeProject()
+    const platform = makePlatform({
       api_key: null,
       app_id: '12345',
       private_key: '-----BEGIN RSA PRIVATE KEY-----\ntest',
       installation_id: 67890,
     })
 
-    createAuthenticatedGraphql(config)
+    createAuthenticatedGraphql(project, platform)
 
     expect(capturedAuthOpts).toHaveLength(1)
     const opts = capturedAuthOpts[0] as { appId: string | number, privateKey: string, installationId: number }
@@ -86,14 +93,15 @@ describe('createAuthenticatedGraphql', () => {
   })
 
   test('App mode: uses auth.hook on the graphql instance', () => {
-    const config = makeConfig({
+    const project = makeProject()
+    const platform = makePlatform({
       api_key: null,
       app_id: '99',
       private_key: 'private-key',
       installation_id: 1,
     })
 
-    createAuthenticatedGraphql(config)
+    createAuthenticatedGraphql(project, platform)
 
     // createAppAuth was called (hook attached), not PAT path
     expect(capturedAuthOpts).toHaveLength(1)
@@ -109,13 +117,14 @@ describe('createAuthenticatedGraphql', () => {
       })
     }) as unknown as typeof fetch
 
-    const config = makeConfig({
+    const project = makeProject()
+    const platform = makePlatform({
       api_key: 'pat-token',
       app_id: '12345',
       private_key: 'key',
       installation_id: 1,
     })
-    const gql = createAuthenticatedGraphql(config)
+    const gql = createAuthenticatedGraphql(project, platform)
     await gql('{ viewer { login } }')
 
     expect(capturedAuth).toBe('bearer pat-token')
