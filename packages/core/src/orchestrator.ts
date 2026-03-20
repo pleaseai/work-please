@@ -1,4 +1,5 @@
 import type { Client } from '@libsql/client'
+import type { DispatchLockAdapter } from './dispatch-lock'
 import type { LabelService } from './label'
 import type { GitHubPlatformConfig, Issue, OrchestratorState, ProjectConfig, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
 import { watch } from 'node:fs'
@@ -28,8 +29,9 @@ export class Orchestrator {
   private labelService: LabelService | null = null
   private db: Client | null = null
   private pendingDbWrites: Promise<void>[] = []
+  private dispatchLockAdapter: DispatchLockAdapter | null = null
 
-  constructor(workflowPath: string) {
+  constructor(workflowPath: string, options?: { dispatchLockAdapter?: DispatchLockAdapter }) {
     this.workflowPath = workflowPath
 
     const wf = loadWorkflow(workflowPath)
@@ -39,6 +41,7 @@ export class Orchestrator {
     this.workflow = wf
     this.config = buildConfig(wf)
     this.labelService = createLabelService(this.config)
+    this.dispatchLockAdapter = options?.dispatchLockAdapter ?? null
 
     this.state = {
       poll_interval_ms: this.config.polling.interval_ms,

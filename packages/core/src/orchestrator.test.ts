@@ -1,3 +1,4 @@
+import type { DispatchLock, DispatchLockAdapter } from './dispatch-lock'
 import type { LabelService } from './label'
 import type { GitHubPlatformConfig, Issue, ProjectConfig, RunningEntry, WatchedSnapshot } from './types'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -1328,5 +1329,75 @@ describe('buildTokenProvider', () => {
     // createAppAuth with invalid key will throw — our try-catch returns null
     const token = await provider!.installationAccessToken()
     expect(token).toBeNull()
+  })
+})
+
+describe('dispatch lock integration', () => {
+  function createMockLockAdapter(): DispatchLockAdapter & { locks: Map<string, DispatchLock>, calls: string[] } {
+    const locks = new Map<string, DispatchLock>()
+    const calls: string[] = []
+    return {
+      locks,
+      calls,
+      async acquireLock(threadId: string, ttlMs: number) {
+        calls.push(`acquire:${threadId}`)
+        if (locks.has(threadId))
+          return null
+        const lock: DispatchLock = { threadId, token: `tok-${threadId}`, expiresAt: Date.now() + ttlMs }
+        locks.set(threadId, lock)
+        return lock
+      },
+      async extendLock(lock: DispatchLock, ttlMs: number) {
+        calls.push(`extend:${lock.threadId}`)
+        if (!locks.has(lock.threadId))
+          return false
+        lock.expiresAt = Date.now() + ttlMs
+        return true
+      },
+      async releaseLock(lock: DispatchLock) {
+        calls.push(`release:${lock.threadId}`)
+        locks.delete(lock.threadId)
+      },
+    }
+  }
+
+  function makeWorkflow(): string {
+    return [
+      '---',
+      'platforms:',
+      '  github:',
+      '    kind: github',
+      '    api_key: test-token',
+      '    owner: testorg',
+      'projects:',
+      '  - platform: github',
+      '    project_number: 1',
+      '---',
+      'Prompt template',
+    ].join('\n')
+  }
+
+  it('orchestrator stores dispatchLockAdapter from options', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'agent-please-lock-test-'))
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflow())
+    const adapter = createMockLockAdapter()
+    const orch = new Orchestrator(wfPath, { dispatchLockAdapter: adapter })
+    // Access private field to verify it was stored
+    const stored = (orch as unknown as { dispatchLockAdapter: DispatchLockAdapter | null }).dispatchLockAdapter
+    expect(stored).toBe(adapter)
+    orch.stop()
+    rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('orchestrator works without dispatchLockAdapter (backward compat)', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'agent-please-lock-test-'))
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflow())
+    const orch = new Orchestrator(wfPath)
+    const stored = (orch as unknown as { dispatchLockAdapter: DispatchLockAdapter | null }).dispatchLockAdapter
+    expect(stored).toBeNull()
+    orch.stop()
+    rmSync(tmpDir, { recursive: true, force: true })
   })
 })
