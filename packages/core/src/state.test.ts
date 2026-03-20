@@ -83,6 +83,14 @@ describe('createStateFromConfig', () => {
     expect(state.opts).toEqual({ keyPrefix: 'chat-sdk' })
   })
 
+  it('omits url from ioredis options when url is null', async () => {
+    const state = await createStateFromConfig(makeStateConfig({
+      adapter: 'ioredis',
+      url: null,
+    })) as any
+    expect(state.opts).toEqual({ keyPrefix: 'chat-sdk' })
+  })
+
   it('omits url from postgres options when url is null', async () => {
     const state = await createStateFromConfig(makeStateConfig({
       adapter: 'postgres',

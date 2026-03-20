@@ -44,7 +44,7 @@ async function importAndCreate(adapter: string, url: string | null, keyPrefix: s
 
       case 'ioredis':
         return mod.createIORedisState({
-          url: url!,
+          ...(url ? { url } : {}),
           keyPrefix,
         })
 
