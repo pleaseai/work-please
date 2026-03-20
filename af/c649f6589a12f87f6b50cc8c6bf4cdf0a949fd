@@ -1,0 +1,23 @@
+.please/docs/tracks/active/dedup-dispatch-20260321/plan.md
+  6921c520ff0804f9 140-145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "afc649f6589a12f87f6b50cc8c6bf4cdf0a949fd",
+  "prompts": {
+    "6921c520ff0804f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a05b2e15-9e81-41b5-9434-ba79a5489a0e",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 6,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0
+    }
+  }
+}
