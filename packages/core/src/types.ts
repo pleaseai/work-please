@@ -1,3 +1,5 @@
+import type { DispatchLock } from './dispatch-lock'
+
 export type ClaudeEffort = 'low' | 'medium' | 'high' | 'max'
 
 export interface BlockerRef {
@@ -270,7 +272,7 @@ export interface RunningEntry {
   turn_count: number
   retry_attempt: number | null
   started_at: Date
-  dispatch_lock: { threadId: string, token: string, expiresAt: number } | null
+  dispatch_lock: DispatchLock | null
   dispatch_lock_timer: ReturnType<typeof setInterval> | null
 }
 

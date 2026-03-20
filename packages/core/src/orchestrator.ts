@@ -301,7 +301,16 @@ export class Orchestrator {
     // Acquire dispatch lock (if adapter configured)
     if (this.dispatchLockAdapter) {
       const lockKey = toDispatchLockKey(issue)
-      const lock = await this.dispatchLockAdapter.acquireLock(lockKey, DISPATCH_LOCK_TTL_MS)
+      let lock: Awaited<ReturnType<DispatchLockAdapter['acquireLock']>>
+      try {
+        lock = await this.dispatchLockAdapter.acquireLock(lockKey, DISPATCH_LOCK_TTL_MS)
+      }
+      catch (err) {
+        log.error(`dispatch lock acquire threw issue_id=${issue.id}: ${err}`)
+        this.state.running.delete(issue.id)
+        this.state.claimed.delete(issue.id)
+        return
+      }
       if (!lock) {
         log.info(`dispatch lock held for ${lockKey} — skipping issue_id=${issue.id}`)
         this.state.running.delete(issue.id)
@@ -309,14 +318,19 @@ export class Orchestrator {
         return
       }
       const entry = this.state.running.get(issue.id)
-      if (entry) {
-        entry.dispatch_lock = lock
-        entry.dispatch_lock_timer = setInterval(() => {
-          this.dispatchLockAdapter!.extendLock(lock, DISPATCH_LOCK_TTL_MS).catch((err) => {
-            log.warn(`dispatch lock extend failed issue_id=${issue.id}: ${err}`)
-          })
-        }, DISPATCH_LOCK_EXTEND_INTERVAL_MS)
+      if (!entry) {
+        log.warn(`dispatch lock acquired but entry already removed — releasing lock issue_id=${issue.id}`)
+        this.dispatchLockAdapter.releaseLock(lock).catch((err) => {
+          log.warn(`dispatch lock release (orphaned) failed issue_id=${issue.id}: ${err}`)
+        })
+        return
       }
+      entry.dispatch_lock = lock
+      entry.dispatch_lock_timer = setInterval(() => {
+        this.dispatchLockAdapter!.extendLock(lock!, DISPATCH_LOCK_TTL_MS).catch((err) => {
+          log.warn(`dispatch lock extend failed issue_id=${issue.id}: ${err}`)
+        })
+      }, DISPATCH_LOCK_EXTEND_INTERVAL_MS)
     }
 
     try {

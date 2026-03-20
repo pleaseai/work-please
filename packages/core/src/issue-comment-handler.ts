@@ -3,6 +3,7 @@ import type { DispatchLock, DispatchLockAdapter } from './dispatch-lock'
 import type { AuthorAssociation, Issue, ServiceConfig, WorkflowDefinition } from './types'
 import { resolveAgentEnv } from './agent-env'
 import { AppServerClient } from './agent-runner'
+import { toDispatchLockKey } from './dispatch-lock'
 import { createLogger } from './logger'
 import { buildPrompt, isPromptBuildError } from './prompt-builder'
 import { DEFAULT_ALLOWED_ASSOCIATIONS } from './types'
@@ -120,8 +121,15 @@ export async function handleIssueCommentMention(
   // Acquire dispatch lock (if adapter configured)
   let dispatchLock: DispatchLock | null = null
   if (dispatchLockAdapter) {
-    const lockKey = `github:${owner}/${repo}:issue:${issueNumber}`
-    dispatchLock = await dispatchLockAdapter.acquireLock(lockKey, 5 * 60 * 1000)
+    const issue = payloadToIssue(payload)
+    const lockKey = toDispatchLockKey(issue)
+    try {
+      dispatchLock = await dispatchLockAdapter.acquireLock(lockKey, 5 * 60 * 1000)
+    }
+    catch (err) {
+      log.error(`dispatch lock acquire failed for ${lockKey}: ${err}`)
+      return
+    }
     if (!dispatchLock) {
       log.info(`dispatch lock held for ${lockKey} — skipping comment handler`)
       return
