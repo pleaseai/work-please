@@ -1,26 +1,46 @@
 ---
-tracker:
-  kind: github_projects
-  owner: "<org-or-user>"
-  project_number: 1
-  # api_key: $GITHUB_TOKEN          # optional; auto-resolves from GITHUB_TOKEN env
-  active_statuses:
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_states:
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:
-    - Human Review
-  # filter:                        # optional: applies at dispatch time only
-  #   assignee: user1, user2      # CSV or YAML array; case-insensitive OR; unassigned issues excluded
-  #   label: bug, feature         # CSV or YAML array; case-insensitive OR; at least one label must match
-  # (Both fields AND together when both are set)
+platforms:
+  github:
+    # api_key: $GITHUB_TOKEN        # optional; auto-resolves from GITHUB_TOKEN env
+    owner: "<org-or-user>"
+    bot_username: agent-please
+    # GitHub App auth (alternative to api_key):
+    # app_id: $GITHUB_APP_ID
+    # private_key: $GITHUB_APP_PRIVATE_KEY
+    # installation_id: $GITHUB_APP_INSTALLATION_ID
+  # slack:
+  #   bot_token: $SLACK_BOT_TOKEN
+  #   signing_secret: $SLACK_SIGNING_SECRET
+
+projects:
+  - platform: github
+    project_number: 1
+    active_statuses:
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:
+      - Human Review
+    # filter:                        # optional: applies at dispatch time only
+    #   assignee: user1, user2      # CSV or YAML array; case-insensitive OR; unassigned issues excluded
+    #   label: bug, feature         # CSV or YAML array; case-insensitive OR; at least one label must match
+    # (Both fields AND together when both are set)
+
+channels:
+  - platform: github
+    allowed_associations:
+      - OWNER
+      - MEMBER
+      - COLLABORATOR
+  # - platform: slack
+
 polling:
   # mode: poll                         # default: poll
   # set to 'webhook' only after enabling server.port/--port for /api/v1/webhook

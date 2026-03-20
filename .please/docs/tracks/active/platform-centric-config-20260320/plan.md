@@ -77,7 +77,7 @@ This is a breaking change. No backward compatibility is required — the project
 - [x] (2026-03-20 17:00 KST) T024 Update orchestrator.test.ts for projects[] iteration (file: packages/core/src/orchestrator.test.ts, depends on T013)
 - [x] (2026-03-20 16:00 KST) T025 Update tracker tests for new adapter signatures (file: packages/core/src/tracker/tracker.test.ts, depends on T010, T011)
 - [x] (2026-03-20 16:00 KST) T026 Update remaining test files — workspace, agent-env, label, tools, issue-comment-handler (depends on T014, T015, T016, T017, T018, T019)
-- [ ] T027 Update WORKFLOW.md documentation examples (depends on T006)
+- [x] (2026-03-20 18:00 KST) T027 Update WORKFLOW.md documentation examples (depends on T006)
 
 ## Key Files
 
