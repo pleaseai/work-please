@@ -1,0 +1,23 @@
+packages/core/src/issue-comment-handler.ts
+  0f8745efcf11f1c6 105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "09eb13731fe73060d295960c2b9834437c896ed7",
+  "prompts": {
+    "0f8745efcf11f1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "925e4205-392e-4989-91ff-4370a622627b",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
