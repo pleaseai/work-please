@@ -1,11 +1,9 @@
-/* eslint-disable no-template-curly-in-string */
-import type { WorkflowDefinition } from './types'
+import type { PlatformConfig, WorkflowDefinition } from './types'
 import process from 'node:process'
 import { describe, expect, it } from 'bun:test'
-import type { PlatformConfig } from './types'
 import {
-  buildConfig,
   buildChannelsConfig,
+  buildConfig,
   buildPlatformsConfig,
   buildProjectsConfig,
   getActiveStates,
@@ -65,7 +63,8 @@ describe('buildPlatformsConfig', () => {
       },
     })
     process.env.GITHUB_TOKEN = saved ?? ''
-    if (!saved) delete process.env.GITHUB_TOKEN
+    if (!saved)
+      delete process.env.GITHUB_TOKEN
     const gh = result.github as any
     expect(gh.api_key).toBe('fallback-token')
   })
@@ -105,7 +104,8 @@ describe('buildPlatformsConfig', () => {
       },
     })
     process.env.SLACK_BOT_TOKEN = saved ?? ''
-    if (!saved) delete process.env.SLACK_BOT_TOKEN
+    if (!saved)
+      delete process.env.SLACK_BOT_TOKEN
     const slack = result.slack as any
     expect(slack.bot_token).toBe('slack-fallback')
   })

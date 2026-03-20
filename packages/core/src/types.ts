@@ -83,9 +83,9 @@ export type PlatformConfig = GitHubPlatformConfig | SlackPlatformConfig | AsanaP
 export interface ProjectConfig {
   platform: string
   // platform-specific project identifiers
-  project_number?: number | null    // GitHub
-  project_id?: string | null        // GitHub
-  project_gid?: string | null       // Asana
+  project_number?: number | null // GitHub
+  project_id?: string | null // GitHub
+  project_gid?: string | null // Asana
   // status mappings
   active_statuses: string[]
   terminal_statuses: string[]
@@ -100,7 +100,7 @@ export interface ProjectConfig {
 
 export interface ChannelConfig {
   platform: string
-  allowed_associations?: AuthorAssociation[]  // GitHub-specific
+  allowed_associations?: AuthorAssociation[] // GitHub-specific
 }
 
 export interface TrackerConfig {

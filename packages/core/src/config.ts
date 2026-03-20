@@ -1,4 +1,4 @@
-import type { AuthorAssociation, ChannelConfig, ChatConfig, ChatGitHubConfig, ClaudeEffort, DbConfig, IssueFilter, PlatformConfig, PollingMode, ProjectConfig, SandboxConfig, ServiceConfig, SettingSource, SystemPromptConfig, TrackerConfig, WorkflowDefinition } from './types'
+import type { AuthorAssociation, ChannelConfig, ClaudeEffort, DbConfig, IssueFilter, PlatformConfig, PollingMode, ProjectConfig, SandboxConfig, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -184,6 +184,16 @@ export function buildProjectsConfig(
   return result
 }
 
+const VALID_ASSOCIATIONS = new Set<AuthorAssociation>([
+  'OWNER',
+  'MEMBER',
+  'COLLABORATOR',
+  'CONTRIBUTOR',
+  'FIRST_TIMER',
+  'FIRST_TIME_CONTRIBUTOR',
+  'NONE',
+])
+
 export function buildChannelsConfig(raw: Record<string, unknown>): ChannelConfig[] {
   const channelsRaw = raw.channels
   if (!Array.isArray(channelsRaw))
@@ -258,102 +268,10 @@ function buildClaudeConfig(claude: Record<string, unknown>): ServiceConfig['clau
   }
 }
 
-function buildTrackerConfig(kind: string | null, tracker: Record<string, unknown>): TrackerConfig {
-  const label_prefix = stringValue(tracker.label_prefix) ?? null
-  const filter = buildFilterConfig(sectionMap(tracker, 'filter'))
-
-  if (kind === 'asana') {
-    return {
-      kind,
-      endpoint: stringValue(tracker.endpoint) ?? DEFAULTS.ASANA_ENDPOINT,
-      api_key: resolveEnvValue(stringValue(tracker.api_key), process.env.ASANA_ACCESS_TOKEN),
-      project_gid: stringValue(tracker.project_gid) ?? null,
-      active_sections: csvValue(tracker.active_sections) ?? csvValue(tracker.active_states) ?? DEFAULTS.ASANA_ACTIVE_SECTIONS,
-      terminal_sections: csvValue(tracker.terminal_sections) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.ASANA_TERMINAL_SECTIONS,
-      watched_statuses: csvValue(tracker.watched_statuses) ?? csvValue(tracker.watched_states) ?? DEFAULTS.ASANA_WATCHED_SECTIONS,
-      label_prefix,
-      filter,
-    }
-  }
-
-  if (kind === 'github_projects') {
-    return {
-      kind,
-      endpoint: stringValue(tracker.endpoint) ?? DEFAULTS.GITHUB_ENDPOINT,
-      api_key: resolveEnvValue(stringValue(tracker.api_key), process.env.GITHUB_TOKEN),
-      owner: stringValue(tracker.owner) ?? null,
-      project_number: posIntValue(tracker.project_number, null as unknown as number) ?? null,
-      project_id: stringValue(tracker.project_id) ?? null,
-      active_statuses: csvValue(tracker.active_statuses) ?? csvValue(tracker.active_states) ?? DEFAULTS.GITHUB_ACTIVE_STATUSES,
-      terminal_statuses: csvValue(tracker.terminal_statuses) ?? csvValue(tracker.terminal_states) ?? DEFAULTS.GITHUB_TERMINAL_STATUSES,
-      watched_statuses: csvValue(tracker.watched_statuses) ?? csvValue(tracker.watched_states) ?? DEFAULTS.GITHUB_WATCHED_STATUSES,
-      app_id: resolveEnvValue(stringValue(tracker.app_id), process.env.GITHUB_APP_ID),
-      private_key: resolveEnvValue(stringValue(tracker.private_key), process.env.GITHUB_APP_PRIVATE_KEY),
-      installation_id: resolveInstallationId(tracker.installation_id),
-      label_prefix,
-      filter,
-    }
-  }
-
-  return {
-    kind,
-    endpoint: stringValue(tracker.endpoint) ?? '',
-    api_key: resolveEnvValue(stringValue(tracker.api_key), undefined),
-    label_prefix,
-    filter,
-  }
-}
-
 function buildWebhookConfig(webhook: Record<string, unknown>): ServiceConfig['server']['webhook'] {
   return {
     secret: resolveEnvValue(stringValue(webhook.secret), process.env.WEBHOOK_SECRET),
     events: csvValue(webhook.events) ?? null,
-  }
-}
-
-const VALID_ASSOCIATIONS = new Set<AuthorAssociation>([
-  'OWNER',
-  'MEMBER',
-  'COLLABORATOR',
-  'CONTRIBUTOR',
-  'FIRST_TIMER',
-  'FIRST_TIME_CONTRIBUTOR',
-  'NONE',
-])
-
-function buildChatGitHubConfig(github: Record<string, unknown>): ChatGitHubConfig {
-  const raw = github.allowed_associations
-  if (!raw)
-    return { allowed_associations: DEFAULT_ALLOWED_ASSOCIATIONS }
-
-  const list = csvValue(raw) ?? []
-  const valid = list
-    .map(s => s.toUpperCase() as AuthorAssociation)
-    .filter(s => VALID_ASSOCIATIONS.has(s))
-
-  return {
-    allowed_associations: valid.length > 0 ? valid : DEFAULT_ALLOWED_ASSOCIATIONS,
-  }
-}
-
-function buildChatConfig(chat: Record<string, unknown>): ChatConfig {
-  const hasGithubKey = chat.github !== undefined && chat.github !== null
-  const hasSlackKey = chat.slack !== undefined && chat.slack !== null
-
-  const slack = sectionMap(chat, 'slack')
-  const slackBotToken = resolveEnvValue(stringValue(slack.bot_token), process.env.SLACK_BOT_TOKEN)
-  const slackSigningSecret = resolveEnvValue(stringValue(slack.signing_secret), process.env.SLACK_SIGNING_SECRET)
-  const hasSlack = hasSlackKey && (slackBotToken != null || slackSigningSecret != null)
-
-  return {
-    bot_username: resolveEnvValue(
-      stringValue(chat.bot_username),
-      process.env.CHAT_BOT_USERNAME ?? process.env.GITHUB_BOT_USERNAME,
-    ),
-    github: hasGithubKey ? buildChatGitHubConfig(sectionMap(chat, 'github')) : null,
-    slack: hasSlack
-      ? { bot_token: slackBotToken, signing_secret: slackSigningSecret }
-      : null,
   }
 }
 
@@ -394,9 +312,12 @@ export function validateConfig(config: ServiceConfig): ValidationError | null {
         if (!hasAny)
           return { code: 'missing_platform_api_key', platform: project.platform }
         const missing: string[] = []
-        if (!gh.app_id) missing.push('app_id')
-        if (!gh.private_key) missing.push('private_key')
-        if (gh.installation_id == null) missing.push('installation_id')
+        if (!gh.app_id)
+          missing.push('app_id')
+        if (!gh.private_key)
+          missing.push('private_key')
+        if (gh.installation_id == null)
+          missing.push('installation_id')
         if (missing.length > 0)
           return { code: 'incomplete_platform_app_config', platform: project.platform, missing }
       }
@@ -806,11 +727,4 @@ function buildEnvConfig(raw: Record<string, unknown>): Record<string, string> {
     result[key] = str
   }
   return result
-}
-
-function normalizeTrackerKind(kind: string | null): string | null {
-  if (!kind)
-    return null
-  const normalized = kind.trim().toLowerCase()
-  return normalized || null
 }

@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'bun:test'
 import type {
   AsanaPlatformConfig,
   ChannelConfig,
@@ -8,6 +7,7 @@ import type {
   ServiceConfig,
   SlackPlatformConfig,
 } from './types'
+import { describe, expect, it } from 'bun:test'
 
 describe('platform-centric config types', () => {
   it('ServiceConfig accepts platforms, projects, channels shape', () => {

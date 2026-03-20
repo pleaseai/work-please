@@ -1,4 +1,4 @@
-import type { GitHubPlatformConfig, AsanaPlatformConfig, PlatformConfig, ProjectConfig } from '../types'
+import type { AsanaPlatformConfig, GitHubPlatformConfig, PlatformConfig, ProjectConfig } from '../types'
 import type { TrackerAdapter, TrackerError } from './types'
 import { createAsanaAdapter } from './asana'
 import { createGitHubAdapter } from './github'
