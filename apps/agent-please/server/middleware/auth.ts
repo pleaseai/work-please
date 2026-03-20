@@ -14,16 +14,11 @@ export default defineEventHandler(async (event) => {
   if (!path.startsWith('/api/v1/'))
     return
 
-  // Check if auth is initialized (optional feature)
-  let auth
-  try {
-    auth = useAuth()
-  }
-  catch {
-    // Auth not initialized — skip protection (auth is optional)
+  // Auth not configured — routes are unprotected by design
+  if (!isAuthEnabled())
     return
-  }
 
+  const auth = useAuth()
   const session = await auth.api.getSession({
     headers: event.headers,
   })

@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { createLogger } from '@pleaseai/agent-core'
 
 const log = createLogger('auth')
+const MIN_ADMIN_PASSWORD_LENGTH = 8
 
 export default defineNitroPlugin(async (nitroApp) => {
   const orchestrator = (nitroApp as any).orchestrator as Orchestrator | undefined
@@ -26,14 +27,23 @@ export default defineNitroPlugin(async (nitroApp) => {
   }
   catch (err) {
     log.error('auth migration failed:', err)
+    resetAuth()
     return
   }
 
   if (config.auth.admin.username && config.auth.admin.password) {
+    if (config.auth.admin.password.length < MIN_ADMIN_PASSWORD_LENGTH) {
+      log.warn(`admin password must be at least ${MIN_ADMIN_PASSWORD_LENGTH} characters — admin not seeded`)
+      return
+    }
+
     try {
       const existing = await auth.api.listUsers({
         query: { limit: 1, offset: 0 },
-      }).catch(() => null)
+      }).catch((err) => {
+        log.warn('failed to list users during admin seeding:', err)
+        return null
+      })
 
       const adminExists = existing?.users?.some(
         (u: any) => u.role === 'admin',
@@ -44,6 +54,7 @@ export default defineNitroPlugin(async (nitroApp) => {
           body: {
             email: `${config.auth.admin.username}@local`,
             name: config.auth.admin.username,
+            username: config.auth.admin.username,
             password: config.auth.admin.password,
             role: 'admin',
           },

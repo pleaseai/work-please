@@ -11,7 +11,12 @@ const items = computed<NavigationMenuItem[]>(() => [{
 const { data: session } = authClient.useSession(useFetch)
 
 async function signOut() {
-  await authClient.signOut()
+  try {
+    await authClient.signOut()
+  }
+  catch (err) {
+    console.warn('Sign-out failed:', err)
+  }
   await navigateTo('/login')
 }
 </script>
