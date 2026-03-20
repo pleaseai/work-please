@@ -1,4 +1,4 @@
-import type { Issue, ServiceConfig } from './types'
+import type { GitHubPlatformConfig, Issue, ServiceConfig } from './types'
 import { createLogger } from './logger'
 
 const log = createLogger('label')
@@ -40,15 +40,18 @@ export function formatLabelName(prefix: string, state: LabelState): string {
 }
 
 export function createLabelService(config: ServiceConfig): LabelService | null {
-  const { kind, label_prefix } = config.tracker
-  if (!label_prefix)
-    return null
-  if (kind !== 'github_projects')
+  // Use the first github-like project with a label_prefix
+  const project = config.projects.find(p => p.label_prefix && p.platform !== 'asana' && p.platform !== 'slack')
+  if (!project?.label_prefix)
     return null
 
-  const apiKey = config.tracker.api_key
-  const endpoint = config.tracker.endpoint
-  const prefix = label_prefix
+  const platform = config.platforms[project.platform]
+  if (!platform || !('api_key' in platform))
+    return null
+
+  const apiKey = (platform as GitHubPlatformConfig).api_key
+  const endpoint = project.endpoint
+  const prefix = project.label_prefix
   const headers: Record<string, string> = {
     'Authorization': `bearer ${apiKey ?? ''}`,
     'Content-Type': 'application/json',

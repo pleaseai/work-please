@@ -1,6 +1,6 @@
 import type { Client } from '@libsql/client'
 import type { LabelService } from './label'
-import type { Issue, OrchestratorState, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
+import type { GitHubPlatformConfig, Issue, OrchestratorState, ProjectConfig, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
 import { watch } from 'node:fs'
 import { resolveAgentEnv } from './agent-env'
 import { AppServerClient } from './agent-runner'
@@ -160,33 +160,47 @@ export class Orchestrator {
       return
     }
 
-    // 3. Fetch candidate issues
-    const adapter = createTrackerAdapter(this.config)
-    if (isTrackerError(adapter)) {
-      log.error(`tracker adapter error: ${formatTrackerError(adapter)}`)
-      this.scheduleNextPoll()
-      return
+    // 3. Fetch candidate issues — iterate over configured projects
+    const allCandidates: Issue[] = []
+    const allWatched: Issue[] = []
+    let activeStates: string[] = []
+    let terminalStates: string[] = []
+
+    for (const project of this.config.projects) {
+      const platform = this.config.platforms[project.platform]
+      if (!platform)
+        continue
+
+      const adapter = createTrackerAdapter(project, platform)
+      if (isTrackerError(adapter)) {
+        log.error(`tracker adapter error (project=${project.platform}): ${formatTrackerError(adapter)}`)
+        continue
+      }
+
+      const watchedStates = getWatchedStates(project)
+      const combinedResult = await adapter.fetchCandidateAndWatchedIssues(watchedStates)
+      if (isTrackerError(combinedResult)) {
+        log.error(`tracker fetch failed (project=${project.platform}, candidates + watched dispatch skipped): ${formatTrackerError(combinedResult)}`)
+        continue
+      }
+
+      allCandidates.push(...combinedResult.candidates)
+      allWatched.push(...combinedResult.watched)
+      activeStates = [...activeStates, ...getActiveStates(project)]
+      terminalStates = [...terminalStates, ...getTerminalStates(project)]
     }
 
-    // 3b. Fetch candidates and watched issues in a single API call
-    const watchedStates = getWatchedStates(this.config)
-    const combinedResult = await adapter.fetchCandidateAndWatchedIssues(watchedStates)
-    if (isTrackerError(combinedResult)) {
-      log.error(`tracker fetch failed (candidates + watched dispatch skipped): ${formatTrackerError(combinedResult)}`)
-      this.scheduleNextPoll()
-      return
-    }
+    // Deduplicate states
+    activeStates = [...new Set(activeStates)]
+    terminalStates = [...new Set(terminalStates)]
 
     // 3c. Process watched issues (dispatch agents for review activity)
-    this.dispatchWatchedIssues(combinedResult.watched)
+    this.dispatchWatchedIssues(allWatched)
 
     // 4. Sort by dispatch priority
-    const sorted = sortForDispatch(combinedResult.candidates)
+    const sorted = sortForDispatch(allCandidates)
 
     // 5. Dispatch eligible issues
-    const activeStates = getActiveStates(this.config)
-    const terminalStates = getTerminalStates(this.config)
-
     for (const issue of sorted) {
       if (this.availableSlots() === 0)
         break
@@ -325,7 +339,13 @@ export class Orchestrator {
     if (!issue.project)
       return
     try {
-      const adapter = createTrackerAdapter(this.config)
+      const project = this.config.projects[0]
+      if (!project)
+        return
+      const platform = this.config.platforms[project.platform]
+      if (!platform)
+        return
+      const adapter = createTrackerAdapter(project, platform)
       if (isTrackerError(adapter) || !adapter.resolveStatusField) {
         log.warn(`cannot resolve project context issue_id=${issue.id}: tracker does not support resolveStatusField`)
         return
@@ -379,7 +399,11 @@ export class Orchestrator {
       log.info(`turn completed issue_id=${currentIssue.id} session_id=${turnResult.session_id} turn=${turnNumber}/${maxTurns}`)
 
       // Refresh issue state after turn
-      const adapter = createTrackerAdapter(this.config)
+      const firstProject = this.config.projects[0]
+      const firstPlatform = firstProject ? this.config.platforms[firstProject.platform] : undefined
+      if (!firstProject || !firstPlatform)
+        break
+      const adapter = createTrackerAdapter(firstProject, firstPlatform)
       if (isTrackerError(adapter))
         break
 
@@ -389,7 +413,7 @@ export class Orchestrator {
       }
 
       const refreshedIssue = refreshed[0]
-      const activeStates = getActiveStates(this.config)
+      const activeStates = getActiveStates(firstProject)
       const isActive = activeStates.some(s => normalizeState(s) === normalizeState(refreshedIssue.state))
 
       if (!isActive)
@@ -547,7 +571,13 @@ export class Orchestrator {
     this.state.retry_attempts.delete(issueId)
 
     // Fetch active candidates
-    const adapter = createTrackerAdapter(this.config)
+    const firstProject = this.config.projects[0]
+    const firstPlatform = firstProject ? this.config.platforms[firstProject.platform] : undefined
+    if (!firstProject || !firstPlatform) {
+      this.state.claimed.delete(issueId)
+      return
+    }
+    const adapter = createTrackerAdapter(firstProject, firstPlatform)
     if (isTrackerError(adapter)) {
       this.state.claimed.delete(issueId)
       return
@@ -568,7 +598,7 @@ export class Orchestrator {
     }
 
     // Dispatch revalidation: re-check blocker eligibility with fresh candidate data
-    const terminalStates = getTerminalStates(this.config)
+    const terminalStates = getTerminalStates(firstProject)
     if (normalizeState(issue.state) === 'todo' && hasNonTerminalBlockers(issue, terminalStates)) {
       this.state.claimed.delete(issueId)
       log.info(`dispatch revalidation: skipping blocked issue issue_id=${issueId}`)
@@ -605,7 +635,12 @@ export class Orchestrator {
     if (runningIds.length === 0)
       return
 
-    const adapter = createTrackerAdapter(this.config)
+    const firstProject = this.config.projects[0]
+    const firstPlatform = firstProject ? this.config.platforms[firstProject.platform] : undefined
+    if (!firstProject || !firstPlatform)
+      return
+
+    const adapter = createTrackerAdapter(firstProject, firstPlatform)
     if (isTrackerError(adapter))
       return
 
@@ -615,9 +650,9 @@ export class Orchestrator {
       return
     }
 
-    const activeStates = getActiveStates(this.config)
-    const watchedStates = getWatchedStates(this.config)
-    const terminalStates = getTerminalStates(this.config)
+    const activeStates = getActiveStates(firstProject)
+    const watchedStates = getWatchedStates(firstProject)
+    const terminalStates = getTerminalStates(firstProject)
 
     for (const issue of refreshed) {
       const normalizedState = normalizeState(issue.state)
@@ -723,9 +758,16 @@ export class Orchestrator {
   }
 
   private async startupTerminalWorkspaceCleanup(): Promise<void> {
-    const terminalStates = getTerminalStates(this.config)
+    const firstProject = this.config.projects[0]
+    if (!firstProject)
+      return
+    const firstPlatform = this.config.platforms[firstProject.platform]
+    if (!firstPlatform)
+      return
 
-    const adapter = createTrackerAdapter(this.config)
+    const terminalStates = getTerminalStates(firstProject)
+
+    const adapter = createTrackerAdapter(firstProject, firstPlatform)
     if (isTrackerError(adapter)) {
       log.warn(`startup cleanup: adapter error ${formatTrackerError(adapter)}`)
       return
@@ -757,7 +799,13 @@ export class Orchestrator {
   }
 
   private buildTokenProvider(): import('./agent-env').TokenProvider | undefined {
-    return buildTokenProvider(this.config.tracker)
+    const firstProject = this.config.projects[0]
+    if (!firstProject)
+      return undefined
+    const platform = this.config.platforms[firstProject.platform]
+    if (!platform)
+      return undefined
+    return buildTokenProvider(firstProject, platform as GitHubPlatformConfig)
   }
 
   private reloadWorkflow(): void {
@@ -861,10 +909,11 @@ function nextAttemptFrom(currentAttempt: number | null): number {
   return currentAttempt === null ? 1 : currentAttempt + 1
 }
 
-export function buildTokenProvider(tracker: ServiceConfig['tracker']): import('./agent-env').TokenProvider | undefined {
-  const { kind, api_key, app_id, private_key, installation_id } = tracker
-  if (kind !== 'github_projects')
+export function buildTokenProvider(project: ProjectConfig, platform: GitHubPlatformConfig): import('./agent-env').TokenProvider | undefined {
+  if (project.platform === 'asana')
     return undefined
+
+  const { api_key, app_id, private_key, installation_id } = platform
 
   // PAT auth: provide the api_key directly as the token
   if (api_key) {

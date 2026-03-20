@@ -102,7 +102,10 @@ export async function handleIssueCommentMention(
   deps: IssueCommentHandlerDeps,
 ): Promise<void> {
   const { config, workflow, github, tokenProvider } = deps
-  const botUsername = config.chat.bot_username || 'agent-please'
+  // Resolve bot_username from the first github channel's platform config
+  const githubChannel = config.channels.find(c => c.platform === 'github')
+  const githubPlatform = githubChannel ? config.platforms[githubChannel.platform] : null
+  const botUsername = (githubPlatform as import('./types').GitHubPlatformConfig | null)?.bot_username || 'agent-please'
   const { owner: { login: owner }, name: repo } = payload.repository
   const commentId = payload.comment.id
   const issueNumber = payload.issue.number
