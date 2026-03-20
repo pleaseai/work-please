@@ -1,5 +1,5 @@
 import type { LabelService } from './label'
-import type { Issue, RunningEntry, TrackerConfig, WatchedSnapshot } from './types'
+import type { GitHubPlatformConfig, Issue, ProjectConfig, RunningEntry, WatchedSnapshot } from './types'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -521,12 +521,14 @@ function makeMockLabelService(): LabelService & { calls: Array<{ state: string }
 
 function makeWorkflowWithLabelPrefix(pollMs: number, labelPrefix: string): string {
   return `---
-tracker:
-  kind: github_projects
-  api_key: ghtoken
-  owner: myorg
-  project_number: 1
-  label_prefix: ${labelPrefix}
+platforms:
+  github:
+    api_key: ghtoken
+    owner: myorg
+projects:
+  - platform: github
+    project_number: 1
+    label_prefix: ${labelPrefix}
 polling:
   interval_ms: ${pollMs}
 workspace:
@@ -1091,10 +1093,12 @@ describe('watched snapshot recording in onWorkerExit', () => {
 describe('workflow hot reload (Section 17.1)', () => {
   function makeWorkflowContent(pollMs: number): string {
     return `---
-tracker:
-  kind: asana
-  api_key: test-key
-  project_gid: gid-1
+platforms:
+  asana:
+    api_key: test-key
+projects:
+  - platform: asana
+    project_gid: gid-1
 polling:
   interval_ms: ${pollMs}
 ---
@@ -1178,7 +1182,7 @@ Prompt text.`
     // Start without label_prefix
     writeFileSync(wfPath, makeWorkflowContent(30_000))
     const orch = new Orchestrator(wfPath)
-    expect(orch.getConfig().tracker.label_prefix).toBeNull()
+    expect(orch.getConfig().projects[0]?.label_prefix ?? null).toBeNull()
 
     const origFetch = globalThis.fetch
     globalThis.fetch = (async () => ({
@@ -1191,11 +1195,13 @@ Prompt text.`
 
       // Update workflow with a label_prefix added
       const newContent = `---
-tracker:
-  kind: asana
-  api_key: test-key
-  project_gid: gid-1
-  label_prefix: agent-please
+platforms:
+  asana:
+    api_key: test-key
+projects:
+  - platform: asana
+    project_gid: gid-1
+    label_prefix: agent-please
 polling:
   interval_ms: 30000
 ---
@@ -1204,12 +1210,12 @@ Prompt text.`
 
       // Poll until config updates or timeout (max 2s)
       const deadline = Date.now() + 2_000
-      while (orch.getConfig().tracker.label_prefix !== 'agent-please' && Date.now() < deadline) {
+      while ((orch.getConfig().projects[0]?.label_prefix ?? null) !== 'agent-please' && Date.now() < deadline) {
         await new Promise(r => setTimeout(r, 20))
       }
 
       // Verify the config was updated — createLabelService is called internally with new config
-      expect(orch.getConfig().tracker.label_prefix).toBe('agent-please')
+      expect(orch.getConfig().projects[0]?.label_prefix).toBe('agent-please')
     }
     finally {
       orch.stop()
@@ -1220,36 +1226,53 @@ Prompt text.`
 })
 
 describe('buildTokenProvider', () => {
-  function makeTracker(overrides: Partial<TrackerConfig> = {}): TrackerConfig {
+  function makeProject(platform: string = 'github'): ProjectConfig {
     return {
-      kind: 'github_projects',
+      platform,
+      project_number: 1,
+      project_id: null,
+      project_gid: null,
+      active_statuses: ['Todo', 'In Progress'],
+      terminal_statuses: ['Done', 'Cancelled'],
+      watched_statuses: ['Human Review'],
       endpoint: 'https://api.github.com',
-      api_key: null,
       label_prefix: null,
       filter: { assignee: [], label: [] },
+    }
+  }
+
+  function makePlatform(overrides: Partial<GitHubPlatformConfig> = {}): GitHubPlatformConfig {
+    return {
+      api_key: null,
+      owner: null,
+      bot_username: null,
+      app_id: null,
+      private_key: null,
+      installation_id: null,
       ...overrides,
     }
   }
 
   it('returns undefined for non-github_projects tracker', () => {
-    const result = buildTokenProvider(makeTracker({ kind: 'asana' }))
+    const result = buildTokenProvider(makeProject('asana'), makePlatform())
     expect(result).toBeUndefined()
   })
 
   it('returns undefined for null tracker kind', () => {
-    const result = buildTokenProvider(makeTracker({ kind: null }))
+    // platform key 'asana' triggers the asana early-return path
+    const result = buildTokenProvider(makeProject('asana'), makePlatform())
     expect(result).toBeUndefined()
   })
 
   it('returns PAT-based provider when api_key is set', async () => {
-    const provider = buildTokenProvider(makeTracker({ api_key: 'ghp_my_pat_token' }))
+    const provider = buildTokenProvider(makeProject(), makePlatform({ api_key: 'ghp_my_pat_token' }))
     expect(provider).toBeDefined()
     const token = await provider!.installationAccessToken()
     expect(token).toBe('ghp_my_pat_token')
   })
 
   it('prefers PAT over app auth when both are present', async () => {
-    const provider = buildTokenProvider(makeTracker({
+    const provider = buildTokenProvider(makeProject(), makePlatform({
       api_key: 'ghp_pat',
       app_id: '12345',
       private_key: 'key',
@@ -1261,7 +1284,7 @@ describe('buildTokenProvider', () => {
   })
 
   it('returns undefined when no api_key and incomplete app auth', () => {
-    const result = buildTokenProvider(makeTracker({
+    const result = buildTokenProvider(makeProject(), makePlatform({
       app_id: '12345',
       // missing private_key and installation_id
     }))
@@ -1269,7 +1292,7 @@ describe('buildTokenProvider', () => {
   })
 
   it('returns undefined when app_id present but private_key missing', () => {
-    const result = buildTokenProvider(makeTracker({
+    const result = buildTokenProvider(makeProject(), makePlatform({
       app_id: '12345',
       installation_id: 1,
     }))
@@ -1277,7 +1300,7 @@ describe('buildTokenProvider', () => {
   })
 
   it('returns undefined when installation_id is null', () => {
-    const result = buildTokenProvider(makeTracker({
+    const result = buildTokenProvider(makeProject(), makePlatform({
       app_id: '12345',
       private_key: 'key',
       installation_id: null,
@@ -1286,7 +1309,7 @@ describe('buildTokenProvider', () => {
   })
 
   it('returns app-auth provider when all app fields present', () => {
-    const provider = buildTokenProvider(makeTracker({
+    const provider = buildTokenProvider(makeProject(), makePlatform({
       app_id: '12345',
       private_key: '-----BEGIN RSA PRIVATE KEY-----\ntest',
       installation_id: 67890,
@@ -1296,7 +1319,7 @@ describe('buildTokenProvider', () => {
   })
 
   it('app-auth provider returns null on auth error', async () => {
-    const provider = buildTokenProvider(makeTracker({
+    const provider = buildTokenProvider(makeProject(), makePlatform({
       app_id: '12345',
       private_key: 'invalid-key',
       installation_id: 67890,
