@@ -31,6 +31,9 @@ runtime environment.
 | `apps/agent-please/server/api/v1/refresh.post.ts` | POST `/api/v1/refresh` — trigger immediate poll |
 | `apps/agent-please/server/api/v1/[identifier].get.ts` | GET `/api/v1/:identifier` — per-issue detail |
 | `apps/agent-please/server/api/webhooks/github.post.ts` | POST `/api/webhooks/github` — GitHub webhook handler |
+| `apps/agent-please/server/api/webhooks/slack.post.ts` | POST `/api/webhooks/slack` — Slack webhook handler |
+| `apps/agent-please/server/api/v1/sessions/[sessionId]/messages.get.ts` | GET `/api/v1/sessions/:sessionId/messages` — session message history |
+| `apps/agent-please/server/plugins/02.chat-bot.ts` | Nitro plugin: Chat SDK bot (GitHub + Slack adapters) |
 | `WORKFLOW.md` | User-authored config file in the **target repository** (not this repo) — defines tracker settings, hooks, agent limits, and the Liquid prompt template |
 
 ## Module Structure
@@ -53,13 +56,15 @@ agent-please/                      # Monorepo root (Bun + Turborepo)
 │   │   └── utils/                # format.ts, types.ts
 │   ├── server/                   # Nitro server-side
 │   │   ├── plugins/
-│   │   │   ├── orchestrator.ts   # Nitro plugin: creates & starts Orchestrator
-│   │   │   └── chat-bot.ts       # Nitro plugin: Chat SDK GitHub adapter
+│   │   │   ├── 01.orchestrator.ts # Nitro plugin: creates & starts Orchestrator
+│   │   │   └── 02.chat-bot.ts    # Nitro plugin: Chat SDK (GitHub + Slack adapters)
 │   │   ├── api/
 │   │   │   ├── v1/state.get.ts   # GET /api/v1/state
 │   │   │   ├── v1/refresh.post.ts # POST /api/v1/refresh
 │   │   │   ├── v1/[identifier].get.ts # GET /api/v1/:identifier
-│   │   │   └── webhooks/github.post.ts # POST /api/webhooks/github
+│   │   │   ├── v1/sessions/[sessionId]/messages.get.ts # GET /api/v1/sessions/:sessionId/messages
+│   │   │   ├── webhooks/github.post.ts # POST /api/webhooks/github
+│   │   │   └── webhooks/slack.post.ts  # POST /api/webhooks/slack
 │   │   └── utils/orchestrator.ts # useOrchestrator() helper
 │   └── nuxt.config.ts            # Nuxt config (Bun preset, Nuxt UI)
 ├── packages/core/                # @pleaseai/agent-core — orchestrator business logic
@@ -74,6 +79,10 @@ agent-please/                      # Monorepo root (Bun + Turborepo)
 │       ├── label.ts              # GitHub label management
 │       ├── filter.ts             # Assignee and label filter matching
 │       ├── webhook.ts            # GitHub webhook verification + event filtering
+│       ├── db.ts                 # Agent run history storage (libsql/Turso)
+│       ├── logger.ts             # Structured logging (consola withTag)
+│       ├── agent-env.ts          # Runtime env-var resolution for agent sessions
+│       ├── session-renderer.ts   # Session message extraction (claude-agent-sdk)
 │       ├── types.ts              # Shared type definitions
 │       ├── tracker/              # Issue tracker adapters (GitHub, Asana)
 │       └── index.ts              # Barrel export
@@ -106,11 +115,17 @@ agent-please/                      # Monorepo root (Bun + Turborepo)
              │        │        │
      ┌───────▼──┐ ┌───▼───┐ ┌─▼──────────┐
      │ Tracker  │ │Workspace│ │ Agent      │
-     │ Client   │ │Manager │ │ Runner     │
-     │(GitHub/  │ │(create,│ │(claude-    │
+     │ Client   │ │Manager │ │ Runner     │───▶ DB (libsql/Turso)
+     │(GitHub/  │ │(create,│ │(claude-    │    run history
      │ Asana)   │ │ hooks, │ │ agent-sdk) │
      └──────────┘ │worktree│ └────────────┘
                   └────────┘
+
+          ┌──────────────────────────────┐
+          │        Chat SDK Bot          │
+          │  GitHub adapter + Slack      │
+          │  @mention → status response  │
+          └──────────────────────────────┘
 ```
 
 ### Startup
@@ -210,9 +225,9 @@ for narrowing.
 
 ### Logging
 
-Structured `key=value` format on stderr via `console.warn()` and `console.error()`. All log lines
-are prefixed with `[agent-please]` or `[orchestrator]`. No log framework — kept intentionally
-simple for daemon operation.
+Structured logging via `consola` with tag-based namespacing (`createLogger('tag')` in `logger.ts`).
+Log lines are prefixed with module tags (e.g., `[orchestrator]`, `[db]`, `[chat-bot]`). Verbose
+mode can be toggled with `setVerbose()` to increase log level.
 
 ### Configuration
 
@@ -244,3 +259,27 @@ The agent runner injects tracker-specific MCP tools into each Claude Code sessio
 
 These allow the agent to perform tracker writes (state transitions, comments) without needing
 separate credentials.
+
+### Chat Bot Integration
+
+The Chat SDK plugin (`02.chat-bot.ts`) initializes platform adapters based on available
+configuration:
+
+- **GitHub adapter** — Requires `github_projects` tracker config + webhook secret. Handles
+  `@mention` in issue comments via `/api/webhooks/github`.
+- **Slack adapter** — Requires `SLACK_BOT_TOKEN` + `SLACK_SIGNING_SECRET` env vars. Handles
+  events via `/api/webhooks/slack`.
+
+On `@mention`, the bot responds with current orchestrator status (running/retrying issues, token
+usage). The bot lifecycle is managed by the Nitro plugin (startup/shutdown).
+
+### Agent Run History
+
+`db.ts` provides persistent storage for agent run records using `@libsql/client`:
+
+- **Embedded mode** — Local SQLite file (default: `.agent-please/agent_runs.db`)
+- **Cloud mode** — Turso remote database via `db.turso_url` + `db.turso_auth_token` config
+
+Records include issue identifier, session ID, duration, token usage, turn count, and status.
+The session messages API (`/api/v1/sessions/:sessionId/messages`) uses `session-renderer.ts` to
+extract and format messages from the Claude Agent SDK.
