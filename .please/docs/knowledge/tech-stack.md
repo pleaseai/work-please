@@ -49,7 +49,10 @@
 | `@octokit/auth-app` | GitHub App installation token authentication |
 | Chat SDK (`chat`) | Unified chat bot framework |
 | `@chat-adapter/github` | GitHub issue comment bot adapter |
-| `@chat-adapter/state-memory` | In-memory state for Chat SDK (MVP) |
+| `@chat-adapter/state-memory` | Default in-memory state for Chat SDK (dev/testing) |
+| `@chat-adapter/state-redis` | Optional Redis state adapter for production |
+| `@chat-adapter/state-ioredis` | Optional ioredis state adapter (Cluster/Sentinel) |
+| `@chat-adapter/state-pg` | Optional PostgreSQL state adapter |
 | consola | Structured logging |
 
 ## Infrastructure

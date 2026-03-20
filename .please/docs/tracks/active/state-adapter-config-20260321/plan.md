@@ -35,20 +35,20 @@ Replace the hardcoded `createMemoryState()` in the Chat bot plugin with a config
 
 ### Phase 1: Type definition and config parsing
 
-- [ ] T-1: Add `StateAdapterKind` type and `StateConfig` interface to `packages/core/src/types.ts`
+- [x] T-1: Add `StateAdapterKind` type and `StateConfig` interface to `packages/core/src/types.ts`
   - `StateAdapterKind = 'memory' | 'redis' | 'ioredis' | 'postgres'`
   - `StateConfig = { adapter: StateAdapterKind, url: string | null, key_prefix: string, on_lock_conflict: 'force' | 'drop' }`
   - Add `state: StateConfig` to `ServiceConfig`
   - Export `StateAdapterKind` and `StateConfig` from `index.ts`
 
-- [ ] T-2: Add `buildStateConfig()` to `packages/core/src/config.ts`
+- [x] T-2: Add `buildStateConfig()` to `packages/core/src/config.ts`
   - Extract `state` section via `sectionMap(raw, 'state')`
   - Validate `adapter` field against allowed kinds, default `'memory'`
   - Resolve `url` via `resolveEnvValue()` with env fallbacks: `REDIS_URL` for redis/ioredis, `POSTGRES_URL`/`DATABASE_URL` for postgres
   - Parse `key_prefix` (default `'chat-sdk'`) and `on_lock_conflict` (default `'drop'`)
   - Wire into `buildConfig()` return object
 
-- [ ] T-3: Add unit tests for `buildStateConfig()` in `packages/core/src/config.test.ts`
+- [x] T-3: Add unit tests for `buildStateConfig()` in `packages/core/src/config.test.ts`
   - Default: no state config → `{ adapter: 'memory', url: null, key_prefix: 'chat-sdk', on_lock_conflict: 'drop' }`
   - Explicit redis config with `$REDIS_URL` env var resolution
   - Explicit postgres config with `$POSTGRES_URL` env var resolution
@@ -57,7 +57,7 @@ Replace the hardcoded `createMemoryState()` in the Chat bot plugin with a config
 
 ### Phase 2: State adapter factory
 
-- [ ] T-4: Create `packages/core/src/state.ts` with `createStateFromConfig()` factory
+- [x] T-4: Create `packages/core/src/state.ts` with `createStateFromConfig()` factory
   - Accept `StateConfig` parameter
   - For `'memory'`: static import `@chat-adapter/state-memory`, call `createMemoryState()`
   - For `'redis'`: dynamic `await import('@chat-adapter/state-redis')`, call `createRedisState({ url, keyPrefix })`
@@ -66,22 +66,22 @@ Replace the hardcoded `createMemoryState()` in the Chat bot plugin with a config
   - Wrap dynamic imports in try/catch: on `MODULE_NOT_FOUND`/`ERR_MODULE_NOT_FOUND`, throw descriptive error: `"State adapter '${kind}' requires package '@chat-adapter/state-${kind}'. Install it with: bun add @chat-adapter/state-${kind}"`
   - Export from `packages/core/src/index.ts`
 
-- [ ] T-5: Add unit tests for `createStateFromConfig()` in `packages/core/src/state.test.ts`
+- [x] T-5: Add unit tests for `createStateFromConfig()` in `packages/core/src/state.test.ts`
   - Memory adapter: returns successfully with default config
   - Redis/ioredis/postgres: mock dynamic imports, verify correct factory called with correct options
   - Missing package: mock import to throw, verify descriptive error message
 
 ### Phase 3: Integration
 
-- [ ] T-6: Update `apps/agent-please/server/plugins/02.chat-bot.ts` to use factory
+- [x] T-6: Update `apps/agent-please/server/plugins/02.chat-bot.ts` to use factory
   - Replace `import { createMemoryState } from '@chat-adapter/state-memory'` with `import { createStateFromConfig } from '@pleaseai/agent-core'`
   - Replace `state: createMemoryState()` with `state: await createStateFromConfig(config.state)`
   - Pass `config.state.on_lock_conflict` to `Chat` constructor if not `'drop'`
   - Handle async: the plugin callback may need to be adjusted for the async factory
 
-- [ ] T-7: Add `@chat-adapter/state-redis`, `@chat-adapter/state-ioredis`, `@chat-adapter/state-pg` as optional peer dependencies in `packages/core/package.json`
+- [x] T-7: Add `@chat-adapter/state-redis`, `@chat-adapter/state-ioredis`, `@chat-adapter/state-pg` as optional peer dependencies in `packages/core/package.json`
 
-- [ ] T-8: Verify all existing tests pass, run lint and type-check
+- [x] T-8: Verify all existing tests pass, run lint and type-check
 
 ## Key Files
 
@@ -106,7 +106,9 @@ Replace the hardcoded `createMemoryState()` in the Chat bot plugin with a config
 
 ## Progress
 
-_(filled during implementation)_
+- 2026-03-21: Phase 1 complete (types, config parsing, tests) — ba6a73c
+- 2026-03-21: Phase 2 complete (factory function, tests) — d21b5a7
+- 2026-03-21: Phase 3 complete (integration, peer deps, verification) — 2a1fb8f
 
 ## Decision Log
 
@@ -117,4 +119,6 @@ _(filled during implementation)_
 
 ## Surprises & Discoveries
 
-_(filled during implementation)_
+- Bun's dynamic import throws `ResolveMessage` (not `instanceof Error`) — needed duck-typed message check for `isModuleNotFound`
+- `packages/core` doesn't have `@chat-adapter/state-memory` in its deps, so all adapters use dynamic imports (including memory)
+- Nitro plugin callback is synchronous — used `.then()` pattern for async state adapter creation
