@@ -137,6 +137,12 @@ Derivation:
   Evidence: `bun test orchestrator.test.ts` → 80 tests passed (1.3s)
 - [x] (2026-03-21 05:00 KST) T003 Add lock extend loop in executeAgentRun and release in onWorkerExit
   Evidence: `bun run test` → all workspaces pass, 4/4 tasks successful
+- [x] (2026-03-21 05:15 KST) T004 Integrate StateAdapter into handleIssueCommentMention
+  Evidence: `bun test issue-comment-handler.test.ts` → 22 tests passed (136ms)
+- [x] (2026-03-21 05:20 KST) T005 Pass StateAdapter from Chat bot plugin to orchestrator and webhook handler
+  Evidence: `bun run check` → 3/3 tasks successful
+- [x] (2026-03-21 05:20 KST) T006 Add fallback no-op StateAdapter (already implemented in T001)
+  Evidence: `bun test dispatch-lock.test.ts` → noop adapter tests pass
 
 ## Decision Log
 
