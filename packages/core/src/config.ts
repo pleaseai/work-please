@@ -1,4 +1,4 @@
-import type { ClaudeEffort, DbConfig, IssueFilter, PollingMode, SandboxConfig, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { ChatConfig, ClaudeEffort, DbConfig, IssueFilter, PollingMode, SandboxConfig, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -78,6 +78,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
       port: nonNegIntOrNull(server.port),
       webhook: buildWebhookConfig(sectionMap(server, 'webhook')),
     },
+    chat: buildChatConfig(sectionMap(raw, 'chat')),
   }
 }
 
@@ -166,6 +167,24 @@ function buildWebhookConfig(webhook: Record<string, unknown>): ServiceConfig['se
   return {
     secret: resolveEnvValue(stringValue(webhook.secret), process.env.WEBHOOK_SECRET),
     events: csvValue(webhook.events) ?? null,
+  }
+}
+
+function buildChatConfig(chat: Record<string, unknown>): ChatConfig {
+  const hasGithubKey = chat.github !== undefined
+  const hasSlackKey = chat.slack !== undefined
+
+  const slack = sectionMap(chat, 'slack')
+  const slackBotToken = resolveEnvValue(stringValue(slack.bot_token), hasSlackKey ? process.env.SLACK_BOT_TOKEN : undefined)
+  const slackSigningSecret = resolveEnvValue(stringValue(slack.signing_secret), hasSlackKey ? process.env.SLACK_SIGNING_SECRET : undefined)
+  const hasSlack = slackBotToken != null || slackSigningSecret != null
+
+  return {
+    bot_username: resolveEnvValue(stringValue(chat.bot_username), process.env.CHAT_BOT_USERNAME),
+    github: hasGithubKey ? {} : null,
+    slack: hasSlack
+      ? { bot_token: slackBotToken, signing_secret: slackSigningSecret }
+      : null,
   }
 }
 

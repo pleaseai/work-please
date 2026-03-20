@@ -22,6 +22,10 @@ export type { ValidationError } from './config'
 // Filter
 export { deduplicateByNormalized, hasFilter, matchesFilter, splitCandidatesAndWatched } from './filter'
 
+// Issue Comment Handler
+export { extractMentionPrompt, handleIssueCommentMention, shouldHandleComment } from './issue-comment-handler'
+export type { GitHubApi, IssueCommentHandlerDeps, IssueCommentPayload } from './issue-comment-handler'
+
 // Label
 export { createLabelService, formatLabelName, parseGitHubIssueUrl } from './label'
 export type { LabelService, LabelState } from './label'
@@ -55,6 +59,9 @@ export type {
   AgentMessage,
   AgentTotals,
   BlockerRef,
+  ChatConfig,
+  ChatGitHubConfig,
+  ChatSlackConfig,
   ClaudeEffort,
   Issue,
   IssueFilter,

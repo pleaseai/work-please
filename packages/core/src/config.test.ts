@@ -1059,3 +1059,162 @@ describe('buildConfig db section', () => {
     expect(config.db.turso_url).toBe('libsql://direct.turso.io')
   })
 })
+
+describe('buildConfig - chat section', () => {
+  it('defaults to all nulls when chat section absent', () => {
+    const prevBot = process.env.CHAT_BOT_USERNAME
+    delete process.env.CHAT_BOT_USERNAME
+    try {
+      const config = buildConfig(makeWorkflow({}))
+      expect(config.chat.bot_username).toBeNull()
+      expect(config.chat.github).toBeNull()
+      expect(config.chat.slack).toBeNull()
+    }
+    finally {
+      if (prevBot !== undefined)
+        process.env.CHAT_BOT_USERNAME = prevBot
+    }
+  })
+
+  it('parses chat.bot_username from YAML', () => {
+    const config = buildConfig(makeWorkflow({
+      chat: { bot_username: 'my-bot' },
+    }))
+    expect(config.chat.bot_username).toBe('my-bot')
+  })
+
+  it('resolves $VAR for chat.bot_username', () => {
+    const orig = process.env.TEST_BOT_USER
+    process.env.TEST_BOT_USER = 'env-bot-name'
+    try {
+      const config = buildConfig(makeWorkflow({
+        chat: { bot_username: '$TEST_BOT_USER' },
+      }))
+      expect(config.chat.bot_username).toBe('env-bot-name')
+    }
+    finally {
+      if (orig !== undefined)
+        process.env.TEST_BOT_USER = orig
+      else
+        delete process.env.TEST_BOT_USER
+    }
+  })
+
+  it('falls back to CHAT_BOT_USERNAME env when bot_username absent', () => {
+    const orig = process.env.CHAT_BOT_USERNAME
+    process.env.CHAT_BOT_USERNAME = 'fallback-bot'
+    try {
+      const config = buildConfig(makeWorkflow({ chat: {} }))
+      expect(config.chat.bot_username).toBe('fallback-bot')
+    }
+    finally {
+      if (orig !== undefined)
+        process.env.CHAT_BOT_USERNAME = orig
+      else
+        delete process.env.CHAT_BOT_USERNAME
+    }
+  })
+
+  it('returns github config when github section present', () => {
+    const config = buildConfig(makeWorkflow({
+      chat: { github: {} },
+    }))
+    expect(config.chat.github).toEqual({})
+  })
+
+  it('returns null github when github section absent', () => {
+    const config = buildConfig(makeWorkflow({
+      chat: { bot_username: 'bot' },
+    }))
+    expect(config.chat.github).toBeNull()
+  })
+
+  it('parses slack config with bot_token and signing_secret', () => {
+    const prevToken = process.env.SLACK_BOT_TOKEN
+    const prevSecret = process.env.SLACK_SIGNING_SECRET
+    delete process.env.SLACK_BOT_TOKEN
+    delete process.env.SLACK_SIGNING_SECRET
+    try {
+      const config = buildConfig(makeWorkflow({
+        chat: {
+          slack: {
+            bot_token: 'xoxb-test-token',
+            signing_secret: 'slack-secret',
+          },
+        },
+      }))
+      expect(config.chat.slack).toEqual({
+        bot_token: 'xoxb-test-token',
+        signing_secret: 'slack-secret',
+      })
+    }
+    finally {
+      if (prevToken !== undefined)
+        process.env.SLACK_BOT_TOKEN = prevToken
+      if (prevSecret !== undefined)
+        process.env.SLACK_SIGNING_SECRET = prevSecret
+    }
+  })
+
+  it('resolves $VAR for slack config fields', () => {
+    const origToken = process.env.TEST_SLACK_TOKEN
+    const origSecret = process.env.TEST_SLACK_SECRET
+    process.env.TEST_SLACK_TOKEN = 'resolved-slack-token'
+    process.env.TEST_SLACK_SECRET = 'resolved-slack-secret'
+    try {
+      const config = buildConfig(makeWorkflow({
+        chat: {
+          slack: {
+            bot_token: '$TEST_SLACK_TOKEN',
+            signing_secret: '$TEST_SLACK_SECRET',
+          },
+        },
+      }))
+      expect(config.chat.slack?.bot_token).toBe('resolved-slack-token')
+      expect(config.chat.slack?.signing_secret).toBe('resolved-slack-secret')
+    }
+    finally {
+      if (origToken !== undefined)
+        process.env.TEST_SLACK_TOKEN = origToken
+      else delete process.env.TEST_SLACK_TOKEN
+      if (origSecret !== undefined)
+        process.env.TEST_SLACK_SECRET = origSecret
+      else delete process.env.TEST_SLACK_SECRET
+    }
+  })
+
+  it('returns null slack when slack section absent and no env vars', () => {
+    const prevToken = process.env.SLACK_BOT_TOKEN
+    const prevSecret = process.env.SLACK_SIGNING_SECRET
+    delete process.env.SLACK_BOT_TOKEN
+    delete process.env.SLACK_SIGNING_SECRET
+    try {
+      const config = buildConfig(makeWorkflow({ chat: {} }))
+      expect(config.chat.slack).toBeNull()
+    }
+    finally {
+      if (prevToken !== undefined)
+        process.env.SLACK_BOT_TOKEN = prevToken
+      if (prevSecret !== undefined)
+        process.env.SLACK_SIGNING_SECRET = prevSecret
+    }
+  })
+
+  it('falls back to SLACK_BOT_TOKEN env when slack.bot_token absent', () => {
+    const prevToken = process.env.SLACK_BOT_TOKEN
+    const prevSecret = process.env.SLACK_SIGNING_SECRET
+    process.env.SLACK_BOT_TOKEN = 'env-slack-token'
+    delete process.env.SLACK_SIGNING_SECRET
+    try {
+      const config = buildConfig(makeWorkflow({ chat: { slack: {} } }))
+      expect(config.chat.slack?.bot_token).toBe('env-slack-token')
+    }
+    finally {
+      if (prevToken !== undefined)
+        process.env.SLACK_BOT_TOKEN = prevToken
+      else delete process.env.SLACK_BOT_TOKEN
+      if (prevSecret !== undefined)
+        process.env.SLACK_SIGNING_SECRET = prevSecret
+    }
+  })
+})

@@ -123,6 +123,10 @@ export class Orchestrator {
     return this.config
   }
 
+  getWorkflow(): WorkflowDefinition {
+    return this.workflow
+  }
+
   getDb(): Client | null {
     return this.db
   }

@@ -6,6 +6,7 @@
 
 | Track | Feature | Type | Issue | Started | Status |
 |-------|---------|------|-------|---------|--------|
+| [github-issue-comment-dispatch-20260320](active/github-issue-comment-dispatch-20260320/plan.md) | GitHub Issue Comment Agent Dispatch | feature | TBD | 2026-03-20 | in_progress |
 | [nuxt-chat-sdk-migration-20260319](active/nuxt-chat-sdk-migration-20260319/plan.md) | Nuxt + Chat SDK Migration | refactor | TBD | 2026-03-19 | in_progress |
 | [libsql-turso-20260317](active/libsql-turso-20260317/plan.md) | libsql/Turso Agent Run History | feature | #115 | 2026-03-17 | in_progress |
 

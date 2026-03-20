@@ -143,6 +143,21 @@ export interface AgentRunRecord {
   total_tokens: number
 }
 
+export interface ChatGitHubConfig {
+  // reserved for future github-specific overrides
+}
+
+export interface ChatSlackConfig {
+  bot_token: string | null
+  signing_secret: string | null
+}
+
+export interface ChatConfig {
+  bot_username: string | null
+  github: ChatGitHubConfig | null
+  slack: ChatSlackConfig | null
+}
+
 export interface ServiceConfig {
   tracker: TrackerConfig
   polling: { mode: PollingMode, interval_ms: number }
@@ -191,6 +206,7 @@ export interface ServiceConfig {
       events: string[] | null
     }
   }
+  chat: ChatConfig
 }
 
 export interface Workspace {

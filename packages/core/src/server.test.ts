@@ -15,6 +15,7 @@ function makeConfig(overrides: Partial<ServiceConfig> = {}): ServiceConfig {
     env: {},
     db: { path: '.agent-please/agent_runs.db', turso_url: null, turso_auth_token: null },
     server: { port: null, webhook: { secret: null, events: null } },
+    chat: { bot_username: null, github: null, slack: null },
     ...overrides,
   }
 }
