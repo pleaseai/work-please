@@ -36,17 +36,17 @@ This is a breaking change. No backward compatibility is required — the project
 
 ### Phase 1: Type Definitions
 
-- [ ] T001 Define new config types — PlatformConfig, ProjectConfig, ChannelConfig (file: packages/core/src/types.ts)
-- [ ] T002 Update ServiceConfig to use platforms/projects/channels (file: packages/core/src/types.ts, depends on T001)
+- [x] (2026-03-20 10:00 KST) T001 Define new config types — PlatformConfig, ProjectConfig, ChannelConfig (file: packages/core/src/types.ts)
+- [x] (2026-03-20 10:00 KST) T002 Update ServiceConfig to use platforms/projects/channels (file: packages/core/src/types.ts, depends on T001)
 
 ### Phase 2: Config Parser
 
-- [ ] T003 Implement buildPlatformsConfig parser (file: packages/core/src/config.ts, depends on T002)
-- [ ] T004 Implement buildProjectsConfig parser (file: packages/core/src/config.ts, depends on T003)
-- [ ] T005 Implement buildChannelsConfig parser (file: packages/core/src/config.ts, depends on T003)
-- [ ] T006 Update buildConfig to use new section parsers (file: packages/core/src/config.ts, depends on T004, T005)
-- [ ] T007 Update validateConfig for per-project and per-channel validation (file: packages/core/src/config.ts, depends on T006)
-- [ ] T008 Update getActiveStates, getTerminalStates, getWatchedStates helpers (file: packages/core/src/config.ts, depends on T006)
+- [x] (2026-03-20 12:00 KST) T003 Implement buildPlatformsConfig parser (file: packages/core/src/config.ts, depends on T002)
+- [x] (2026-03-20 12:00 KST) T004 Implement buildProjectsConfig parser (file: packages/core/src/config.ts, depends on T003)
+- [x] (2026-03-20 12:00 KST) T005 Implement buildChannelsConfig parser (file: packages/core/src/config.ts, depends on T003)
+- [x] (2026-03-20 12:00 KST) T006 Update buildConfig to use new section parsers (file: packages/core/src/config.ts, depends on T004, T005)
+- [x] (2026-03-20 12:00 KST) T007 Update validateConfig for per-project and per-channel validation (file: packages/core/src/config.ts, depends on T006)
+- [x] (2026-03-20 12:00 KST) T008 Update getActiveStates, getTerminalStates, getWatchedStates helpers (file: packages/core/src/config.ts, depends on T006)
 
 ### Phase 3: Tracker Adapter Updates
 
