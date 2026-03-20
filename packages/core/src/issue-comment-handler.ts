@@ -120,6 +120,7 @@ export async function handleIssueCommentMention(
 
   // Acquire dispatch lock (if adapter configured)
   let dispatchLock: DispatchLock | null = null
+  let lockExtendTimer: ReturnType<typeof setInterval> | null = null
   if (dispatchLockAdapter) {
     const issue = payloadToIssue(payload)
     const lockKey = toDispatchLockKey(issue)
@@ -134,6 +135,13 @@ export async function handleIssueCommentMention(
       log.info(`dispatch lock held for ${lockKey} — skipping comment handler`)
       return
     }
+    // Extend lock periodically for long-running agent sessions
+    const lockRef = dispatchLock
+    lockExtendTimer = setInterval(() => {
+      dispatchLockAdapter!.extendLock(lockRef, 5 * 60 * 1000).catch((err) => {
+        log.warn(`dispatch lock extend failed for ${lockKey}: ${err}`)
+      })
+    }, 2 * 60 * 1000)
   }
 
   log.info(`handling @mention in ${owner}/${repo}#${issueNumber} comment=${commentId}`)
@@ -266,7 +274,10 @@ export async function handleIssueCommentMention(
     }
   }
   finally {
-    // Release dispatch lock
+    // Clear lock extend timer and release dispatch lock
+    if (lockExtendTimer) {
+      clearInterval(lockExtendTimer)
+    }
     if (dispatchLock && dispatchLockAdapter) {
       await dispatchLockAdapter.releaseLock(dispatchLock).catch((err) => {
         log.warn(`dispatch lock release failed: ${err}`)
