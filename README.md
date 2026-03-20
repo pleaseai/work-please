@@ -147,24 +147,28 @@ See also the [example GitHub Project](https://github.com/orgs/pleaseai/projects/
 
 ```markdown
 ---
-tracker:
-  kind: github_projects
-  api_key: $GITHUB_TOKEN
-  owner: your-org
-  project_number: 42
-  active_statuses:
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:
-    - Human Review
+platforms:
+  github:
+    api_key: $GITHUB_TOKEN
+    owner: your-org
+    bot_username: agent-please
+
+projects:
+  - platform: github
+    project_number: 42
+    active_statuses:
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:
+      - Human Review
 
 polling:
   interval_ms: 30000
@@ -217,26 +221,30 @@ Use GitHub App credentials instead of a PAT for fine-grained permissions and hig
 
 ```markdown
 ---
-tracker:
-  kind: github_projects
-  app_id: $GITHUB_APP_ID
-  private_key: $GITHUB_APP_PRIVATE_KEY
-  installation_id: $GITHUB_APP_INSTALLATION_ID
-  owner: your-org
-  project_number: 42
-  active_statuses:
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:
-    - Human Review
+platforms:
+  github:
+    app_id: $GITHUB_APP_ID
+    private_key: $GITHUB_APP_PRIVATE_KEY
+    installation_id: $GITHUB_APP_INSTALLATION_ID
+    owner: your-org
+    bot_username: agent-please
+
+projects:
+  - platform: github
+    project_number: 42
+    active_statuses:
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:
+      - Human Review
 
 polling:
   interval_ms: 30000
@@ -289,15 +297,18 @@ Your task:
 
 ```markdown
 ---
-tracker:
-  kind: asana
-  api_key: $ASANA_ACCESS_TOKEN
-  project_gid: "1234567890123456"
-  active_sections:
-    - In Progress
-  terminal_sections:
-    - Done
-    - Cancelled
+platforms:
+  asana:
+    api_key: $ASANA_ACCESS_TOKEN
+
+projects:
+  - platform: asana
+    project_gid: "1234567890123456"
+    active_sections:
+      - In Progress
+    terminal_sections:
+      - Done
+      - Cancelled
 
 polling:
   interval_ms: 30000
@@ -375,49 +386,60 @@ front matter configuration block with a Markdown prompt template body.
 
 ```yaml
 ---
-tracker:
-  kind: github_projects               # Required: "github_projects" or "asana"
+platforms:
+  github:                             # Platform name used by projects[].platform and channels[].platform
+    api_key: $GITHUB_TOKEN            # Required: token or $ENV_VAR (or use GitHub App fields below)
+    owner: your-org                   # Required: GitHub organization or user login
+    bot_username: agent-please        # Optional: bot display name for chat channels
+    endpoint: https://api.github.com  # Optional: override GitHub API base URL
+    # GitHub App authentication (alternative to api_key — all three required together):
+    # app_id: $GITHUB_APP_ID          # Optional: GitHub App ID (integer or $ENV_VAR)
+    # private_key: $GITHUB_APP_PRIVATE_KEY  # Optional: GitHub App private key PEM or $ENV_VAR
+    # installation_id: $GITHUB_APP_INSTALLATION_ID  # Optional: installation ID (integer or $ENV_VAR)
+  # asana:                            # UNDER DEVELOPMENT
+  #   api_key: $ASANA_ACCESS_TOKEN    # Required: token or $ENV_VAR
+  #   endpoint: https://app.asana.com/api/1.0  # Optional: override Asana API base URL
+  # slack:
+  #   bot_token: $SLACK_BOT_TOKEN
+  #   signing_secret: $SLACK_SIGNING_SECRET
 
-  # --- GitHub Projects v2 fields (when kind == "github_projects") ---
-  api_key: $GITHUB_TOKEN              # Required: token or $ENV_VAR
-  endpoint: https://api.github.com   # Optional: override GitHub API base URL
-  owner: your-org                     # Required: GitHub organization or user login
-  project_number: 42                  # Required: GitHub Projects v2 project number
-  project_id: PVT_kwDOxxxxx          # Optional: project node ID (bypasses owner+project_number lookup)
-  active_statuses:                    # Optional: default ["Todo", "In Progress", "Merging", "Rework"]
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:                  # Optional: default ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"]
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:                   # Optional: states polled for dispatch on review activity. Default ["Human Review"]
-    - Human Review
-  # GitHub App authentication (alternative to api_key — all three required together):
-  # app_id: $GITHUB_APP_ID            # Optional: GitHub App ID (integer or $ENV_VAR)
-  # private_key: $GITHUB_APP_PRIVATE_KEY  # Optional: GitHub App private key PEM or $ENV_VAR
-  # installation_id: $GITHUB_APP_INSTALLATION_ID  # Optional: installation ID (integer or $ENV_VAR)
+projects:
+  - platform: github                  # Required: must match a key in platforms
+    project_number: 42                # Required: GitHub Projects v2 project number
+    project_id: PVT_kwDOxxxxx        # Optional: project node ID (bypasses owner+project_number lookup)
+    active_statuses:                  # Optional: default ["Todo", "In Progress", "Merging", "Rework"]
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:                # Optional: default ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"]
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:                 # Optional: states polled for dispatch on review activity. Default ["Human Review"]
+      - Human Review
+    # filter:
+    #   assignee: user1, user2        # Optional: CSV or YAML array; case-insensitive OR match
+    #                                 # (unassigned issues are excluded when this filter is set)
+    #   label: bug, feature           # Optional: CSV or YAML array; case-insensitive OR match
+    # Both filters AND together when both are specified. Applies at dispatch time only.
+  # - platform: asana                 # UNDER DEVELOPMENT
+  #   project_gid: "1234567890123456" # Required: Asana project GID
+  #   active_sections:                # Optional: default ["To Do", "In Progress"]
+  #     - In Progress
+  #   terminal_sections:              # Optional: default ["Done", "Cancelled"]
+  #     - Done
+  #     - Cancelled
 
-  # --- Asana fields (when kind == "asana") --- UNDER DEVELOPMENT
-  # api_key: $ASANA_ACCESS_TOKEN      # Required: token or $ENV_VAR
-  # endpoint: https://app.asana.com/api/1.0  # Optional: override Asana API base URL
-  # project_gid: "1234567890123456"   # Required: Asana project GID
-  # active_sections:                  # Optional: default ["To Do", "In Progress"]
-  #   - In Progress
-  # terminal_sections:                # Optional: default ["Done", "Cancelled"]
-  #   - Done
-  #   - Cancelled
-
-  # --- Shared filter fields (both trackers) ---
-  # filter:
-  #   assignee: user1, user2          # Optional: CSV or YAML array; case-insensitive OR match
-  #                                   # (unassigned issues are excluded when this filter is set)
-  #   label: bug, feature             # Optional: CSV or YAML array; case-insensitive OR match
-  # Both filters AND together when both are specified. Applies at dispatch time only.
+channels:
+  - platform: github                  # Required: must match a key in platforms
+    allowed_associations:             # Optional: GitHub comment author associations permitted to trigger dispatch
+      - OWNER
+      - MEMBER
+      - COLLABORATOR
+  # - platform: slack
 
 polling:
   interval_ms: 30000                  # Optional: poll cadence in ms, default 30000
@@ -600,13 +622,16 @@ export GITHUB_APP_INSTALLATION_ID=67890
 5. Reference them in `WORKFLOW.md`:
 
 ```yaml
-tracker:
-  kind: github_projects
-  app_id: $GITHUB_APP_ID
-  private_key: $GITHUB_APP_PRIVATE_KEY
-  installation_id: $GITHUB_APP_INSTALLATION_ID
-  owner: your-org
-  project_number: 42
+platforms:
+  github:
+    app_id: $GITHUB_APP_ID
+    private_key: $GITHUB_APP_PRIVATE_KEY
+    installation_id: $GITHUB_APP_INSTALLATION_ID
+    owner: your-org
+
+projects:
+  - platform: github
+    project_number: 42
 ```
 
 The values can also be inlined directly (not recommended for secrets):

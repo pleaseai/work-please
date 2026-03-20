@@ -143,24 +143,28 @@ bun run build
 
 ```markdown
 ---
-tracker:
-  kind: github_projects
-  api_key: $GITHUB_TOKEN
-  owner: your-org
-  project_number: 42
-  active_statuses:
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:
-    - Human Review
+platforms:
+  github:
+    api_key: $GITHUB_TOKEN
+    owner: your-org
+    bot_username: agent-please
+
+projects:
+  - platform: github
+    project_number: 42
+    active_statuses:
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:
+      - Human Review
 
 polling:
   interval_ms: 30000
@@ -213,26 +217,30 @@ Issue {{ issue.identifier }}: {{ issue.title }}
 
 ```markdown
 ---
-tracker:
-  kind: github_projects
-  app_id: $GITHUB_APP_ID
-  private_key: $GITHUB_APP_PRIVATE_KEY
-  installation_id: $GITHUB_APP_INSTALLATION_ID
-  owner: your-org
-  project_number: 42
-  active_statuses:
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:
-    - Human Review
+platforms:
+  github:
+    app_id: $GITHUB_APP_ID
+    private_key: $GITHUB_APP_PRIVATE_KEY
+    installation_id: $GITHUB_APP_INSTALLATION_ID
+    owner: your-org
+    bot_username: agent-please
+
+projects:
+  - platform: github
+    project_number: 42
+    active_statuses:
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:
+      - Human Review
 
 polling:
   interval_ms: 30000
@@ -285,15 +293,18 @@ Issue {{ issue.identifier }}: {{ issue.title }}
 
 ```markdown
 ---
-tracker:
-  kind: asana
-  api_key: $ASANA_ACCESS_TOKEN
-  project_gid: "1234567890123456"
-  active_sections:
-    - In Progress
-  terminal_sections:
-    - Done
-    - Cancelled
+platforms:
+  asana:
+    api_key: $ASANA_ACCESS_TOKEN
+
+projects:
+  - platform: asana
+    project_gid: "1234567890123456"
+    active_sections:
+      - In Progress
+    terminal_sections:
+      - Done
+      - Cancelled
 
 polling:
   interval_ms: 30000
@@ -371,49 +382,60 @@ bunx agent-please --port 3000
 
 ```yaml
 ---
-tracker:
-  kind: github_projects               # 必填: "github_projects" 或 "asana"
+platforms:
+  github:                             # projects[].platform 和 channels[].platform 引用的平台名称
+    api_key: $GITHUB_TOKEN            # 必填: 令牌或 $ENV_VAR（或使用下方 GitHub App 字段）
+    owner: your-org                   # 必填: GitHub 组织或用户登录名
+    bot_username: agent-please        # 可选: 聊天频道的机器人显示名称
+    endpoint: https://api.github.com  # 可选: 覆盖 GitHub API 基础 URL
+    # GitHub App 认证（api_key 的替代方案 —— 三个字段必须同时提供）：
+    # app_id: $GITHUB_APP_ID          # 可选: GitHub App ID（整数或 $ENV_VAR）
+    # private_key: $GITHUB_APP_PRIVATE_KEY  # 可选: GitHub App 私钥 PEM 或 $ENV_VAR
+    # installation_id: $GITHUB_APP_INSTALLATION_ID  # 可选: 安装 ID（整数或 $ENV_VAR）
+  # asana:                            # 开发中
+  #   api_key: $ASANA_ACCESS_TOKEN    # 必填: 令牌或 $ENV_VAR
+  #   endpoint: https://app.asana.com/api/1.0  # 可选: 覆盖 Asana API 基础 URL
+  # slack:
+  #   bot_token: $SLACK_BOT_TOKEN
+  #   signing_secret: $SLACK_SIGNING_SECRET
 
-  # --- GitHub Projects v2 字段（kind == "github_projects" 时） ---
-  api_key: $GITHUB_TOKEN              # 必填: 令牌或 $ENV_VAR
-  endpoint: https://api.github.com   # 可选: 覆盖 GitHub API 基础 URL
-  owner: your-org                     # 必填: GitHub 组织或用户登录名
-  project_number: 42                  # 必填: GitHub Projects v2 项目编号
-  project_id: PVT_kwDOxxxxx          # 可选: 项目节点 ID（跳过 owner+project_number 查找）
-  active_statuses:                    # 可选: 默认 ["Todo", "In Progress", "Merging", "Rework"]
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:                  # 可选: 默认 ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"]
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:                   # 可选: 有审查活动时分发代理的状态。默认 ["Human Review"]
-    - Human Review
-  # GitHub App 认证（api_key 的替代方案 —— 三个字段必须同时提供）：
-  # app_id: $GITHUB_APP_ID            # 可选: GitHub App ID（整数或 $ENV_VAR）
-  # private_key: $GITHUB_APP_PRIVATE_KEY  # 可选: GitHub App 私钥 PEM 或 $ENV_VAR
-  # installation_id: $GITHUB_APP_INSTALLATION_ID  # 可选: 安装 ID（整数或 $ENV_VAR）
+projects:
+  - platform: github                  # 必填: 必须匹配 platforms 中的键
+    project_number: 42                # 必填: GitHub Projects v2 项目编号
+    project_id: PVT_kwDOxxxxx        # 可选: 项目节点 ID（跳过 owner+project_number 查找）
+    active_statuses:                  # 可选: 默认 ["Todo", "In Progress", "Merging", "Rework"]
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:                # 可选: 默认 ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"]
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:                 # 可选: 有审查活动时分发代理的状态。默认 ["Human Review"]
+      - Human Review
+    # filter:
+    #   assignee: user1, user2        # 可选: CSV 或 YAML 数组；不区分大小写的 OR 匹配
+    #                                 # （设置此过滤器时，未分配的问题将被排除）
+    #   label: bug, feature           # 可选: CSV 或 YAML 数组；不区分大小写的 OR 匹配
+    # 同时指定两个过滤器时使用 AND 组合。仅在分发时适用。
+  # - platform: asana                 # 开发中
+  #   project_gid: "1234567890123456" # 必填: Asana 项目 GID
+  #   active_sections:                # 可选: 默认 ["To Do", "In Progress"]
+  #     - In Progress
+  #   terminal_sections:              # 可选: 默认 ["Done", "Cancelled"]
+  #     - Done
+  #     - Cancelled
 
-  # --- Asana 字段（kind == "asana" 时） --- 开发中
-  # api_key: $ASANA_ACCESS_TOKEN      # 必填: 令牌或 $ENV_VAR
-  # endpoint: https://app.asana.com/api/1.0  # 可选: 覆盖 Asana API 基础 URL
-  # project_gid: "1234567890123456"   # 必填: Asana 项目 GID
-  # active_sections:                  # 可选: 默认 ["To Do", "In Progress"]
-  #   - In Progress
-  # terminal_sections:                # 可选: 默认 ["Done", "Cancelled"]
-  #   - Done
-  #   - Cancelled
-
-  # --- 共用过滤器字段（两个追踪器通用） ---
-  # filter:
-  #   assignee: user1, user2          # 可选: CSV 或 YAML 数组；不区分大小写的 OR 匹配
-  #                                   # （设置此过滤器时，未分配的问题将被排除）
-  #   label: bug, feature             # 可选: CSV 或 YAML 数组；不区分大小写的 OR 匹配
-  # 同时指定两个过滤器时使用 AND 组合。仅在分发时适用。
+channels:
+  - platform: github                  # 必填: 必须匹配 platforms 中的键
+    allowed_associations:             # 可选: 允许触发分发的 GitHub 评论作者关联类型
+      - OWNER
+      - MEMBER
+      - COLLABORATOR
+  # - platform: slack
 
 polling:
   interval_ms: 30000                  # 可选: 轮询间隔（ms），默认 30000
@@ -573,13 +595,16 @@ export GITHUB_APP_INSTALLATION_ID=67890
 5. 在 `WORKFLOW.md` 中引用：
 
 ```yaml
-tracker:
-  kind: github_projects
-  app_id: $GITHUB_APP_ID
-  private_key: $GITHUB_APP_PRIVATE_KEY
-  installation_id: $GITHUB_APP_INSTALLATION_ID
-  owner: your-org
-  project_number: 42
+platforms:
+  github:
+    app_id: $GITHUB_APP_ID
+    private_key: $GITHUB_APP_PRIVATE_KEY
+    installation_id: $GITHUB_APP_INSTALLATION_ID
+    owner: your-org
+
+projects:
+  - platform: github
+    project_number: 42
 ```
 
 也可以直接内联值（不建议用于密钥）：

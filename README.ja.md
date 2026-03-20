@@ -143,24 +143,28 @@ bun run build
 
 ```markdown
 ---
-tracker:
-  kind: github_projects
-  api_key: $GITHUB_TOKEN
-  owner: your-org
-  project_number: 42
-  active_statuses:
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:
-    - Human Review
+platforms:
+  github:
+    api_key: $GITHUB_TOKEN
+    owner: your-org
+    bot_username: agent-please
+
+projects:
+  - platform: github
+    project_number: 42
+    active_statuses:
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:
+      - Human Review
 
 polling:
   interval_ms: 30000
@@ -213,26 +217,30 @@ Issue {{ issue.identifier }}: {{ issue.title }}
 
 ```markdown
 ---
-tracker:
-  kind: github_projects
-  app_id: $GITHUB_APP_ID
-  private_key: $GITHUB_APP_PRIVATE_KEY
-  installation_id: $GITHUB_APP_INSTALLATION_ID
-  owner: your-org
-  project_number: 42
-  active_statuses:
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:
-    - Human Review
+platforms:
+  github:
+    app_id: $GITHUB_APP_ID
+    private_key: $GITHUB_APP_PRIVATE_KEY
+    installation_id: $GITHUB_APP_INSTALLATION_ID
+    owner: your-org
+    bot_username: agent-please
+
+projects:
+  - platform: github
+    project_number: 42
+    active_statuses:
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:
+      - Human Review
 
 polling:
   interval_ms: 30000
@@ -285,15 +293,18 @@ Issue {{ issue.identifier }}: {{ issue.title }}
 
 ```markdown
 ---
-tracker:
-  kind: asana
-  api_key: $ASANA_ACCESS_TOKEN
-  project_gid: "1234567890123456"
-  active_sections:
-    - In Progress
-  terminal_sections:
-    - Done
-    - Cancelled
+platforms:
+  asana:
+    api_key: $ASANA_ACCESS_TOKEN
+
+projects:
+  - platform: asana
+    project_gid: "1234567890123456"
+    active_sections:
+      - In Progress
+    terminal_sections:
+      - Done
+      - Cancelled
 
 polling:
   interval_ms: 30000
@@ -371,49 +382,60 @@ bunx agent-please --port 3000
 
 ```yaml
 ---
-tracker:
-  kind: github_projects               # 必須: "github_projects"または"asana"
+platforms:
+  github:                             # projects[].platformおよびchannels[].platformで参照されるプラットフォーム名
+    api_key: $GITHUB_TOKEN            # 必須: トークンまたは$ENV_VAR（または以下のGitHub Appフィールドを使用）
+    owner: your-org                   # 必須: GitHub組織またはユーザーログイン
+    bot_username: agent-please        # 任意: チャットチャンネル用ボット表示名
+    endpoint: https://api.github.com  # 任意: GitHub API基本URLのオーバーライド
+    # GitHub App認証（api_keyの代替 — 3フィールドすべて同時に必要）：
+    # app_id: $GITHUB_APP_ID          # 任意: GitHub App ID（整数または$ENV_VAR）
+    # private_key: $GITHUB_APP_PRIVATE_KEY  # 任意: GitHub App秘密鍵PEMまたは$ENV_VAR
+    # installation_id: $GITHUB_APP_INSTALLATION_ID  # 任意: インストールID（整数または$ENV_VAR）
+  # asana:                            # 開発中
+  #   api_key: $ASANA_ACCESS_TOKEN    # 必須: トークンまたは$ENV_VAR
+  #   endpoint: https://app.asana.com/api/1.0  # 任意: Asana API基本URLのオーバーライド
+  # slack:
+  #   bot_token: $SLACK_BOT_TOKEN
+  #   signing_secret: $SLACK_SIGNING_SECRET
 
-  # --- GitHub Projects v2フィールド（kind == "github_projects"の場合） ---
-  api_key: $GITHUB_TOKEN              # 必須: トークンまたは$ENV_VAR
-  endpoint: https://api.github.com   # 任意: GitHub API基本URLのオーバーライド
-  owner: your-org                     # 必須: GitHub組織またはユーザーログイン
-  project_number: 42                  # 必須: GitHub Projects v2プロジェクト番号
-  project_id: PVT_kwDOxxxxx          # 任意: プロジェクトノードID（owner+project_number検索をスキップ）
-  active_statuses:                    # 任意: デフォルト ["Todo", "In Progress", "Merging", "Rework"]
-    - Todo
-    - In Progress
-    - Merging
-    - Rework
-  terminal_statuses:                  # 任意: デフォルト ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"]
-    - Closed
-    - Cancelled
-    - Canceled
-    - Duplicate
-    - Done
-  watched_statuses:                   # 任意: レビュー活動時にエージェントをディスパッチする状態。デフォルト ["Human Review"]
-    - Human Review
-  # GitHub App認証（api_keyの代替 — 3フィールドすべて同時に必要）：
-  # app_id: $GITHUB_APP_ID            # 任意: GitHub App ID（整数または$ENV_VAR）
-  # private_key: $GITHUB_APP_PRIVATE_KEY  # 任意: GitHub App秘密鍵PEMまたは$ENV_VAR
-  # installation_id: $GITHUB_APP_INSTALLATION_ID  # 任意: インストールID（整数または$ENV_VAR）
+projects:
+  - platform: github                  # 必須: platformsのキーと一致する必要がある
+    project_number: 42                # 必須: GitHub Projects v2プロジェクト番号
+    project_id: PVT_kwDOxxxxx        # 任意: プロジェクトノードID（owner+project_number検索をスキップ）
+    active_statuses:                  # 任意: デフォルト ["Todo", "In Progress", "Merging", "Rework"]
+      - Todo
+      - In Progress
+      - Merging
+      - Rework
+    terminal_statuses:                # 任意: デフォルト ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"]
+      - Closed
+      - Cancelled
+      - Canceled
+      - Duplicate
+      - Done
+    watched_statuses:                 # 任意: レビュー活動時にエージェントをディスパッチする状態。デフォルト ["Human Review"]
+      - Human Review
+    # filter:
+    #   assignee: user1, user2        # 任意: CSVまたはYAML配列; 大文字小文字を区別しないORマッチ
+    #                                 # （このフィルター設定時、未割り当てイシューは除外）
+    #   label: bug, feature           # 任意: CSVまたはYAML配列; 大文字小文字を区別しないORマッチ
+    # 両フィルター指定時はANDで結合。ディスパッチ時にのみ適用。
+  # - platform: asana                 # 開発中
+  #   project_gid: "1234567890123456" # 必須: AsanaプロジェクトGID
+  #   active_sections:                # 任意: デフォルト ["To Do", "In Progress"]
+  #     - In Progress
+  #   terminal_sections:              # 任意: デフォルト ["Done", "Cancelled"]
+  #     - Done
+  #     - Cancelled
 
-  # --- Asanaフィールド（kind == "asana"の場合） --- 開発中
-  # api_key: $ASANA_ACCESS_TOKEN      # 必須: トークンまたは$ENV_VAR
-  # endpoint: https://app.asana.com/api/1.0  # 任意: Asana API基本URLのオーバーライド
-  # project_gid: "1234567890123456"   # 必須: AsanaプロジェクトGID
-  # active_sections:                  # 任意: デフォルト ["To Do", "In Progress"]
-  #   - In Progress
-  # terminal_sections:                # 任意: デフォルト ["Done", "Cancelled"]
-  #   - Done
-  #   - Cancelled
-
-  # --- 共通フィルターフィールド（両トラッカー共通） ---
-  # filter:
-  #   assignee: user1, user2          # 任意: CSVまたはYAML配列; 大文字小文字を区別しないORマッチ
-  #                                   # （このフィルター設定時、未割り当てイシューは除外）
-  #   label: bug, feature             # 任意: CSVまたはYAML配列; 大文字小文字を区別しないORマッチ
-  # 両フィルター指定時はANDで結合。ディスパッチ時にのみ適用。
+channels:
+  - platform: github                  # 必須: platformsのキーと一致する必要がある
+    allowed_associations:             # 任意: ディスパッチをトリガーできるGitHubコメント作成者の関連付け
+      - OWNER
+      - MEMBER
+      - COLLABORATOR
+  # - platform: slack
 
 polling:
   interval_ms: 30000                  # 任意: ポーリング間隔（ms）、デフォルト 30000
@@ -573,13 +595,16 @@ export GITHUB_APP_INSTALLATION_ID=67890
 5. `WORKFLOW.md`で参照します：
 
 ```yaml
-tracker:
-  kind: github_projects
-  app_id: $GITHUB_APP_ID
-  private_key: $GITHUB_APP_PRIVATE_KEY
-  installation_id: $GITHUB_APP_INSTALLATION_ID
-  owner: your-org
-  project_number: 42
+platforms:
+  github:
+    app_id: $GITHUB_APP_ID
+    private_key: $GITHUB_APP_PRIVATE_KEY
+    installation_id: $GITHUB_APP_INSTALLATION_ID
+    owner: your-org
+
+projects:
+  - platform: github
+    project_number: 42
 ```
 
 値を直接インラインすることもできます（シークレットには推奨しません）：
