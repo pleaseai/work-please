@@ -50,20 +50,20 @@ This is a breaking change. No backward compatibility is required — the project
 
 ### Phase 3: Tracker Adapter Updates
 
-- [ ] T009 Update createTrackerAdapter to accept ProjectConfig + PlatformConfig (file: packages/core/src/tracker/index.ts, depends on T002)
-- [ ] T010 Update createGitHubAdapter for new config shape (file: packages/core/src/tracker/github.ts, depends on T009)
-- [ ] T011 Update createAsanaAdapter for new config shape (file: packages/core/src/tracker/asana.ts, depends on T009)
-- [ ] T012 Update createAuthenticatedGraphql for PlatformConfig (file: packages/core/src/tracker/github-auth.ts, depends on T010)
+- [x] (2026-03-20 14:00 KST) T009 Update createTrackerAdapter to accept ProjectConfig + PlatformConfig (file: packages/core/src/tracker/index.ts, depends on T002)
+- [x] (2026-03-20 14:00 KST) T010 Update createGitHubAdapter for new config shape (file: packages/core/src/tracker/github.ts, depends on T009)
+- [x] (2026-03-20 14:00 KST) T011 Update createAsanaAdapter for new config shape (file: packages/core/src/tracker/asana.ts, depends on T009)
+- [x] (2026-03-20 14:00 KST) T012 Update createAuthenticatedGraphql for PlatformConfig (file: packages/core/src/tracker/github-auth.ts, depends on T010)
 
 ### Phase 4: Orchestrator & Runtime Updates
 
-- [ ] T013 Update orchestrator to iterate over projects[] (file: packages/core/src/orchestrator.ts, depends on T008, T009)
-- [ ] T014 Update workspace functions for new config shape (file: packages/core/src/workspace.ts, depends on T002)
-- [ ] T015 Update agent-runner and agent-env for new config shape (file: packages/core/src/agent-runner.ts, depends on T002)
-- [ ] T016 Update agent-env resolveAgentEnv (file: packages/core/src/agent-env.ts, depends on T002)
-- [ ] T017 Update label service for new config shape (file: packages/core/src/label.ts, depends on T002)
-- [ ] T018 Update tools module for new config shape (file: packages/core/src/tools.ts, depends on T002)
-- [ ] T019 Update issue-comment-handler for channels config (file: packages/core/src/issue-comment-handler.ts, depends on T002)
+- [x] (2026-03-20 15:00 KST) T013 Update orchestrator to iterate over projects[] (file: packages/core/src/orchestrator.ts, depends on T008, T009)
+- [x] (2026-03-20 15:00 KST) T014 Update workspace functions for new config shape (file: packages/core/src/workspace.ts, depends on T002)
+- [x] (2026-03-20 15:00 KST) T015 Update agent-runner and agent-env for new config shape (file: packages/core/src/agent-runner.ts, depends on T002)
+- [x] (2026-03-20 15:00 KST) T016 Update agent-env resolveAgentEnv (file: packages/core/src/agent-env.ts, depends on T002)
+- [x] (2026-03-20 15:00 KST) T017 Update label service for new config shape (file: packages/core/src/label.ts, depends on T002)
+- [x] (2026-03-20 15:00 KST) T018 Update tools module for new config shape (file: packages/core/src/tools.ts, depends on T002)
+- [x] (2026-03-20 15:00 KST) T019 Update issue-comment-handler for channels config (file: packages/core/src/issue-comment-handler.ts, depends on T002)
 
 ### Phase 5: App Layer Updates
 
