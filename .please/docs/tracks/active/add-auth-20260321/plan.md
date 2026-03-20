@@ -162,3 +162,31 @@ Better Auth is integrated as a Nuxt server-side library with a catch-all API rou
 
 - Observation: Auth plugin ordering needed to be `03` not `00` because auth config comes from orchestrator
   Evidence: Orchestrator plugin (`01.orchestrator.ts`) must start first to provide `ServiceConfig.auth`
+- Observation: Nuxt 4 `~` alias resolves to `app/` directory, not project root
+  Evidence: Build failed with ENOENT when `lib/auth-client.ts` was at project root instead of `app/lib/`
+- Observation: Better Auth username plugin requires explicit `username` field in `createUser` body
+  Evidence: Without it, admin seeded via `auth.api.createUser()` cannot sign in via `signIn.username()`
+
+## Outcomes & Retrospective
+
+### What Was Shipped
+- Better Auth integration with GitHub OAuth and username/password sign-in
+- Auth config via WORKFLOW.md `auth:` section with `$ENV_VAR` resolution
+- Server middleware protecting `/api/v1/*` routes with fail-secure design
+- Login page, user menu with sign-out, and client-side route middleware
+- Admin user auto-seeding with password length validation
+
+### What Went Well
+- Config layer reused existing `resolveEnvValue()` pattern — clean integration
+- Silent failure and security review caught critical fail-open middleware bug before merge
+- Plugin ordering decision (03) documented early, avoided runtime issues
+
+### What Could Improve
+- Nuxt 4 `~` alias behavior should be documented in project knowledge to prevent future path issues
+- Server-side integration tests (middleware 401, webhook bypass) are missing — only config-layer tests exist
+- `trustedOrigins` / `BETTER_AUTH_URL` configuration should be added for production deployments
+
+### Tech Debt Created
+- No `trustedOrigins` or `baseURL` configured in Better Auth (CORS/CSRF risk in non-loopback deployments)
+- 5 of 8 planned automated tests are missing (server-side Nitro behavior — requires integration test harness)
+- `config.ts` exceeds 500 LOC limit (pre-existing, auth added ~15 lines)
