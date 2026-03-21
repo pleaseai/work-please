@@ -45,20 +45,21 @@ export function createAsanaAdapter(project: ProjectConfig, platform: AsanaPlatfo
 
   async function postJson(url: string, payload: unknown): Promise<{ data: unknown } | TrackerError> {
     let response: Response
+    const ctrl = new AbortController()
+    const timeout = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS)
     try {
-      const ctrl = new AbortController()
-      const timeout = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS)
       response = await fetch(url, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify(payload),
         signal: ctrl.signal,
       })
-      clearTimeout(timeout)
     }
     catch (cause) {
+      clearTimeout(timeout)
       return { code: 'asana_api_request', cause }
     }
+    clearTimeout(timeout)
 
     if (!response.ok) {
       const body = await response.json().catch(() => null)

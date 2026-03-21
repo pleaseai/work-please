@@ -107,7 +107,7 @@ export function buildPlatformsConfig(raw: Record<string, unknown>): Record<strin
           stringValue(sec.bot_username),
           process.env.CHAT_BOT_USERNAME ?? process.env.GITHUB_BOT_USERNAME,
         ),
-        webhook_secret: resolveEnvValue(stringValue(sec.webhook_secret), undefined),
+        webhook_secret: resolveEnvValue(stringValue(sec.webhook_secret), process.env.ASANA_WEBHOOK_SECRET),
       }
     }
     else {
