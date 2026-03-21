@@ -51,6 +51,9 @@ export { HttpServer } from './server'
 // Session Renderer
 export { fetchSessionMessages, isValidSessionId, parsePositiveInt } from './session-renderer'
 
+// State
+export { createStateFromConfig } from './state'
+
 // Tools
 export { createToolsMcpServer, executeTool, getToolSpecs } from './tools'
 
@@ -88,6 +91,8 @@ export type {
   ServiceConfig,
   SettingSource,
   SlackPlatformConfig,
+  StateAdapterKind,
+  StateConfig,
   SystemPromptConfig,
   WatchedSnapshot,
   WorkflowDefinition,

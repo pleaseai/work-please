@@ -148,6 +148,15 @@ export interface DbConfig {
   turso_auth_token: string | null
 }
 
+export type StateAdapterKind = 'memory' | 'redis' | 'ioredis' | 'postgres'
+
+export interface StateConfig {
+  adapter: StateAdapterKind
+  url: string | null
+  key_prefix: string
+  on_lock_conflict: 'force' | 'drop'
+}
+
 export type AgentRunStatus = 'success' | 'failure' | 'terminated'
 
 export interface AgentRunRecord {
@@ -215,6 +224,7 @@ export interface ServiceConfig {
   }
   env: Record<string, string>
   db: DbConfig
+  state: StateConfig
   server: {
     port: number | null
     webhook: {

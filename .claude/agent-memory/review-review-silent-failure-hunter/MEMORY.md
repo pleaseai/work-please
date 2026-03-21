@@ -3,11 +3,12 @@
 ## Project Error Handling Conventions
 
 - Orchestrator uses `console.error` for fatal/blocking errors, `console.warn` for non-fatal warnings
+- `createLogger('scope')` from `@pleaseai/agent-core` returns a consola logger; use `.error`/`.warn`/`.info`
 - TrackerError is a discriminated union with `code` field -- always propagate or log, never discard silently
 - `createTrackerAdapter` returns `TrackerAdapter | TrackerError` -- callers must check with `isTrackerError()`
 - `formatTrackerError()` exists for human-readable error messages in logs
 - No formal error ID system (no errorIds.ts / Sentry integration yet)
-- No `logError` / `logForDebugging` / `logEvent` functions -- project uses raw `console.error` / `console.warn`
+- No `logError` / `logForDebugging` / `logEvent` functions -- project uses raw `console.error` / `console.warn` (or consola via `createLogger`)
 
 ## Known Patterns to Watch
 
@@ -31,6 +32,13 @@
 - **useSessionMessages: polling continues unconditionally on repeated fetch errors**: `useIntervalFn` keeps firing on every error; no backoff, no cap, no user-visible indication after the first poll fails. Same pattern flagged in iter 2. Confidence 80.
 - **sessionMessagesResponse ENOENT -> 200+[]**: silently returns 200 empty array for a session file that does not exist; caller cannot distinguish "exists, 0 messages" from "not found". Borderline intentional (confidence ~75, not flagged).
 
+## Patterns from state-adapter-config (branch amondnet/melbourne)
+
+- **Async plugin startup with .then()/.catch() — bot silently not registered on failure**: Nitro plugins are synchronous; `createStateFromConfig` is async, so `.then()/.catch()` is used. The `.catch()` logs the error but `nitroApp.chatBot` is never set. Any downstream webhook handler reading `nitroApp.chatBot` gets `undefined` and silently drops all messages. The server starts healthy. Confidence 92 — flagged.
+- **Silent fallback to memory for unknown adapter kind**: `createStateFromConfig` falls back to memory (with hardcoded `'chat-sdk'` key prefix, dropping user config) when `ADAPTER_PACKAGES[adapter]` is undefined. This branch is unreachable given `buildStateConfig()` validation, but if ever reached, would silently remove distributed locking. Should throw instead of fall back. Confidence 90 — flagged.
+- **`isModuleNotFound` duck-typing GOOD pattern**: Correctly handles Bun's `ResolveMessage` (not `instanceof Error`) by checking `.message` text. Propagates all non-MODULE_NOT_FOUND errors. Good model for dynamic import error handling in Bun projects.
+- **`buildStateConfig()` validation before factory**: Config layer validates adapter kind and defaults to memory; factory therefore always receives a valid adapter. This two-layer validation is the right architecture but creates a dead code branch in the factory that should be an invariant throw, not a warn+fallback.
+
 ## Files of Interest
 
 - `apps/agent-please/src/orchestrator.ts` -- main dispatch/worker loop, many error handling paths
@@ -45,3 +53,6 @@
 - `apps/dashboard/src/components/RefreshButton.vue` -- refresh trigger (PR #113 added)
 - `apps/dashboard/src/pages/DashboardPage.vue` -- overview page (PR #113 added)
 - `apps/dashboard/src/pages/IssuePage.vue` -- issue detail page (PR #113 added)
+- `apps/agent-please/server/plugins/02.chat-bot.ts` -- Nitro plugin for chat bot; async init via .then()/.catch()
+- `packages/core/src/state.ts` -- dynamic import factory for state adapters (new in state-adapter-config track)
+- `packages/core/src/config.ts` -- buildStateConfig() validates adapter kind before factory is called

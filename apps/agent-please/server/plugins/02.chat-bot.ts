@@ -2,13 +2,12 @@ import type { Orchestrator } from '@pleaseai/agent-core'
 import process from 'node:process'
 import { createGitHubAdapter } from '@chat-adapter/github'
 import { createSlackAdapter } from '@chat-adapter/slack'
-import { createMemoryState } from '@chat-adapter/state-memory'
-import { createLogger } from '@pleaseai/agent-core'
+import { createLogger, createStateFromConfig } from '@pleaseai/agent-core'
 import { Chat } from 'chat'
 
 const log = createLogger('chat-bot')
 
-export default defineNitroPlugin((nitroApp) => {
+export default defineNitroPlugin(async (nitroApp) => {
   const orchestrator = (nitroApp as any).orchestrator as Orchestrator | undefined
   if (!orchestrator) {
     log.warn('orchestrator not available — chat bot not started')
@@ -74,72 +73,82 @@ export default defineNitroPlugin((nitroApp) => {
 
   const botUsername = resolvedBotUsername || process.env.CHAT_BOT_USERNAME || process.env.GITHUB_BOT_USERNAME || 'agent-please'
 
-  const bot = new Chat({
-    userName: botUsername,
-    adapters,
-    state: createMemoryState(),
-  })
+  const stateConfig = config.state
+  const onLockConflict = stateConfig.on_lock_conflict === 'force' ? 'force' as const : undefined
 
-  // Handle @mentions: respond with issue status from orchestrator
-  bot.onNewMention(async (thread) => {
-    try {
-      const state = orchestrator.getState()
+  try {
+    const stateAdapter = await createStateFromConfig(stateConfig)
+    const bot = new Chat({
+      userName: botUsername,
+      adapters,
+      state: stateAdapter as any,
+      ...(onLockConflict ? { onLockConflict } : {}),
+    })
 
-      const statusLines: string[] = []
-      const runningCount = state.running.size
-      const retryCount = state.retry_attempts.size
-
-      statusLines.push(`**Agent Please Status**`)
-      statusLines.push(`- Running: ${runningCount}`)
-      statusLines.push(`- Retrying: ${retryCount}`)
-      statusLines.push(`- Total tokens: ${state.agent_totals.total_tokens.toLocaleString()}`)
-
-      if (runningCount > 0) {
-        statusLines.push('')
-        statusLines.push('**Running Issues:**')
-        for (const entry of state.running.values()) {
-          statusLines.push(`- \`${entry.identifier}\` — ${entry.issue.state} (turn ${entry.turn_count})`)
-        }
-      }
-
-      if (retryCount > 0) {
-        statusLines.push('')
-        statusLines.push('**Retry Queue:**')
-        for (const entry of state.retry_attempts.values()) {
-          statusLines.push(`- \`${entry.identifier}\` — attempt ${entry.attempt}${entry.error ? ` (${entry.error})` : ''}`)
-        }
-      }
-
-      await thread.post(statusLines.join('\n'))
-    }
-    catch (err) {
-      log.error('failed to handle mention:', err)
+    // Handle @mentions: respond with issue status from orchestrator
+    bot.onNewMention(async (thread) => {
       try {
-        await thread.post('Sorry, I encountered an error retrieving status. Please try again.')
+        const state = orchestrator.getState()
+
+        const statusLines: string[] = []
+        const runningCount = state.running.size
+        const retryCount = state.retry_attempts.size
+
+        statusLines.push(`**Agent Please Status**`)
+        statusLines.push(`- Running: ${runningCount}`)
+        statusLines.push(`- Retrying: ${retryCount}`)
+        statusLines.push(`- Total tokens: ${state.agent_totals.total_tokens.toLocaleString()}`)
+
+        if (runningCount > 0) {
+          statusLines.push('')
+          statusLines.push('**Running Issues:**')
+          for (const entry of state.running.values()) {
+            statusLines.push(`- \`${entry.identifier}\` — ${entry.issue.state} (turn ${entry.turn_count})`)
+          }
+        }
+
+        if (retryCount > 0) {
+          statusLines.push('')
+          statusLines.push('**Retry Queue:**')
+          for (const entry of state.retry_attempts.values()) {
+            statusLines.push(`- \`${entry.identifier}\` — attempt ${entry.attempt}${entry.error ? ` (${entry.error})` : ''}`)
+          }
+        }
+
+        await thread.post(statusLines.join('\n'))
       }
-      catch (replyErr) {
-        log.error('failed to post error reply:', replyErr)
+      catch (err) {
+        log.error('failed to handle mention:', err)
+        try {
+          await thread.post('Sorry, I encountered an error retrieving status. Please try again.')
+        }
+        catch (replyErr) {
+          log.error('failed to post error reply:', replyErr)
+        }
       }
-    }
-  })
+    })
 
-  // Share Chat SDK state adapter with orchestrator for dispatch lock dedup
-  const stateAdapter = bot.getState()
-  orchestrator.setDispatchLockAdapter(stateAdapter)
+    // Share Chat SDK state adapter with orchestrator for dispatch lock dedup
+    const chatState = bot.getState()
+    orchestrator.setDispatchLockAdapter(chatState)
 
-  // Store bot on nitroApp for webhook handler access
-  ;(nitroApp as any).chatBot = bot
-  ;(nitroApp as any).chatStateAdapter = stateAdapter
+    // Store bot on nitroApp for webhook handler access
+    ;(nitroApp as any).chatBot = bot
+    ;(nitroApp as any).chatStateAdapter = chatState
 
-  nitroApp.hooks.hook('close', async () => {
-    try {
-      await bot.shutdown()
-    }
-    catch (err) {
-      log.error('error during shutdown:', err)
-    }
-  })
+    nitroApp.hooks.hook('close', async () => {
+      try {
+        await bot.shutdown()
+      }
+      catch (err) {
+        log.error('error during shutdown:', err)
+      }
+    })
 
-  const adapterNames = Object.keys(adapters).join(', ')
-  log.info(`chat adapters initialized: ${adapterNames}`)
+    const adapterNames = Object.keys(adapters).join(', ')
+    log.info(`chat bot initialized (state: ${stateConfig.adapter}, adapters: ${adapterNames})`)
+  }
+  catch (err) {
+    log.error('failed to create state adapter:', err)
+  }
 })

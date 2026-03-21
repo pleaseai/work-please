@@ -26,6 +26,7 @@ function makeConfig(trackerKind: 'asana' | 'github_projects', apiKey: string | n
     claude: { model: null, effort: 'high' as const, command: 'claude', permission_mode: 'bypassPermissions', allowed_tools: [], setting_sources: [], turn_timeout_ms: 3600000, read_timeout_ms: 5000, stall_timeout_ms: 300000, sandbox: null, system_prompt: { type: 'preset', preset: 'claude_code' }, settings: { attribution: { commit: null, pr: null } } },
     env: {},
     db: { path: '.agent-please/agent_runs.db', turso_url: null, turso_auth_token: null },
+    state: { adapter: 'memory' as const, url: null, key_prefix: 'chat-sdk', on_lock_conflict: 'drop' as const },
     server: { port: null, webhook: { secret: null, events: null } },
   }
   return base

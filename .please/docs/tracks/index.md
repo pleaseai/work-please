@@ -10,6 +10,7 @@
 | [nuxt-chat-sdk-migration-20260319](active/nuxt-chat-sdk-migration-20260319/plan.md) | Nuxt + Chat SDK Migration | refactor | TBD | 2026-03-19 | in_progress |
 | [libsql-turso-20260317](active/libsql-turso-20260317/plan.md) | libsql/Turso Agent Run History | feature | #115 | 2026-03-17 | in_progress |
 | [platform-centric-config-20260320](active/platform-centric-config-20260320/plan.md) | Platform-Centric Config Structure | refactor | #151 | 2026-03-20 | in_progress |
+| [state-adapter-config-20260321](active/state-adapter-config-20260321/plan.md) | Configurable State Adapter | feature | #155 | 2026-03-21 | in_progress |
 
 ## Recently Completed
 

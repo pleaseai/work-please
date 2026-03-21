@@ -1349,3 +1349,111 @@ describe('buildConfig - channels config', () => {
     }
   })
 })
+
+describe('buildConfig state section', () => {
+  it('defaults to memory adapter when no state config', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.state).toEqual({
+      adapter: 'memory',
+      url: null,
+      key_prefix: 'chat-sdk',
+      on_lock_conflict: 'drop',
+    })
+  })
+
+  it('parses explicit redis adapter config', () => {
+    const config = buildConfig(makeWorkflow({
+      state: { adapter: 'redis', url: 'redis://localhost:6379', key_prefix: 'my-bot' },
+    }))
+    expect(config.state.adapter).toBe('redis')
+    expect(config.state.url).toBe('redis://localhost:6379')
+    expect(config.state.key_prefix).toBe('my-bot')
+  })
+
+  it('resolves $REDIS_URL env reference for redis adapter', () => {
+    const prev = process.env.TEST_STATE_REDIS_URL
+    process.env.TEST_STATE_REDIS_URL = 'redis://env-host:6379'
+    try {
+      const config = buildConfig(makeWorkflow({
+        state: { adapter: 'redis', url: '$TEST_STATE_REDIS_URL' },
+      }))
+      expect(config.state.url).toBe('redis://env-host:6379')
+    }
+    finally {
+      if (prev !== undefined)
+        process.env.TEST_STATE_REDIS_URL = prev
+      else delete process.env.TEST_STATE_REDIS_URL
+    }
+  })
+
+  it('falls back to REDIS_URL env var for redis adapter when url is omitted', () => {
+    const prev = process.env.REDIS_URL
+    process.env.REDIS_URL = 'redis://fallback:6379'
+    try {
+      const config = buildConfig(makeWorkflow({
+        state: { adapter: 'redis' },
+      }))
+      expect(config.state.url).toBe('redis://fallback:6379')
+    }
+    finally {
+      if (prev !== undefined)
+        process.env.REDIS_URL = prev
+      else delete process.env.REDIS_URL
+    }
+  })
+
+  it('falls back to POSTGRES_URL env var for postgres adapter', () => {
+    const prev = process.env.POSTGRES_URL
+    process.env.POSTGRES_URL = 'postgres://fallback:5432/db'
+    try {
+      const config = buildConfig(makeWorkflow({
+        state: { adapter: 'postgres' },
+      }))
+      expect(config.state.adapter).toBe('postgres')
+      expect(config.state.url).toBe('postgres://fallback:5432/db')
+    }
+    finally {
+      if (prev !== undefined)
+        process.env.POSTGRES_URL = prev
+      else delete process.env.POSTGRES_URL
+    }
+  })
+
+  it('defaults to memory on invalid adapter kind', () => {
+    const config = buildConfig(makeWorkflow({
+      state: { adapter: 'invalid-adapter' },
+    }))
+    expect(config.state.adapter).toBe('memory')
+  })
+
+  it('parses on_lock_conflict: force', () => {
+    const config = buildConfig(makeWorkflow({
+      state: { adapter: 'memory', on_lock_conflict: 'force' },
+    }))
+    expect(config.state.on_lock_conflict).toBe('force')
+  })
+
+  it('defaults on_lock_conflict to drop for unknown value', () => {
+    const config = buildConfig(makeWorkflow({
+      state: { adapter: 'memory', on_lock_conflict: 'unknown' },
+    }))
+    expect(config.state.on_lock_conflict).toBe('drop')
+  })
+
+  it('parses ioredis adapter with REDIS_URL fallback', () => {
+    const prev = process.env.REDIS_URL
+    process.env.REDIS_URL = 'redis://ioredis-host:6379'
+    try {
+      const config = buildConfig(makeWorkflow({
+        state: { adapter: 'ioredis' },
+      }))
+      expect(config.state.adapter).toBe('ioredis')
+      expect(config.state.url).toBe('redis://ioredis-host:6379')
+    }
+    finally {
+      if (prev !== undefined)
+        process.env.REDIS_URL = prev
+      else delete process.env.REDIS_URL
+    }
+  })
+})
