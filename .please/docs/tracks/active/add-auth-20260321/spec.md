@@ -10,7 +10,7 @@ Add authentication to the Agent Please Nuxt dashboard using Better Auth. Admin o
 
 ### Functional Requirements
 
-- [ ] FR-1: Integrate Better Auth server-side in Nuxt via the Nuxt integration (`better-auth/nuxt`)
+- [ ] FR-1: Integrate Better Auth server-side in Nuxt as a custom Nitro plugin and middleware, allowing configuration to flow from the orchestrator.
 - [ ] FR-2: Configure GitHub OAuth provider for sign-in (using existing GitHub App or separate OAuth App credentials)
 - [ ] FR-3: Enable the username plugin for local username/password accounts
 - [ ] FR-4: Enable the admin plugin for role-based access (admin role)
@@ -47,4 +47,4 @@ Add authentication to the Agent Please Nuxt dashboard using Better Auth. Admin o
 
 - GitHub OAuth credentials (client ID/secret) will be provided as environment variables
 - The existing libsql database schema can be extended with Better Auth tables
-- Better Auth's Nuxt integration is compatible with Nuxt 4 and the Bun runtime
+- Better Auth server-side library is compatible with Nuxt 4 Nitro plugins and the Bun runtime
