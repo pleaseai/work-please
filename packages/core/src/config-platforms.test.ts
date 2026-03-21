@@ -136,6 +136,53 @@ describe('buildPlatformsConfig', () => {
     expect(gh.installation_id).toBe(456)
   })
 
+  it('parses asana platform with webhook_secret', () => {
+    const result = buildPlatformsConfig({
+      platforms: {
+        asana: {
+          api_key: 'asana-token',
+          bot_username: 'asana-bot',
+          webhook_secret: 'my-secret',
+        },
+      },
+    })
+    const asana = result.asana as any
+    expect(asana.kind).toBe('asana')
+    expect(asana.api_key).toBe('asana-token')
+    expect(asana.bot_username).toBe('asana-bot')
+    expect(asana.webhook_secret).toBe('my-secret')
+  })
+
+  it('parses asana platform without webhook_secret', () => {
+    const result = buildPlatformsConfig({
+      platforms: {
+        asana: {
+          api_key: 'asana-token',
+        },
+      },
+    })
+    const asana = result.asana as any
+    expect(asana.kind).toBe('asana')
+    expect(asana.api_key).toBe('asana-token')
+    expect(asana.webhook_secret).toBeNull()
+  })
+
+  it('resolves $ENV_VAR reference in asana webhook_secret', () => {
+    const saved = process.env.MYTEST_ASANA_WEBHOOK_SECRET
+    process.env.MYTEST_ASANA_WEBHOOK_SECRET = 'env-secret'
+    const result = buildPlatformsConfig({
+      platforms: {
+        asana: { api_key: 'tok', webhook_secret: '$MYTEST_ASANA_WEBHOOK_SECRET' },
+      },
+    })
+    if (saved === undefined)
+      delete process.env.MYTEST_ASANA_WEBHOOK_SECRET
+    else
+      process.env.MYTEST_ASANA_WEBHOOK_SECRET = saved
+    const asana = result.asana as any
+    expect(asana.webhook_secret).toBe('env-secret')
+  })
+
   it('parses multiple platforms', () => {
     const result = buildPlatformsConfig({
       platforms: {
