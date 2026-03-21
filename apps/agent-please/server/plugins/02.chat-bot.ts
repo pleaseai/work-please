@@ -1,11 +1,11 @@
 import type { Orchestrator } from '@pleaseai/agent-core'
 import process from 'node:process'
-import { createAsanaAdapter } from 'chat-adapter-asana'
 import { createGitHubAdapter } from '@chat-adapter/github'
 import { createSlackAdapter } from '@chat-adapter/slack'
 import { createMemoryState } from '@chat-adapter/state-memory'
 import { createLogger } from '@pleaseai/agent-core'
 import { Chat } from 'chat'
+import { createAsanaAdapter } from 'chat-adapter-asana'
 
 const log = createLogger('chat-bot')
 
@@ -69,7 +69,11 @@ export default defineNitroPlugin((nitroApp) => {
     else if (platform.kind === 'asana') {
       const asanaPlatform = platform
       if (asanaPlatform.api_key) {
-        const adapterOpts: Record<string, any> = {
+        const adapterOpts: {
+          accessToken: string
+          userName?: string
+          webhookSecret?: string
+        } = {
           accessToken: asanaPlatform.api_key,
         }
         if (asanaPlatform.bot_username) {

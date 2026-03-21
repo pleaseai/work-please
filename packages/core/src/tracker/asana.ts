@@ -22,38 +22,12 @@ export function createAsanaAdapter(project: ProjectConfig, platform: AsanaPlatfo
     }
   }
 
-  async function fetchJson(url: string): Promise<{ data: unknown } | TrackerError> {
-    let response: Response
-    try {
-      const ctrl = new AbortController()
-      const timeout = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS)
-      response = await fetch(url, { headers: headers(), signal: ctrl.signal })
-      clearTimeout(timeout)
-    }
-    catch (cause) {
-      return { code: 'asana_api_request', cause }
-    }
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null)
-      return { code: 'asana_api_status', status: response.status, body }
-    }
-
-    const body = await response.json().catch(() => null)
-    return { data: body }
-  }
-
-  async function postJson(url: string, payload: unknown): Promise<{ data: unknown } | TrackerError> {
+  async function request(url: string, init?: RequestInit): Promise<{ data: unknown } | TrackerError> {
     let response: Response
     const ctrl = new AbortController()
     const timeout = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS)
     try {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify(payload),
-        signal: ctrl.signal,
-      })
+      response = await fetch(url, { headers: headers(), signal: ctrl.signal, ...init })
     }
     catch (cause) {
       clearTimeout(timeout)
@@ -68,6 +42,14 @@ export function createAsanaAdapter(project: ProjectConfig, platform: AsanaPlatfo
 
     const body = await response.json().catch(() => null)
     return { data: body }
+  }
+
+  function fetchJson(url: string): Promise<{ data: unknown } | TrackerError> {
+    return request(url)
+  }
+
+  function postJson(url: string, payload: unknown): Promise<{ data: unknown } | TrackerError> {
+    return request(url, { method: 'POST', body: JSON.stringify(payload) })
   }
 
   async function fetchSections(): Promise<Array<{ gid: string, name: string }> | TrackerError> {

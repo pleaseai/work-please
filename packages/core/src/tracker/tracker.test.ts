@@ -1208,7 +1208,7 @@ describe('asana updateItemStatus', () => {
     const adapter = createAsanaAdapter(project, platform)
 
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async (url: string | URL | Request, init?: RequestInit) => {
+    globalThis.fetch = mock(async (url: string | URL | Request, _init?: RequestInit) => {
       const urlStr = String(url)
       if (urlStr.includes('/projects/') && urlStr.includes('/sections')) {
         return { ok: true, json: async () => ({ data: [{ gid: 'sec-ip', name: 'In Progress' }] }) } as unknown as Response
