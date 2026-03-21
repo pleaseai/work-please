@@ -16,3 +16,8 @@ apps/agent-please/README.md
 .env.local
 WORKFLOW.local.md
 apps/agent-please/WORKFLOW.md
+# Nuxt
+.nuxt/
+
+# Turborepo
+.turbo

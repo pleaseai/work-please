@@ -14,8 +14,10 @@ function makeConfig(overrides: Partial<ServiceConfig> = {}): ServiceConfig {
     hooks: { after_create: null, before_run: null, after_run: null, before_remove: null, timeout_ms: 60000 },
     agent: { max_concurrent_agents: 5, max_turns: 20, max_retry_backoff_ms: 300000, max_concurrent_agents_by_state: {} },
     claude: { model: null, effort: 'high' as const, command: 'claude', permission_mode: 'bypassPermissions', allowed_tools: [], setting_sources: [], turn_timeout_ms: 3600000, read_timeout_ms: 5000, stall_timeout_ms: 300000, sandbox: null, system_prompt: { type: 'preset', preset: 'claude_code' }, settings: { attribution: { commit: null, pr: null } } },
+    auth: { secret: null, github: { client_id: null, client_secret: null }, admin: { email: null, password: null } },
     env: {},
     db: { path: '.agent-please/agent_runs.db', turso_url: null, turso_auth_token: null },
+    state: { adapter: 'memory' as const, url: null, key_prefix: 'chat-sdk', on_lock_conflict: 'drop' as const },
     server: { port: null, webhook: { secret: null, events: null } },
     ...overrides,
   }

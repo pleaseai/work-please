@@ -1,7 +1,7 @@
 {
   "name": "@pleaseai/agent",
   "type": "module",
-  "version": "0.1.16",
+  "version": "0.1.18",
   "description": "Autonomous coding agent for GitHub, Linear, and Slack",
   "license": "FSL-1.1-MIT",
   "repository": {
@@ -15,6 +15,7 @@
     "agentplease": "./dist/index.js"
   },
   "files": [
+    ".output",
     "LICENSE",
     "README.md",
     "dist"
@@ -34,11 +35,15 @@
   "dependencies": {
     "@chat-adapter/github": "^4.20.2",
     "@chat-adapter/slack": "^4.20.2",
+    "@chat-adapter/state-ioredis": "^4.20.2",
     "@chat-adapter/state-memory": "^4.20.2",
+    "@chat-adapter/state-pg": "^4.20.2",
+    "@chat-adapter/state-redis": "^4.20.2",
     "@nuxt/ui": "^4.5.1",
     "@octokit/graphql": "^9.0.3",
     "@pleaseai/agent-core": "workspace:*",
     "@vueuse/nuxt": "^14.2.1",
+    "better-auth": "^1.5.5",
     "chat": "^4.20.2",
     "chat-adapter-asana": "^0.1.0",
     "commander": "^14.0.3",

@@ -1,5 +1,5 @@
 /* eslint-disable no-template-curly-in-string */
-import type { GitHubPlatformConfig, SlackPlatformConfig, WorkflowDefinition } from './types'
+import type { AuthConfig, GitHubPlatformConfig, SlackPlatformConfig, WorkflowDefinition } from './types'
 import process from 'node:process'
 import { describe, expect, it } from 'bun:test'
 import { buildConfig, getActiveStates, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
@@ -1346,6 +1346,228 @@ describe('buildConfig - channels config', () => {
       else delete process.env.SLACK_BOT_TOKEN
       if (prevSecret !== undefined)
         process.env.SLACK_SIGNING_SECRET = prevSecret
+    }
+  })
+})
+
+describe('buildConfig state section', () => {
+  it('defaults to memory adapter when no state config', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.state).toEqual({
+      adapter: 'memory',
+      url: null,
+      key_prefix: 'chat-sdk',
+      on_lock_conflict: 'drop',
+    })
+  })
+
+  it('parses explicit redis adapter config', () => {
+    const config = buildConfig(makeWorkflow({
+      state: { adapter: 'redis', url: 'redis://localhost:6379', key_prefix: 'my-bot' },
+    }))
+    expect(config.state.adapter).toBe('redis')
+    expect(config.state.url).toBe('redis://localhost:6379')
+    expect(config.state.key_prefix).toBe('my-bot')
+  })
+
+  it('resolves $REDIS_URL env reference for redis adapter', () => {
+    const prev = process.env.TEST_STATE_REDIS_URL
+    process.env.TEST_STATE_REDIS_URL = 'redis://env-host:6379'
+    try {
+      const config = buildConfig(makeWorkflow({
+        state: { adapter: 'redis', url: '$TEST_STATE_REDIS_URL' },
+      }))
+      expect(config.state.url).toBe('redis://env-host:6379')
+    }
+    finally {
+      if (prev !== undefined)
+        process.env.TEST_STATE_REDIS_URL = prev
+      else delete process.env.TEST_STATE_REDIS_URL
+    }
+  })
+
+  it('falls back to REDIS_URL env var for redis adapter when url is omitted', () => {
+    const prev = process.env.REDIS_URL
+    process.env.REDIS_URL = 'redis://fallback:6379'
+    try {
+      const config = buildConfig(makeWorkflow({
+        state: { adapter: 'redis' },
+      }))
+      expect(config.state.url).toBe('redis://fallback:6379')
+    }
+    finally {
+      if (prev !== undefined)
+        process.env.REDIS_URL = prev
+      else delete process.env.REDIS_URL
+    }
+  })
+
+  it('falls back to POSTGRES_URL env var for postgres adapter', () => {
+    const prev = process.env.POSTGRES_URL
+    process.env.POSTGRES_URL = 'postgres://fallback:5432/db'
+    try {
+      const config = buildConfig(makeWorkflow({
+        state: { adapter: 'postgres' },
+      }))
+      expect(config.state.adapter).toBe('postgres')
+      expect(config.state.url).toBe('postgres://fallback:5432/db')
+    }
+    finally {
+      if (prev !== undefined)
+        process.env.POSTGRES_URL = prev
+      else delete process.env.POSTGRES_URL
+    }
+  })
+
+  it('defaults to memory on invalid adapter kind', () => {
+    const config = buildConfig(makeWorkflow({
+      state: { adapter: 'invalid-adapter' },
+    }))
+    expect(config.state.adapter).toBe('memory')
+  })
+
+  it('parses on_lock_conflict: force', () => {
+    const config = buildConfig(makeWorkflow({
+      state: { adapter: 'memory', on_lock_conflict: 'force' },
+    }))
+    expect(config.state.on_lock_conflict).toBe('force')
+  })
+
+  it('defaults on_lock_conflict to drop for unknown value', () => {
+    const config = buildConfig(makeWorkflow({
+      state: { adapter: 'memory', on_lock_conflict: 'unknown' },
+    }))
+    expect(config.state.on_lock_conflict).toBe('drop')
+  })
+
+  it('parses ioredis adapter with REDIS_URL fallback', () => {
+    const prev = process.env.REDIS_URL
+    process.env.REDIS_URL = 'redis://ioredis-host:6379'
+    try {
+      const config = buildConfig(makeWorkflow({
+        state: { adapter: 'ioredis' },
+      }))
+      expect(config.state.adapter).toBe('ioredis')
+      expect(config.state.url).toBe('redis://ioredis-host:6379')
+    }
+    finally {
+      if (prev !== undefined)
+        process.env.REDIS_URL = prev
+      else delete process.env.REDIS_URL
+    }
+  })
+})
+
+describe('buildConfig — auth', () => {
+  it('returns all-null auth config when auth section is missing', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.auth).toEqual({
+      secret: null,
+      github: { client_id: null, client_secret: null },
+      admin: { email: null, password: null },
+    } satisfies AuthConfig)
+  })
+
+  it('parses auth section with literal values', () => {
+    const config = buildConfig(makeWorkflow({
+      auth: {
+        secret: 'my-secret-key-32-chars-long-xxxxx',
+        github: {
+          client_id: 'gh-client-id',
+          client_secret: 'gh-client-secret',
+        },
+        admin: {
+          email: 'admin@example.com',
+          password: 'admin-pass',
+        },
+      },
+    }))
+    expect(config.auth.secret).toBe('my-secret-key-32-chars-long-xxxxx')
+    expect(config.auth.github.client_id).toBe('gh-client-id')
+    expect(config.auth.github.client_secret).toBe('gh-client-secret')
+    expect(config.auth.admin.email).toBe('admin@example.com')
+    expect(config.auth.admin.password).toBe('admin-pass')
+  })
+
+  it('resolves $ENV_VAR references in auth config', () => {
+    const prev = {
+      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+      AUTH_GITHUB_CLIENT_ID: process.env.AUTH_GITHUB_CLIENT_ID,
+      AUTH_GITHUB_CLIENT_SECRET: process.env.AUTH_GITHUB_CLIENT_SECRET,
+      AUTH_ADMIN_EMAIL: process.env.AUTH_ADMIN_EMAIL,
+      AUTH_ADMIN_PASSWORD: process.env.AUTH_ADMIN_PASSWORD,
+    }
+    process.env.BETTER_AUTH_SECRET = 'env-secret'
+    process.env.AUTH_GITHUB_CLIENT_ID = 'env-gh-id'
+    process.env.AUTH_GITHUB_CLIENT_SECRET = 'env-gh-secret'
+    process.env.AUTH_ADMIN_EMAIL = 'env-admin@example.com'
+    process.env.AUTH_ADMIN_PASSWORD = 'env-pass'
+    try {
+      const config = buildConfig(makeWorkflow({
+        auth: {
+          secret: '$BETTER_AUTH_SECRET',
+          github: {
+            client_id: '$AUTH_GITHUB_CLIENT_ID',
+            client_secret: '$AUTH_GITHUB_CLIENT_SECRET',
+          },
+          admin: {
+            email: '$AUTH_ADMIN_EMAIL',
+            password: '$AUTH_ADMIN_PASSWORD',
+          },
+        },
+      }))
+      expect(config.auth.secret).toBe('env-secret')
+      expect(config.auth.github.client_id).toBe('env-gh-id')
+      expect(config.auth.github.client_secret).toBe('env-gh-secret')
+      expect(config.auth.admin.email).toBe('env-admin@example.com')
+      expect(config.auth.admin.password).toBe('env-pass')
+    }
+    finally {
+      for (const [key, val] of Object.entries(prev)) {
+        if (val !== undefined)
+          process.env[key] = val
+        else delete process.env[key]
+      }
+    }
+  })
+
+  it('falls back to env vars when auth section has no values', () => {
+    const prev = {
+      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+      AUTH_GITHUB_CLIENT_ID: process.env.AUTH_GITHUB_CLIENT_ID,
+    }
+    process.env.BETTER_AUTH_SECRET = 'fallback-secret'
+    process.env.AUTH_GITHUB_CLIENT_ID = 'fallback-id'
+    try {
+      const config = buildConfig(makeWorkflow({
+        auth: {},
+      }))
+      expect(config.auth.secret).toBe('fallback-secret')
+      expect(config.auth.github.client_id).toBe('fallback-id')
+    }
+    finally {
+      for (const [key, val] of Object.entries(prev)) {
+        if (val !== undefined)
+          process.env[key] = val
+        else delete process.env[key]
+      }
+    }
+  })
+
+  it('returns null for unresolvable $ENV_VAR references', () => {
+    const prevSecret = process.env.NONEXISTENT_SECRET
+    delete process.env.NONEXISTENT_SECRET
+    try {
+      const config = buildConfig(makeWorkflow({
+        auth: {
+          secret: '$NONEXISTENT_SECRET',
+        },
+      }))
+      expect(config.auth.secret).toBeNull()
+    }
+    finally {
+      if (prevSecret !== undefined)
+        process.env.NONEXISTENT_SECRET = prevSecret
     }
   })
 })

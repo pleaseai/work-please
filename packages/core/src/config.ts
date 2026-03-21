@@ -1,4 +1,4 @@
-import type { AuthorAssociation, ChannelConfig, ClaudeEffort, DbConfig, IssueFilter, PlatformConfig, PollingMode, ProjectConfig, SandboxConfig, ServiceConfig, SettingSource, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { AuthConfig, AuthorAssociation, ChannelConfig, ClaudeEffort, DbConfig, IssueFilter, PlatformConfig, PollingMode, ProjectConfig, SandboxConfig, ServiceConfig, SettingSource, StateAdapterKind, StateConfig, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -45,6 +45,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
   const agent = sectionMap(raw, 'agent')
   const claude = sectionMap(raw, 'claude')
   const db = sectionMap(raw, 'db')
+  const state = sectionMap(raw, 'state')
   const server = sectionMap(raw, 'server')
 
   const platforms = buildPlatformsConfig(raw)
@@ -74,8 +75,10 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
       max_concurrent_agents_by_state: stateLimitsValue(agent.max_concurrent_agents_by_state),
     },
     claude: buildClaudeConfig(claude),
+    auth: buildAuthConfig(sectionMap(raw, 'auth')),
     env: buildEnvConfig(raw),
     db: buildDbConfig(db),
+    state: buildStateConfig(state),
     server: {
       port: nonNegIntOrNull(server.port),
       webhook: buildWebhookConfig(sectionMap(server, 'webhook')),
@@ -231,6 +234,22 @@ export function buildChannelsConfig(raw: Record<string, unknown>): ChannelConfig
   return result
 }
 
+function buildAuthConfig(auth: Record<string, unknown>): AuthConfig {
+  const github = sectionMap(auth, 'github')
+  const admin = sectionMap(auth, 'admin')
+  return {
+    secret: resolveEnvValue(stringValue(auth.secret), process.env.BETTER_AUTH_SECRET),
+    github: {
+      client_id: resolveEnvValue(stringValue(github.client_id), process.env.AUTH_GITHUB_CLIENT_ID),
+      client_secret: resolveEnvValue(stringValue(github.client_secret), process.env.AUTH_GITHUB_CLIENT_SECRET),
+    },
+    admin: {
+      email: resolveEnvValue(stringValue(admin.email), process.env.AUTH_ADMIN_EMAIL),
+      password: resolveEnvValue(stringValue(admin.password), process.env.AUTH_ADMIN_PASSWORD),
+    },
+  }
+}
+
 const DEFAULT_DB_PATH = '.agent-please/agent_runs.db'
 
 function buildDbConfig(db: Record<string, unknown>): DbConfig {
@@ -238,6 +257,30 @@ function buildDbConfig(db: Record<string, unknown>): DbConfig {
     path: resolvePathValue(stringValue(db.path), DEFAULT_DB_PATH),
     turso_url: resolveEnvValue(stringValue(db.turso_url), process.env.TURSO_DATABASE_URL),
     turso_auth_token: resolveEnvValue(stringValue(db.turso_auth_token), process.env.TURSO_AUTH_TOKEN),
+  }
+}
+
+const VALID_STATE_ADAPTERS = new Set<StateAdapterKind>(['memory', 'redis', 'ioredis', 'postgres'])
+
+function buildStateConfig(sec: Record<string, unknown>): StateConfig {
+  const raw = stringValue(sec.adapter)
+  const adapter: StateAdapterKind = raw && VALID_STATE_ADAPTERS.has(raw as StateAdapterKind)
+    ? raw as StateAdapterKind
+    : 'memory'
+
+  let envFallback: string | undefined
+  if (adapter === 'redis' || adapter === 'ioredis') {
+    envFallback = process.env.REDIS_URL
+  }
+  else if (adapter === 'postgres') {
+    envFallback = process.env.POSTGRES_URL || process.env.DATABASE_URL
+  }
+
+  return {
+    adapter,
+    url: resolveEnvValue(stringValue(sec.url), envFallback),
+    key_prefix: stringValue(sec.key_prefix) || 'chat-sdk',
+    on_lock_conflict: stringValue(sec.on_lock_conflict) === 'force' ? 'force' : 'drop',
   }
 }
 

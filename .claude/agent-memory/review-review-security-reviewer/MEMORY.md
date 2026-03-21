@@ -66,6 +66,16 @@
 5. POSITIVE — `sanitizeIdentifier` + `validateWorkspacePath` with `resolve`/`sep` guard prevents path traversal on `identifier`.
 6. POSITIVE — Bearer token only sent to hardcoded `https://api.github.com` endpoints; no SSRF risk.
 
+### PR amondnet/istanbul — auth feature
+1. CRITICAL — Auth entirely optional at runtime: if `auth.secret` absent, ALL /api/v1/* routes are unprotected with no warning to callers (server/middleware/auth.ts:17-25).
+2. IMPORTANT — No `trustedOrigins` in `betterAuth()`: Better Auth defaults accept requests from any origin; no CORS restriction on state-changing auth endpoints (server/utils/auth.ts:29-37).
+3. IMPORTANT — OAuth `callbackURL: '/'` is relative; open redirect risk if Better Auth does not enforce same-origin before following it (app/pages/login.vue:19).
+4. IMPORTANT — DB path: `resolve(config.workspace.root, config.db.path)` where `config.db.path` comes from untrusted WORKFLOW.md and is never checked to stay within workspace root (server/plugins/03.auth.ts:20). Path traversal possible.
+5. IMPORTANT — Admin password stored as plain string in config and passed to createUser() with no minimum-length validation (server/plugins/03.auth.ts:43-49; types.ts:149-153).
+6. POSITIVE — Auth disabled unless `config.auth.secret` is set (plugin guard at line 15).
+7. POSITIVE — Webhook routes explicitly excluded from session checks.
+8. POSITIVE — `$ENV_VAR` indirection keeps secrets out of WORKFLOW.md.
+
 ### PR amondnet/session-chat-view
 1. IMPORTANT — Unbounded offset cap: `parsePositiveInt(url.searchParams.get('offset'), Number.MAX_SAFE_INTEGER)` in server.ts:268 — offset should be capped at a reasonable value (e.g. 10,000) not MAX_SAFE_INTEGER
 2. IMPORTANT — No Content-Security-Policy on session page HTML response (server.ts ~line 300); SECURITY_HEADERS lacks CSP; easy fix: `"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'"`

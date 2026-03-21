@@ -43,6 +43,7 @@
 
 | Technology | Purpose |
 |---|---|
+| Better Auth | Dashboard authentication (GitHub OAuth, username/password, admin roles, `bun:sqlite`) |
 | `@anthropic-ai/claude-agent-sdk` | Claude Code agent session management (`query()`) |
 | `@libsql/client` | Agent run history storage (embedded libsql / Turso cloud) |
 | LiquidJS | Prompt template rendering (Liquid-compatible syntax) |
@@ -50,7 +51,10 @@
 | Chat SDK (`chat`) | Unified chat bot framework |
 | `@chat-adapter/github` | GitHub issue comment bot adapter |
 | `chat-adapter-asana` | Asana task comment bot adapter |
-| `@chat-adapter/state-memory` | In-memory state for Chat SDK (MVP) |
+| `@chat-adapter/state-memory` | Default in-memory state for Chat SDK (dev/testing) |
+| `@chat-adapter/state-redis` | Optional Redis state adapter for production |
+| `@chat-adapter/state-ioredis` | Optional ioredis state adapter (Cluster/Sentinel) |
+| `@chat-adapter/state-pg` | Optional PostgreSQL state adapter |
 | consola | Structured logging |
 
 ## Infrastructure

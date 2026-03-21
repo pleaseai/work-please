@@ -143,10 +143,31 @@ export interface SandboxConfig {
   }
 }
 
+export interface AuthConfig {
+  secret: string | null
+  github: {
+    client_id: string | null
+    client_secret: string | null
+  }
+  admin: {
+    email: string | null
+    password: string | null
+  }
+}
+
 export interface DbConfig {
   path: string
   turso_url: string | null
   turso_auth_token: string | null
+}
+
+export type StateAdapterKind = 'memory' | 'redis' | 'ioredis' | 'postgres'
+
+export interface StateConfig {
+  adapter: StateAdapterKind
+  url: string | null
+  key_prefix: string
+  on_lock_conflict: 'force' | 'drop'
 }
 
 export type AgentRunStatus = 'success' | 'failure' | 'terminated'
@@ -214,8 +235,10 @@ export interface ServiceConfig {
       }
     }
   }
+  auth: AuthConfig
   env: Record<string, string>
   db: DbConfig
+  state: StateConfig
   server: {
     port: number | null
     webhook: {
