@@ -150,3 +150,22 @@ The chosen approach follows existing patterns exactly. Each integration point mi
 
 - Observation: Existing Slack and GitHub chat-bot plugin and webhook routes have no unit tests
   Evidence: `ls apps/agent-please/**/*.test.ts` shows only CLI tests (cli.test.ts, init.test.ts)
+
+## Outcomes & Retrospective
+
+### What Was Shipped
+- Full Asana write support (task section movement via `updateItemStatus`)
+- Chat SDK integration with `chat-adapter-asana` for webhook-based @mention dispatch
+- Asana webhook endpoint at `/api/webhooks/asana`
+- Config extension with `webhook_secret` field and `$ASANA_WEBHOOK_SECRET` env fallback
+
+### What Went Well
+- Existing patterns (Slack webhook, GitHub adapter) provided clear templates to follow
+- `chat-adapter-asana` package handled all webhook handshake/verification complexity
+- Code review caught env var fallback gap and timeout leak before merge
+
+### What Could Improve
+- Nitro server components lack unit test infrastructure — affects all platform integrations equally
+
+### Tech Debt Created
+- T009/T010 deferred: No tests for Nitro server plugins/routes (applies to GitHub and Slack too)
