@@ -1,6 +1,7 @@
 import type { Orchestrator } from '@pleaseai/agent-core'
 import { resolve } from 'node:path'
 import { createLogger } from '@pleaseai/agent-core'
+import { getMigrations } from 'better-auth/db/migration'
 
 const log = createLogger('auth')
 const MIN_ADMIN_PASSWORD_LENGTH = 8
@@ -22,7 +23,8 @@ export default defineNitroPlugin(async (nitroApp) => {
   const auth = initAuth(config.auth, dbPath)
 
   try {
-    await auth.api.runMigrations()
+    const { runMigrations } = await getMigrations(auth.options)
+    await runMigrations()
     log.info('auth migrations complete')
   }
   catch (err) {
