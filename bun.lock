@@ -30,6 +30,7 @@
         "@pleaseai/agent-core": "workspace:*",
         "@vueuse/nuxt": "^14.2.1",
         "chat": "^4.20.2",
+        "chat-adapter-asana": "^0.1.0",
         "commander": "^14.0.3",
         "nuxt": "^4.4.2",
         "tailwindcss": "^4.2.2",
@@ -1079,6 +1080,8 @@
     "character-entities": ["character-entities@2.0.2", "", {}, "sha512-shx7oQ0Awen/BRIdkjkvz54PnEEI/EjwXDSIZp86/KKdbafHh1Df/RYGBhn4hbe2+uKC9FnT5UCEdyPz3ai9hQ=="],
 
     "chat": ["chat@4.20.2", "", { "dependencies": { "@workflow/serde": "4.1.0-beta.2", "mdast-util-to-string": "^4.0.0", "remark-gfm": "^4.0.0", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "remend": "^1.2.1", "unified": "^11.0.5" } }, "sha512-iTyMjE3ZRnubw1t4HgSyhU+sOG5coIBYxNS4DZbBmjQCJ9DnArmiejtG3cMigb11E2OlilZ97oKuRGigIOPh4g=="],
+
+    "chat-adapter-asana": ["chat-adapter-asana@0.1.0", "", { "dependencies": { "@chat-adapter/shared": "^4.0.0" }, "peerDependencies": { "chat": "^4.0.0" } }, "sha512-DSjD9QP/10p0Hp9uCNXHctn2MVP0FV4sPbMvFqfBLzGN+n3swqXP1YGtAjtSID3LNlSnRHdk7tYDzDJpK4fF2g=="],
 
     "chokidar": ["chokidar@5.0.0", "", { "dependencies": { "readdirp": "^5.0.0" } }, "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw=="],
 
