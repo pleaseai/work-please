@@ -1464,7 +1464,7 @@ describe('buildConfig — auth', () => {
     expect(config.auth).toEqual({
       secret: null,
       github: { client_id: null, client_secret: null },
-      admin: { username: null, password: null },
+      admin: { email: null, password: null },
     } satisfies AuthConfig)
   })
 
@@ -1477,7 +1477,7 @@ describe('buildConfig — auth', () => {
           client_secret: 'gh-client-secret',
         },
         admin: {
-          username: 'admin',
+          email: 'admin@example.com',
           password: 'admin-pass',
         },
       },
@@ -1485,7 +1485,7 @@ describe('buildConfig — auth', () => {
     expect(config.auth.secret).toBe('my-secret-key-32-chars-long-xxxxx')
     expect(config.auth.github.client_id).toBe('gh-client-id')
     expect(config.auth.github.client_secret).toBe('gh-client-secret')
-    expect(config.auth.admin.username).toBe('admin')
+    expect(config.auth.admin.email).toBe('admin@example.com')
     expect(config.auth.admin.password).toBe('admin-pass')
   })
 
@@ -1494,13 +1494,13 @@ describe('buildConfig — auth', () => {
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
       AUTH_GITHUB_CLIENT_ID: process.env.AUTH_GITHUB_CLIENT_ID,
       AUTH_GITHUB_CLIENT_SECRET: process.env.AUTH_GITHUB_CLIENT_SECRET,
-      AUTH_ADMIN_USERNAME: process.env.AUTH_ADMIN_USERNAME,
+      AUTH_ADMIN_EMAIL: process.env.AUTH_ADMIN_EMAIL,
       AUTH_ADMIN_PASSWORD: process.env.AUTH_ADMIN_PASSWORD,
     }
     process.env.BETTER_AUTH_SECRET = 'env-secret'
     process.env.AUTH_GITHUB_CLIENT_ID = 'env-gh-id'
     process.env.AUTH_GITHUB_CLIENT_SECRET = 'env-gh-secret'
-    process.env.AUTH_ADMIN_USERNAME = 'env-admin'
+    process.env.AUTH_ADMIN_EMAIL = 'env-admin@example.com'
     process.env.AUTH_ADMIN_PASSWORD = 'env-pass'
     try {
       const config = buildConfig(makeWorkflow({
@@ -1511,7 +1511,7 @@ describe('buildConfig — auth', () => {
             client_secret: '$AUTH_GITHUB_CLIENT_SECRET',
           },
           admin: {
-            username: '$AUTH_ADMIN_USERNAME',
+            email: '$AUTH_ADMIN_EMAIL',
             password: '$AUTH_ADMIN_PASSWORD',
           },
         },
@@ -1519,7 +1519,7 @@ describe('buildConfig — auth', () => {
       expect(config.auth.secret).toBe('env-secret')
       expect(config.auth.github.client_id).toBe('env-gh-id')
       expect(config.auth.github.client_secret).toBe('env-gh-secret')
-      expect(config.auth.admin.username).toBe('env-admin')
+      expect(config.auth.admin.email).toBe('env-admin@example.com')
       expect(config.auth.admin.password).toBe('env-pass')
     }
     finally {

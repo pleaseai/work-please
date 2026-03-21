@@ -243,7 +243,7 @@ function buildAuthConfig(auth: Record<string, unknown>): AuthConfig {
       client_secret: resolveEnvValue(stringValue(github.client_secret), process.env.AUTH_GITHUB_CLIENT_SECRET),
     },
     admin: {
-      username: resolveEnvValue(stringValue(admin.username), process.env.AUTH_ADMIN_USERNAME),
+      email: resolveEnvValue(stringValue(admin.email), process.env.AUTH_ADMIN_EMAIL),
       password: resolveEnvValue(stringValue(admin.password), process.env.AUTH_ADMIN_PASSWORD),
     },
   }

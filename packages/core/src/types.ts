@@ -149,7 +149,7 @@ export interface AuthConfig {
     client_secret: string | null
   }
   admin: {
-    username: string | null
+    email: string | null
     password: string | null
   }
 }

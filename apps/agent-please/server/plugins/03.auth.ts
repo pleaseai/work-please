@@ -33,7 +33,7 @@ export default defineNitroPlugin(async (nitroApp) => {
     return
   }
 
-  if (config.auth.admin.username && config.auth.admin.password) {
+  if (config.auth.admin.email && config.auth.admin.password) {
     if (config.auth.admin.password.length < MIN_ADMIN_PASSWORD_LENGTH) {
       log.warn(`admin password must be at least ${MIN_ADMIN_PASSWORD_LENGTH} characters — admin not seeded`)
       return
@@ -50,16 +50,16 @@ export default defineNitroPlugin(async (nitroApp) => {
       const adminExists = (existing?.total ?? 0) > 0
 
       if (!adminExists) {
+        const name = config.auth.admin.email.split('@')[0]
         await auth.api.createUser({
           body: {
-            email: `${config.auth.admin.username}@local`,
-            name: config.auth.admin.username,
-            username: config.auth.admin.username,
+            email: config.auth.admin.email,
+            name,
             password: config.auth.admin.password,
             role: 'admin',
           },
         })
-        log.info(`admin user "${config.auth.admin.username}" seeded`)
+        log.info(`admin user "${config.auth.admin.email}" seeded`)
       }
     }
     catch (err) {
