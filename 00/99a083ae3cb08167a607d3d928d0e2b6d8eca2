@@ -1,0 +1,23 @@
+.gitignore
+  5c0e156c3be6b14d 19-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "0099a083ae3cb08167a607d3d928d0e2b6d8eca2",
+  "prompts": {
+    "5c0e156c3be6b14d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee12c039-68fa-4fa4-bae5-842637824bff",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 0,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
