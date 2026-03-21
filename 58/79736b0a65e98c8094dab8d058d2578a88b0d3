@@ -1,0 +1,23 @@
+packages/core/src/tracker/asana.ts
+  358659d48b0d2833 2,46-73,76-77,79-81,84-86,88-92,157-187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "5879736b0a65e98c8094dab8d058d2578a88b0d3",
+  "prompts": {
+    "358659d48b0d2833": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a3d90d89-401b-457a-b70c-2d0bae9cdecf",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 79,
+      "total_deletions": 16,
+      "accepted_lines": 78,
+      "overriden_lines": 0
+    }
+  }
+}
