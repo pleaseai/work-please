@@ -15,6 +15,7 @@
     "agentplease": "./dist/index.js"
   },
   "files": [
+    ".output",
     "LICENSE",
     "README.md",
     "dist"
