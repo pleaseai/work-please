@@ -17,7 +17,8 @@
   "files": [
     "LICENSE",
     "README.md",
-    "dist"
+    "dist",
+    ".output"
   ],
   "scripts": {
     "prepublishOnly": "cp ../../LICENSE ../../README.md .",
