@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.18](https://github.com/pleaseai/agent-please/compare/agent-v0.1.17...agent-v0.1.18) (2026-03-21)
+
+
+### Bug Fixes
+
+* **auth:** use getMigrations API for auth database migrations ([#165](https://github.com/pleaseai/agent-please/issues/165)) ([b1148ba](https://github.com/pleaseai/agent-please/commit/b1148ba7d7fefa8c8fd68d1117ba2be9242ab755))
+
 ## [0.1.17](https://github.com/pleaseai/agent-please/compare/agent-v0.1.16...agent-v0.1.17) (2026-03-21)
 
 
