@@ -19,8 +19,8 @@ Engineering teams running autonomous coding agents at scale. Teams that need to 
 - **Workspace isolation** — Each issue gets a dedicated directory with lifecycle hooks (after_create, before_run, after_run, before_remove).
 - **Bounded concurrency** — Global and per-state concurrent agent limits prevent resource exhaustion.
 - **Retry with backoff** — Exponential backoff on failures; short continuation retry on clean exits.
-- **Multi-tracker support** — GitHub Projects v2 (PAT or GitHub App auth) and Asana (under development).
-- **Multi-platform chat integration** — GitHub issue comment bot and Slack bot via Chat SDK adapters. Respond to @mentions with agent status.
+- **Multi-tracker support** — GitHub Projects v2 (PAT or GitHub App auth) and Asana (PAT auth, section-based status, webhook events).
+- **Multi-platform chat integration** — GitHub issue comment bot, Slack bot, and Asana task comment bot via Chat SDK adapters. Respond to @mentions with agent status.
 - **Minimal tracker writes** — The orchestrator applies only status labels. All state transitions, PR creation, and comments are performed by the agent itself.
 - **Dashboard & observability** — Nuxt-based HTTP dashboard with real-time orchestrator state, per-issue detail, and session history (libsql/Turso storage).
 

@@ -45,6 +45,7 @@
     "@vueuse/nuxt": "^14.2.1",
     "better-auth": "^1.5.5",
     "chat": "^4.20.2",
+    "chat-adapter-asana": "^0.1.0",
     "commander": "^14.0.3",
     "nuxt": "^4.4.2",
     "tailwindcss": "^4.2.2"

@@ -50,6 +50,7 @@
 | `@octokit/auth-app` | GitHub App installation token authentication |
 | Chat SDK (`chat`) | Unified chat bot framework |
 | `@chat-adapter/github` | GitHub issue comment bot adapter |
+| `chat-adapter-asana` | Asana task comment bot adapter |
 | `@chat-adapter/state-memory` | Default in-memory state for Chat SDK (dev/testing) |
 | `@chat-adapter/state-redis` | Optional Redis state adapter for production |
 | `@chat-adapter/state-ioredis` | Optional ioredis state adapter (Cluster/Sentinel) |
@@ -62,7 +63,7 @@
 |---|---|
 | Nitro server routes | REST API (`/api/v1/state`, `/api/v1/refresh`, `/api/v1/:id`) |
 | Nitro server plugins | Orchestrator and Chat SDK lifecycle management |
-| Nitro webhooks | GitHub webhook handling (`/api/webhooks/github`) |
+| Nitro webhooks | GitHub and Asana webhook handling (`/api/webhooks/github`, `/api/webhooks/asana`) |
 | YAML front matter | Configuration parsing from WORKFLOW.md |
 
 ## Project Structure

@@ -31,6 +31,7 @@ describe('platform-centric config types', () => {
       kind: 'asana',
       api_key: 'asana-key',
       bot_username: null,
+      webhook_secret: null,
     }
 
     const platforms: Record<string, PlatformConfig> = {
@@ -84,6 +85,7 @@ describe('platform-centric config types', () => {
       kind: 'asana',
       api_key: null,
       bot_username: null,
+      webhook_secret: null,
     }
     expect(asanaPlatform).toBeDefined()
   })

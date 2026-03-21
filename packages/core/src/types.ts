@@ -81,6 +81,7 @@ export interface AsanaPlatformConfig {
   kind: 'asana'
   api_key: string | null
   bot_username: string | null
+  webhook_secret: string | null
 }
 
 export type PlatformConfig = GitHubPlatformConfig | SlackPlatformConfig | AsanaPlatformConfig

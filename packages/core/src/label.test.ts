@@ -44,7 +44,7 @@ function makeGithubConfig(labelPrefix: string | null): ServiceConfig {
 
 function makeAsanaConfig(): ServiceConfig {
   return {
-    platforms: { asana: { kind: 'asana' as const, api_key: 'asana-token', bot_username: null } },
+    platforms: { asana: { kind: 'asana' as const, api_key: 'asana-token', bot_username: null, webhook_secret: null } },
     projects: [{ platform: 'asana', project_gid: 'gid123', active_statuses: [], terminal_statuses: [], watched_statuses: [], endpoint: 'https://app.asana.com/api/1.0', label_prefix: 'agent-please', filter: { assignee: [], label: [] } }],
     channels: [],
     polling: { mode: 'poll' as const, interval_ms: 30000 },

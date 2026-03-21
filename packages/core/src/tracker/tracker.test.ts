@@ -25,6 +25,7 @@ function makeAsanaPlatform(extra: Partial<AsanaPlatformConfig> = {}): AsanaPlatf
     kind: 'asana',
     api_key: 'tok',
     bot_username: null,
+    webhook_secret: null,
     ...extra,
   }
 }
@@ -1136,6 +1137,115 @@ describe('asana assignee extraction', () => {
       if (!Array.isArray(result))
         return
       expect(result[0].assignees).toEqual([])
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
+describe('asana updateItemStatus', () => {
+  test('moves task to target section', async () => {
+    const project = makeAsanaProject()
+    const platform = makeAsanaPlatform()
+    const adapter = createAsanaAdapter(project, platform)
+
+    const origFetch = globalThis.fetch
+    const fetchCalls: { url: string, method?: string, body?: unknown }[] = []
+    globalThis.fetch = mock(async (url: string | URL | Request, init?: RequestInit) => {
+      const urlStr = String(url)
+      fetchCalls.push({ url: urlStr, method: init?.method, body: init?.body ? JSON.parse(init.body as string) : undefined })
+      if (urlStr.includes('/projects/') && urlStr.includes('/sections')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'sec-todo', name: 'To Do' }, { gid: 'sec-done', name: 'Done' }] }) } as unknown as Response
+      }
+      if (urlStr.includes('/sections/sec-done/addTask')) {
+        return { ok: true, json: async () => ({ data: {} }) } as unknown as Response
+      }
+      return { ok: false, status: 404, json: async () => ({}) } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.updateItemStatus!('task123', 'Done')
+      expect(result).toBe(true)
+      const addTaskCall = fetchCalls.find(c => c.url.includes('/addTask'))
+      expect(addTaskCall).toBeDefined()
+      expect(addTaskCall!.method).toBe('POST')
+      expect(addTaskCall!.body).toEqual({ data: { task: 'task123' } })
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('returns error when target section not found', async () => {
+    const project = makeAsanaProject()
+    const platform = makeAsanaPlatform()
+    const adapter = createAsanaAdapter(project, platform)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (url: string | URL | Request) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/projects/') && urlStr.includes('/sections')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'sec-todo', name: 'To Do' }] }) } as unknown as Response
+      }
+      return { ok: false, status: 404, json: async () => ({}) } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.updateItemStatus!('task123', 'NonExistent')
+      expect(result).not.toBe(true)
+      expect((result as any).code).toBe('asana_api_status')
+      expect((result as any).status).toBe(404)
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('matches section name case-insensitively', async () => {
+    const project = makeAsanaProject()
+    const platform = makeAsanaPlatform()
+    const adapter = createAsanaAdapter(project, platform)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async (url: string | URL | Request, _init?: RequestInit) => {
+      const urlStr = String(url)
+      if (urlStr.includes('/projects/') && urlStr.includes('/sections')) {
+        return { ok: true, json: async () => ({ data: [{ gid: 'sec-ip', name: 'In Progress' }] }) } as unknown as Response
+      }
+      if (urlStr.includes('/addTask')) {
+        return { ok: true, json: async () => ({ data: {} }) } as unknown as Response
+      }
+      return { ok: false, status: 404, json: async () => ({}) } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.updateItemStatus!('task123', 'in progress')
+      expect(result).toBe(true)
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+})
+
+describe('asana resolveStatusField', () => {
+  test('returns sections as status options', async () => {
+    const project = makeAsanaProject()
+    const platform = makeAsanaPlatform()
+    const adapter = createAsanaAdapter(project, platform)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      return { ok: true, json: async () => ({ data: [{ gid: 'sec1', name: 'To Do' }, { gid: 'sec2', name: 'Done' }] }) } as unknown as Response
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.resolveStatusField!()
+      expect(result).not.toBeNull()
+      expect(result!.project_id).toBe('gid456')
+      expect(result!.field_id).toBe('section')
+      expect(result!.options).toEqual([{ name: 'To Do', id: 'sec1' }, { name: 'Done', id: 'sec2' }])
     }
     finally {
       globalThis.fetch = origFetch
