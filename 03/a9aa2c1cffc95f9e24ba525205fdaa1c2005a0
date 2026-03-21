@@ -1,0 +1,57 @@
+packages/core/src/state.error.test.ts
+  9992e7b8c092f0de 1-44
+.please/docs/tracks/active/state-adapter-config-20260321/spec.md
+  9992e7b8c092f0de 1-68
+.please/docs/tracks/active/state-adapter-config-20260321/metadata.json
+  9992e7b8c092f0de 1-9
+.please/docs/tracks/index.md
+  9992e7b8c092f0de 13
+packages/core/src/config.ts
+  9992e7b8c092f0de 1,48,80,245-256,258-266
+packages/core/src/config.test.ts
+  9992e7b8c092f0de 1352-1459
+packages/core/src/types.ts
+  9992e7b8c092f0de 1-2,151-159,227
+packages/core/src/state.test.ts
+  9992e7b8c092f0de 1-93
+packages/core/src/state.ts
+  9992e7b8c092f0de 1-86
+packages/core/src/issue-comment-handler.test.ts
+  9992e7b8c092f0de 146
+packages/core/src/label.test.ts
+  9992e7b8c092f0de 39,56
+packages/core/src/index.ts
+  9992e7b8c092f0de 23-27,53-56,94-95
+packages/core/src/server.test.ts
+  9992e7b8c092f0de 19
+packages/core/src/tools.test.ts
+  9992e7b8c092f0de 29
+packages/core/package.json
+  9992e7b8c092f0de 30-37,39-40
+apps/agent-please/server/plugins/02.chat-bot.ts
+  9992e7b8c092f0de 5,10,76-80,83-85,91,95,100-106,109,111-114,117-122,124-125,128,130-135,138,140,142-143,145,147-151
+.please/docs/tracks/active/state-adapter-config-20260321/plan.md
+  9992e7b8c092f0de 1-124
+.please/docs/knowledge/tech-stack.md
+  9992e7b8c092f0de 52-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "03a9aa2c1cffc95f9e24ba525205fdaa1c2005a0",
+  "prompts": {
+    "9992e7b8c092f0de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39189c31-6390-4928-9630-abd5c1527c75",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 4,
+      "accepted_lines": 648,
+      "overriden_lines": 0
+    }
+  }
+}
