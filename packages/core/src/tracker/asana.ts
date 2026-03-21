@@ -1,5 +1,5 @@
 import type { AsanaPlatformConfig, Issue, ProjectConfig } from '../types'
-import type { CandidateAndWatchedResult, TrackerAdapter, TrackerError } from './types'
+import type { CandidateAndWatchedResult, StatusFieldInfo, TrackerAdapter, TrackerError } from './types'
 import { normalizeState } from '../config'
 import { deduplicateByNormalized, matchesFilter, splitCandidatesAndWatched } from '../filter'
 import { isTrackerError } from './types'
@@ -43,20 +43,53 @@ export function createAsanaAdapter(project: ProjectConfig, platform: AsanaPlatfo
     return { data: body }
   }
 
-  async function fetchTasks(sectionNames: string[]): Promise<Issue[] | TrackerError> {
-    // First, get sections for the project to map section names to GIDs
-    const sectionsResult = await fetchJson(
-      `${endpoint}/projects/${projectGid}/sections?opt_fields=name,gid`,
-    )
-    if ('code' in sectionsResult)
-      return sectionsResult
-
-    const sectionsPayload = sectionsResult.data as { data?: Array<{ gid: string, name: string }> }
-    if (!Array.isArray(sectionsPayload?.data)) {
-      return { code: 'asana_unknown_payload', payload: sectionsPayload }
+  async function postJson(url: string, payload: unknown): Promise<{ data: unknown } | TrackerError> {
+    let response: Response
+    try {
+      const ctrl = new AbortController()
+      const timeout = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS)
+      response = await fetch(url, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(payload),
+        signal: ctrl.signal,
+      })
+      clearTimeout(timeout)
+    }
+    catch (cause) {
+      return { code: 'asana_api_request', cause }
     }
 
-    const targetSections = sectionsPayload.data.filter(s =>
+    if (!response.ok) {
+      const body = await response.json().catch(() => null)
+      return { code: 'asana_api_status', status: response.status, body }
+    }
+
+    const body = await response.json().catch(() => null)
+    return { data: body }
+  }
+
+  async function fetchSections(): Promise<Array<{ gid: string, name: string }> | TrackerError> {
+    const result = await fetchJson(
+      `${endpoint}/projects/${projectGid}/sections?opt_fields=name,gid`,
+    )
+    if ('code' in result)
+      return result
+
+    const payload = result.data as { data?: Array<{ gid: string, name: string }> }
+    if (!Array.isArray(payload?.data)) {
+      return { code: 'asana_unknown_payload', payload }
+    }
+
+    return payload.data
+  }
+
+  async function fetchTasks(sectionNames: string[]): Promise<Issue[] | TrackerError> {
+    const sections = await fetchSections()
+    if ('code' in sections)
+      return sections
+
+    const targetSections = sections.filter(s =>
       sectionNames.some(name => normalizeState(name) === normalizeState(s.name)),
     )
 
@@ -121,8 +154,38 @@ export function createAsanaAdapter(project: ProjectConfig, platform: AsanaPlatfo
       return splitCandidatesAndWatched(allIssues, activeSections, watchedStates, filter)
     },
 
-    async updateItemStatus(_itemId: string, _targetState: string): Promise<true | TrackerError> {
-      return { code: 'tracker_write_not_supported' }
+    async updateItemStatus(itemId: string, targetState: string): Promise<true | TrackerError> {
+      const sections = await fetchSections()
+      if ('code' in sections)
+        return sections
+
+      const targetSection = sections.find(s =>
+        normalizeState(s.name) === normalizeState(targetState),
+      )
+      if (!targetSection) {
+        return { code: 'asana_api_status', status: 404, body: { message: `Section "${targetState}" not found in project` } }
+      }
+
+      const result = await postJson(
+        `${endpoint}/sections/${targetSection.gid}/addTask`,
+        { data: { task: itemId } },
+      )
+      if ('code' in result)
+        return result
+
+      return true
+    },
+
+    async resolveStatusField(): Promise<StatusFieldInfo | null> {
+      const sections = await fetchSections()
+      if ('code' in sections)
+        return null
+
+      return {
+        project_id: projectGid,
+        field_id: 'section',
+        options: sections.map(s => ({ name: s.name, id: s.gid })),
+      }
     },
 
     async fetchIssuesByStates(states: string[]) {
