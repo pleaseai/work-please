@@ -1,0 +1,27 @@
+.claude/agent-memory/please-implement-executor/MEMORY.md
+  5a90b720cb2ce5d8 1-35
+packages/core/src/config.ts
+  5a90b720cb2ce5d8 187-196
+.please/docs/tracks/active/platform-centric-config-20260320/plan.md
+  5a90b720cb2ce5d8 76-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "ee1fc26f690ff2c130001609f5f1ea50f3cd110d",
+  "prompts": {
+    "5a90b720cb2ce5d8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fe166baf-10df-480f-b5b1-fd9989bde96c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 12,
+      "total_deletions": 100,
+      "accepted_lines": 49,
+      "overriden_lines": 0
+    }
+  }
+}

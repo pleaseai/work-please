@@ -1,0 +1,23 @@
+apps/work-please/server/api/v1/sessions/[sessionId]/messages.get.ts
+  b9aed409ac686f11 20,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "54b2b49fc8dafd7a331932cea30c25abd6613d58",
+  "prompts": {
+    "b9aed409ac686f11": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4388c6df-8f50-46a5-a50c-613cf77161f2",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}

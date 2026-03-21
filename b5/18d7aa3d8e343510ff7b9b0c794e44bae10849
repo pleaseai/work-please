@@ -1,0 +1,55 @@
+packages/core/src/types.ts
+  5a90b720cb2ce5d8 62,73,79
+packages/core/src/issue-comment-handler.test.ts
+  5a90b720cb2ce5d8 134
+packages/core/src/tools.test.ts
+  5a90b720cb2ce5d8 10-11
+packages/core/src/tracker/tracker.test.ts
+  5a90b720cb2ce5d8 25,49,272,280-281
+packages/core/src/tracker/index.ts
+  5a90b720cb2ce5d8 1,10,12,15
+packages/core/src/types.test.ts
+  5a90b720cb2ce5d8 15,25,31,75,84
+packages/core/src/tracker/github-auth.test.ts
+  5a90b720cb2ce5d8 37
+packages/core/src/config.test.ts
+  5a90b720cb2ce5d8 530,532-534,631-632,642-693
+packages/core/src/orchestrator.ts
+  5a90b720cb2ce5d8 171-172,174,345-346,348,350-351,353,410-411,413,585,649-650,652,773-774,776,778-779,781,821
+apps/agent-please/server/api/webhooks/github.post.ts
+  5a90b720cb2ce5d8 1,136-137
+packages/core/src/config.ts
+  5a90b720cb2ce5d8 97,104,115,132-148,167,174-176,282-283,287-288,291-293,301-302,321-329
+apps/agent-please/server/plugins/02.chat-bot.ts
+  5a90b720cb2ce5d8 1,25-26,28,30,58
+packages/core/src/label.ts
+  5a90b720cb2ce5d8 1,49
+packages/core/src/orchestrator.test.ts
+  5a90b720cb2ce5d8 1246
+packages/core/src/config-platforms.test.ts
+  5a90b720cb2ce5d8 399,402-403
+packages/core/src/tools.ts
+  5a90b720cb2ce5d8 6,9,65-66,68,84-89,95,115-116,119,210-211,218
+packages/core/src/label.test.ts
+  5a90b720cb2ce5d8 29,45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "b518d7aa3d8e343510ff7b9b0c794e44bae10849",
+  "prompts": {
+    "5a90b720cb2ce5d8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fe166baf-10df-480f-b5b1-fd9989bde96c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 221,
+      "total_deletions": 158,
+      "accepted_lines": 213,
+      "overriden_lines": 0
+    }
+  }
+}

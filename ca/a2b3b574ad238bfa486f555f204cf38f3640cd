@@ -1,0 +1,57 @@
+packages/core/src/issue-comment-handler.test.ts
+  9992e7b8c092f0de 145
+apps/agent-please/server/plugins/02.chat-bot.ts
+  9992e7b8c092f0de 5,10,76-81,84-86,92,96,101-107,110,112-115,118-123,125-126,129,131-132,134,136,138-139,141,143-148
+packages/core/src/tools.test.ts
+  9992e7b8c092f0de 29
+.please/docs/knowledge/tech-stack.md
+  9992e7b8c092f0de 52-55
+packages/core/src/config.test.ts
+  9992e7b8c092f0de 1352-1459
+packages/core/src/server.test.ts
+  9992e7b8c092f0de 19
+packages/core/src/state.ts
+  9992e7b8c092f0de 1-83
+packages/core/src/label.test.ts
+  9992e7b8c092f0de 39,56
+packages/core/package.json
+  9992e7b8c092f0de 30-38,41
+packages/core/src/state.test.ts
+  9992e7b8c092f0de 1-101
+packages/core/src/state.error.test.ts
+  9992e7b8c092f0de 1-44
+packages/core/src/config.ts
+  9992e7b8c092f0de 1,48,80,245-268
+packages/core/src/index.ts
+  9992e7b8c092f0de 49-51,89-90
+packages/core/src/types.ts
+  9992e7b8c092f0de 149-157,225
+.please/docs/tracks/index.md
+  9992e7b8c092f0de 13
+.please/docs/tracks/active/state-adapter-config-20260321/spec.md
+  9992e7b8c092f0de 1-68
+.please/docs/tracks/active/state-adapter-config-20260321/plan.md
+  9992e7b8c092f0de 1-120
+.please/docs/tracks/active/state-adapter-config-20260321/metadata.json
+  9992e7b8c092f0de 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "caa2b3b574ad238bfa486f555f204cf38f3640cd",
+  "prompts": {
+    "9992e7b8c092f0de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39189c31-6390-4928-9630-abd5c1527c75",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 4,
+      "accepted_lines": 642,
+      "overriden_lines": 0
+    }
+  }
+}

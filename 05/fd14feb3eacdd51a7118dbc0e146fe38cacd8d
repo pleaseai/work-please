@@ -1,0 +1,23 @@
+apps/agent-please/package.json
+  d514c8122ec7fca3 20-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "05fd14feb3eacdd51a7118dbc0e146fe38cacd8d",
+  "prompts": {
+    "d514c8122ec7fca3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "73457e42-664f-4d59-9501-5a78d5429980",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}

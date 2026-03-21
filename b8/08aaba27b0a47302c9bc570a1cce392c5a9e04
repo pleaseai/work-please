@@ -1,0 +1,25 @@
+.please/docs/tracks/active/add-asana-support-20260321/metadata.json
+  358659d48b0d2833 8
+.please/docs/tracks/active/add-asana-support-20260321/plan.md
+  358659d48b0d2833 153-171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "b808aaba27b0a47302c9bc570a1cce392c5a9e04",
+  "prompts": {
+    "358659d48b0d2833": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a3d90d89-401b-457a-b70c-2d0bae9cdecf",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 20,
+      "total_deletions": 1,
+      "accepted_lines": 20,
+      "overriden_lines": 0
+    }
+  }
+}

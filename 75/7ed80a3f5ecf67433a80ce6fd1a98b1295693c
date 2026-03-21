@@ -1,0 +1,33 @@
+packages/core/src/workspace.test.ts
+  5a90b720cb2ce5d8 50-52,388-391
+packages/core/src/label.test.ts
+  5a90b720cb2ce5d8 29-31,45-47
+packages/core/src/agent-runner.test.ts
+  5a90b720cb2ce5d8 245-247,264-266,286-288,310-312,332-334,368-370,535-537,567-569,773-775,904-906,956-958,1029-1031,1082-1084,1113-1115,1144-1146,1180-1182,1212-1214,1243-1245,1302-1304,1332-1334
+packages/core/src/server.test.ts
+  5a90b720cb2ce5d8 9-11
+packages/core/src/issue-comment-handler.test.ts
+  5a90b720cb2ce5d8 134-136,144
+packages/core/src/tools.test.ts
+  5a90b720cb2ce5d8 6-7,9-17,19-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "757ed80a3f5ecf67433a80ce6fd1a98b1295693c",
+  "prompts": {
+    "5a90b720cb2ce5d8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fe166baf-10df-480f-b5b1-fd9989bde96c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 294,
+      "total_deletions": 152,
+      "accepted_lines": 353,
+      "overriden_lines": 0
+    }
+  }
+}

@@ -1,0 +1,35 @@
+packages/core/src/config.ts
+  0f8745efcf11f1c6 174-175,178-180
+.please/docs/tracks/active/github-issue-comment-dispatch-20260320/spec.md
+  0f8745efcf11f1c6 57,66
+.please/docs/tracks/active/github-issue-comment-dispatch-20260320/plan.md
+  0f8745efcf11f1c6 42,44-45
+packages/core/src/issue-comment-handler.test.ts
+  0f8745efcf11f1c6 109-110,150,170
+packages/core/src/issue-comment-handler.ts
+  0f8745efcf11f1c6 54-56,61-62,79,179
+apps/work-please/server/api/webhooks/github.post.ts
+  0f8745efcf11f1c6 20,30,45,54,140,145-146
+apps/work-please/server/plugins/02.chat-bot.ts
+  0f8745efcf11f1c6 50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "271cb9add65c3d61181c699baef1dbfcc8b37aad",
+  "prompts": {
+    "0f8745efcf11f1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "925e4205-392e-4989-91ff-4370a622627b",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 39,
+      "total_deletions": 56,
+      "accepted_lines": 37,
+      "overriden_lines": 0
+    }
+  }
+}

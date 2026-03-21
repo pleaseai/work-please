@@ -1,0 +1,25 @@
+.please/docs/tracks/index.md
+  a01dc7d6fbcad8ac 13
+.please/docs/tracks/active/add-auth-20260321/metadata.json
+  a01dc7d6fbcad8ac 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "5063bbee5c68c60711293ebaadf58ec03dff2a28",
+  "prompts": {
+    "a01dc7d6fbcad8ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3c22e3a3-d247-4c61-a76f-15cffca8f457",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}

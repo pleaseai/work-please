@@ -1,0 +1,25 @@
+packages/core/package.json
+  9992e7b8c092f0de 41
+.please/docs/tracks/active/state-adapter-config-20260321/spec.md
+  9992e7b8c092f0de 19-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "a7550a5088cd8432ebe7b682fbd57f0a5b705595",
+  "prompts": {
+    "9992e7b8c092f0de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39189c31-6390-4928-9630-abd5c1527c75",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 4,
+      "accepted_lines": 15,
+      "overriden_lines": 0
+    }
+  }
+}

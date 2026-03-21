@@ -1,0 +1,25 @@
+ARCHITECTURE.md
+  0545818c7332ed11 34-36,59-60,65-67,82-85,118-119,123-128,228-230,262-285
+.please/docs/knowledge/product.md
+  0545818c7332ed11 23,25,29,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "64cc83be07384397548f4c7564010045bc1ce875",
+  "prompts": {
+    "0545818c7332ed11": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9f3f3117-0ae0-43ae-a1e5-56204d137d22",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 72,
+      "total_deletions": 11,
+      "accepted_lines": 71,
+      "overriden_lines": 0
+    }
+  }
+}

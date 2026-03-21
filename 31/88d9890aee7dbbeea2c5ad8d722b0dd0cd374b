@@ -1,0 +1,23 @@
+.please/docs/tracks/active/platform-centric-config-20260320/plan.md
+  5a90b720cb2ce5d8 39-40,44-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "3188d9890aee7dbbeea2c5ad8d722b0dd0cd374b",
+  "prompts": {
+    "5a90b720cb2ce5d8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fe166baf-10df-480f-b5b1-fd9989bde96c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 6,
+      "total_deletions": 6,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    }
+  }
+}

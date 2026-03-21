@@ -1,0 +1,23 @@
+.please/docs/decisions/config-platforms-projects-channels.md
+  5ccb8196c92eb83b 17-20,99-105,107-117,147,220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "98aefca7947368ff3aed97c9e065dc6718a1d960",
+  "prompts": {
+    "5ccb8196c92eb83b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "08ee9698-ed30-4823-8cfc-1c61d3b2376f",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 45,
+      "total_deletions": 7,
+      "accepted_lines": 44,
+      "overriden_lines": 0
+    }
+  }
+}

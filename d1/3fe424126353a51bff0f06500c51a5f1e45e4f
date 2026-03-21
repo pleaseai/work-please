@@ -1,0 +1,25 @@
+.please/docs/knowledge/tech-stack.md
+  9992e7b8c092f0de 52-55
+.please/docs/tracks/active/state-adapter-config-20260321/plan.md
+  9992e7b8c092f0de 38,44,51,60,69,76,82,84,109-111,122-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "d13fe424126353a51bff0f06500c51a5f1e45e4f",
+  "prompts": {
+    "9992e7b8c092f0de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39189c31-6390-4928-9630-abd5c1527c75",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 18,
+      "total_deletions": 11,
+      "accepted_lines": 18,
+      "overriden_lines": 0
+    }
+  }
+}

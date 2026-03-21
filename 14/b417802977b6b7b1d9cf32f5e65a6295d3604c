@@ -1,0 +1,23 @@
+.claude/agent-memory/review-review-silent-failure-hunter/MEMORY.md
+  9992e7b8c092f0de 6,11,35-41,56-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "14b417802977b6b7b1d9cf32f5e65a6295d3604c",
+  "prompts": {
+    "9992e7b8c092f0de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39189c31-6390-4928-9630-abd5c1527c75",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 12,
+      "overriden_lines": 0
+    }
+  }
+}

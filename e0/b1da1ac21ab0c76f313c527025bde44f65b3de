@@ -1,0 +1,45 @@
+packages/core/src/orchestrator.ts
+  5a90b720cb2ce5d8 928
+README.md
+  5a90b720cb2ce5d8 392
+packages/core/src/config.ts
+  5a90b720cb2ce5d8 167-168
+packages/core/src/label.ts
+  5a90b720cb2ce5d8 44
+README.ko.md
+  5a90b720cb2ce5d8 404
+apps/agent-please/server/plugins/02.chat-bot.ts
+  5a90b720cb2ce5d8 75
+packages/core/src/workspace.test.ts
+  5a90b720cb2ce5d8 391
+packages/core/src/tools.ts
+  5a90b720cb2ce5d8 64,68-75,83,89-92,96,123,210,290-291,294,313
+packages/core/src/issue-comment-handler.ts
+  5a90b720cb2ce5d8 105-107
+packages/core/src/config-platforms.test.ts
+  5a90b720cb2ce5d8 46,53,55-56,69,71-72,92,99,101-102,115,117-118,184,195
+packages/core/src/orchestrator.test.ts
+  5a90b720cb2ce5d8 1257-1258,1262-1263
+apps/agent-please/server/api/webhooks/github.post.ts
+  5a90b720cb2ce5d8 136-140,149,154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "e0b1da1ac21ab0c76f313c527025bde44f65b3de",
+  "prompts": {
+    "5a90b720cb2ce5d8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fe166baf-10df-480f-b5b1-fd9989bde96c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 61,
+      "total_deletions": 53,
+      "accepted_lines": 91,
+      "overriden_lines": 0
+    }
+  }
+}

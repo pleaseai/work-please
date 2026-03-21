@@ -1,0 +1,29 @@
+.gitignore
+  35d5925bb7b64dd2 13-14,18
+packages/core/src/workspace.ts
+  35d5925bb7b64dd2 12-13
+apps/agent-please/app/layouts/dashboard.vue
+  35d5925bb7b64dd2 17
+apps/agent-please/package.json
+  35d5925bb7b64dd2 5,13-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "d2736d4602898c279a3134323adfbd347974ecb3",
+  "prompts": {
+    "35d5925bb7b64dd2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7de560de-5ffc-402a-b530-42f9ef660bd1",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 8,
+      "accepted_lines": 10,
+      "overriden_lines": 0
+    }
+  }
+}

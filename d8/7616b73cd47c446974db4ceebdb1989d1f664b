@@ -1,0 +1,76 @@
+.please/docs/tracks/active/add-auth-20260321/spec.md
+  316a19ef9b5c84ab 13,50
+  a01dc7d6fbcad8ac 1-12,14-49
+.please/docs/tracks/index.md
+  a01dc7d6fbcad8ac 13-14
+packages/core/src/config.test.ts
+  a01dc7d6fbcad8ac 2,1352-1573
+packages/core/src/label.test.ts
+  a01dc7d6fbcad8ac 37,55
+packages/core/src/config.ts
+  a01dc7d6fbcad8ac 1,78,236-251,259-282
+packages/core/src/index.ts
+  a01dc7d6fbcad8ac 74
+packages/core/src/types.ts
+  a01dc7d6fbcad8ac 1-2,145-156,161-169,237
+packages/core/src/tools.test.ts
+  a01dc7d6fbcad8ac 27
+packages/core/src/issue-comment-handler.test.ts
+  a01dc7d6fbcad8ac 144
+packages/core/src/server.test.ts
+  a01dc7d6fbcad8ac 17
+apps/agent-please/app/pages/login.vue
+  a01dc7d6fbcad8ac 1-115
+apps/agent-please/server/utils/auth.ts
+  a01dc7d6fbcad8ac 1-8,10-17,20-40
+apps/agent-please/app/middleware/auth.global.ts
+  a01dc7d6fbcad8ac 1-13
+apps/agent-please/app/layouts/dashboard.vue
+  a01dc7d6fbcad8ac 3,10-13,15-16,36-53
+apps/agent-please/server/middleware/auth.ts
+  a01dc7d6fbcad8ac 1-17,20-37
+apps/agent-please/server/api/auth/[...all].ts
+  a01dc7d6fbcad8ac 1-4
+apps/agent-please/server/plugins/03.auth.ts
+  a01dc7d6fbcad8ac 1,8,10,12,36,58
+  316a19ef9b5c84ab 35,38,40
+.please/docs/tracks/active/add-auth-20260321/metadata.json
+  a01dc7d6fbcad8ac 1-9
+.please/docs/knowledge/tech-stack.md
+  a01dc7d6fbcad8ac 46
+.please/docs/tracks/active/add-auth-20260321/plan.md
+  a01dc7d6fbcad8ac 1-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "d87616b73cd47c446974db4ceebdb1989d1f664b",
+  "prompts": {
+    "316a19ef9b5c84ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b798dbcf-d314-42f8-8829-d71c5ad4425e",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 5,
+      "overriden_lines": 0
+    },
+    "a01dc7d6fbcad8ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3c22e3a3-d247-4c61-a76f-15cffca8f457",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 28,
+      "total_deletions": 0,
+      "accepted_lines": 754,
+      "overriden_lines": 0
+    }
+  }
+}

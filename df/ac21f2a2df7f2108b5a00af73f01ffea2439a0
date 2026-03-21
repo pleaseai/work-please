@@ -1,0 +1,29 @@
+packages/core/src/tools.ts
+  5a90b720cb2ce5d8 2,61-64,67-68,78-79,85,105-106,111-112,198-203,210,277-278,300
+packages/core/src/label.ts
+  5a90b720cb2ce5d8 1,43-45,47-49,52-54
+packages/core/src/orchestrator.ts
+  5a90b720cb2ce5d8 3,163-167,169-174,176-177,180,183-190,193-196,198,201,342-348,402-406,416,574-580,601,638-643,653-655,761-766,768,770,802-808,912-913,916
+packages/core/src/issue-comment-handler.ts
+  5a90b720cb2ce5d8 105-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "dfac21f2a2df7f2108b5a00af73f01ffea2439a0",
+  "prompts": {
+    "5a90b720cb2ce5d8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fe166baf-10df-480f-b5b1-fd9989bde96c",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 127,
+      "total_deletions": 59,
+      "accepted_lines": 157,
+      "overriden_lines": 0
+    }
+  }
+}

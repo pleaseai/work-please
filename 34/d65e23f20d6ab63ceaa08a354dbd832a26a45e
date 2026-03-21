@@ -1,0 +1,37 @@
+apps/agent-please/server/plugins/03.auth.ts
+  a01dc7d6fbcad8ac 1,8,10,12,58
+apps/agent-please/app/middleware/auth.global.ts
+  a01dc7d6fbcad8ac 1-13
+apps/agent-please/server/utils/auth.ts
+  a01dc7d6fbcad8ac 1-40
+apps/agent-please/server/middleware/auth.ts
+  a01dc7d6fbcad8ac 1-37
+apps/agent-please/server/api/auth/[...all].ts
+  a01dc7d6fbcad8ac 1-4
+apps/agent-please/lib/auth-client.ts
+  a01dc7d6fbcad8ac 1-6
+apps/agent-please/app/layouts/dashboard.vue
+  a01dc7d6fbcad8ac 3,10-16,36-53
+apps/agent-please/app/pages/login.vue
+  a01dc7d6fbcad8ac 1-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "34d65e23f20d6ab63ceaa08a354dbd832a26a45e",
+  "prompts": {
+    "a01dc7d6fbcad8ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3c22e3a3-d247-4c61-a76f-15cffca8f457",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 332,
+      "total_deletions": 32,
+      "accepted_lines": 317,
+      "overriden_lines": 0
+    }
+  }
+}

@@ -1,0 +1,35 @@
+packages/core/src/label.test.ts
+  9992e7b8c092f0de 39,56
+packages/core/src/tools.test.ts
+  9992e7b8c092f0de 29
+packages/core/src/issue-comment-handler.test.ts
+  9992e7b8c092f0de 145
+packages/core/src/server.test.ts
+  9992e7b8c092f0de 19
+packages/core/src/index.ts
+  9992e7b8c092f0de 49-51
+apps/agent-please/server/plugins/02.chat-bot.ts
+  9992e7b8c092f0de 5,76-80,83-85,91,95,100-106,109,111-114,117-122,124-125,128,130-131,133,135,137-138,140,142-145
+packages/core/package.json
+  9992e7b8c092f0de 30-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "2a1fb8fdc7a1d8da7a34aab7cceb3db25d4f98d2",
+  "prompts": {
+    "9992e7b8c092f0de": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39189c31-6390-4928-9630-abd5c1527c75",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 88,
+      "total_deletions": 64,
+      "accepted_lines": 68,
+      "overriden_lines": 0
+    }
+  }
+}

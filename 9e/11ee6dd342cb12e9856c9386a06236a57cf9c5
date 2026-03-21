@@ -1,0 +1,33 @@
+.please/docs/tracks/active/libsql-turso-20260317/spec.md
+  d4bb013f9be9d7ba 24
+packages/core/src/config.ts
+  d4bb013f9be9d7ba 88
+packages/core/src/config.test.ts
+  d4bb013f9be9d7ba 988-993,996-1007
+apps/work-please/server/plugins/01.orchestrator.ts
+  d4bb013f9be9d7ba 28,30
+packages/core/src/server.ts
+  d4bb013f9be9d7ba 353-355
+packages/core/src/orchestrator.ts
+  d4bb013f9be9d7ba 30,87,106-110,457,459,475-479,654,656,672-676
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "9e11ee6dd342cb12e9856c9386a06236a57cf9c5",
+  "prompts": {
+    "d4bb013f9be9d7ba": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "baf91bb0-6e4e-4e48-ba32-90db876ed327",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 50,
+      "total_deletions": 14,
+      "accepted_lines": 79,
+      "overriden_lines": 0
+    }
+  }
+}

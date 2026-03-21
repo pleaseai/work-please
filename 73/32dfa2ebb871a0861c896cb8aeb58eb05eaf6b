@@ -1,0 +1,23 @@
+apps/work-please/app/composables/useSessionMessages.ts
+  edd02d4236b7f163 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "7332dfa2ebb871a0861c896cb8aeb58eb05eaf6b",
+  "prompts": {
+    "edd02d4236b7f163": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bc1b63c3-ecec-45e3-bc1f-9dedda64a4c8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}

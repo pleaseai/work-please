@@ -1,0 +1,23 @@
+.github/workflows/ci.yml
+  2778efe0bf3866e7 12-15,17,41-61,65-109,114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "c2c1d6e4a3cb3c6f98a1ac13e742eceb9c18f53d",
+  "prompts": {
+    "2778efe0bf3866e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d2b64c96-9350-4a46-8cb1-8fd4b70f4aa9",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 104,
+      "total_deletions": 34,
+      "accepted_lines": 87,
+      "overriden_lines": 0
+    }
+  }
+}

@@ -1,0 +1,25 @@
+packages/core/src/config-platforms.test.ts
+  358659d48b0d2833 139-185
+packages/core/src/tracker/tracker.test.ts
+  358659d48b0d2833 1147-1255
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "69141afb0e32b0a900fc0c4c1c3ef2fc96b73fd5",
+  "prompts": {
+    "358659d48b0d2833": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a3d90d89-401b-457a-b70c-2d0bae9cdecf",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 156,
+      "total_deletions": 0,
+      "accepted_lines": 156,
+      "overriden_lines": 0
+    }
+  }
+}
