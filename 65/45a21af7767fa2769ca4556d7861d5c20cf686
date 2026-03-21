@@ -1,0 +1,23 @@
+apps/agent-please/server/plugins/02.chat-bot.ts
+  358659d48b0d2833 3,69-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "6545a21af7767fa2769ca4556d7861d5c20cf686",
+  "prompts": {
+    "358659d48b0d2833": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a3d90d89-401b-457a-b70c-2d0bae9cdecf",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 20,
+      "total_deletions": 0,
+      "accepted_lines": 20,
+      "overriden_lines": 0
+    }
+  }
+}
