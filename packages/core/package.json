@@ -1,7 +1,7 @@
 {
   "name": "@pleaseai/agent-core",
   "type": "module",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Core orchestrator logic for Agent Please",
   "license": "FSL-1.1-MIT",
   "repository": {
@@ -33,9 +33,15 @@
     "@chat-adapter/state-redis": ">=4.0.0"
   },
   "peerDependenciesMeta": {
-    "@chat-adapter/state-ioredis": { "optional": true },
-    "@chat-adapter/state-pg": { "optional": true },
-    "@chat-adapter/state-redis": { "optional": true }
+    "@chat-adapter/state-ioredis": {
+      "optional": true
+    },
+    "@chat-adapter/state-pg": {
+      "optional": true
+    },
+    "@chat-adapter/state-redis": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.72",

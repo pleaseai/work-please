@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.17](https://github.com/pleaseai/agent-please/compare/agent-v0.1.16...agent-v0.1.17) (2026-03-21)
+
+
+### Features
+
+* **auth:** add dashboard authentication with Better Auth ([#158](https://github.com/pleaseai/agent-please/issues/158)) ([7ae47c4](https://github.com/pleaseai/agent-please/commit/7ae47c421bf13c3d1e3f063508691c2cb117bc21))
+* **core:** add chat config and issue comment agent dispatch ([#148](https://github.com/pleaseai/agent-please/issues/148)) ([17e68bd](https://github.com/pleaseai/agent-please/commit/17e68bdeac7dd7e173505f229c75bfd1499e9a35))
+* **core:** add configurable state adapter for Chat SDK ([#159](https://github.com/pleaseai/agent-please/issues/159)) ([2d1e95c](https://github.com/pleaseai/agent-please/commit/2d1e95cab82e5c5354c56f4508e3b48287a7efb3))
+* **core:** deduplicate agent dispatch with Chat SDK state lock ([#156](https://github.com/pleaseai/agent-please/issues/156)) ([860c0e3](https://github.com/pleaseai/agent-please/commit/860c0e3b6d93521565710758c16892fe63e51e69))
+
+
+### Bug Fixes
+
+* **agent:** include .output directory in published package ([#162](https://github.com/pleaseai/agent-please/issues/162)) ([f167b60](https://github.com/pleaseai/agent-please/commit/f167b6004e06998e0c5b9c2f3c743e47d3c370c3))
+* **deps:** add state adapter packages for redis, ioredis, and postgres ([#161](https://github.com/pleaseai/agent-please/issues/161)) ([8ae0f5b](https://github.com/pleaseai/agent-please/commit/8ae0f5b16d1e718826b612ec817ff78f9855e59e))
+
 ## [0.1.16](https://github.com/pleaseai/work-please/compare/work-v0.1.15...work-v0.1.16) (2026-03-19)
 
 
