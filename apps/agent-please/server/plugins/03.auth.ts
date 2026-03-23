@@ -6,6 +6,7 @@ import { getMigrations } from 'better-auth/db/migration'
 
 const log = createLogger('auth')
 const MIN_ADMIN_PASSWORD_LENGTH = 8
+const USER_ALREADY_EXISTS_ERROR_CODE = 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL'
 
 export default defineNitroPlugin(async (nitroApp) => {
   const orchestrator = (nitroApp as any).orchestrator as Orchestrator | undefined
@@ -56,7 +57,7 @@ export default defineNitroPlugin(async (nitroApp) => {
       log.info(`admin user "${config.auth.admin.email}" seeded`)
     }
     catch (err: any) {
-      if (err?.body?.code === 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL') {
+      if (err?.body?.code === USER_ALREADY_EXISTS_ERROR_CODE) {
         log.debug('admin user already exists — skipping seed')
       }
       else {
