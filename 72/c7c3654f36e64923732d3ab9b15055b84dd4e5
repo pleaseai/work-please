@@ -1,0 +1,29 @@
+packages/core/src/state.ts
+  18e1af4026bb8bc0 1,18,30,57-59
+packages/core/package.json
+  18e1af4026bb8bc0 33-34
+apps/agent-please/server/plugins/02.chat-bot.ts
+  18e1af4026bb8bc0 104
+packages/core/src/state.test.ts
+  18e1af4026bb8bc0 14-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "72c7c3654f36e64923732d3ab9b15055b84dd4e5",
+  "prompts": {
+    "18e1af4026bb8bc0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d48a613e-a136-4845-88c6-2f97fcdff497",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 13,
+      "total_deletions": 9,
+      "accepted_lines": 13,
+      "overriden_lines": 0
+    }
+  }
+}
