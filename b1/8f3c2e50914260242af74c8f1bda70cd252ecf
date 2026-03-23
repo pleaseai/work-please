@@ -1,0 +1,25 @@
+packages/core/src/orchestrator.ts
+  2a2b88a906770e6a 1057-1064,1076
+packages/core/src/agent-env.ts
+  2a2b88a906770e6a 86-89,92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "b18f3c2e50914260242af74c8f1bda70cd252ecf",
+  "prompts": {
+    "2a2b88a906770e6a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f89e7dd3-33d6-452c-93ea-dcd32abaee16",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 69,
+      "total_deletions": 29,
+      "accepted_lines": 52,
+      "overriden_lines": 0
+    }
+  }
+}
