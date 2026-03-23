@@ -1,15 +1,31 @@
 import type { StateConfig } from './types'
 import { describe, expect, it, mock } from 'bun:test'
 
-// NOTE: This file intentionally does NOT mock @chat-adapter/state-redis,
-// @chat-adapter/state-ioredis, or @chat-adapter/state-pg so that dynamic
-// imports of those packages fail with MODULE_NOT_FOUND, allowing us to
-// verify the descriptive error message thrown by createStateFromConfig.
+// Mock adapter packages to simulate MODULE_NOT_FOUND errors.
+// These packages may be installed as optional peer deps, so we override
+// them to throw the expected error for testing the descriptive error path.
 
-// Only memory adapter is installed; others are optional peer deps.
+function notFoundError(pkg: string) {
+  const err = new Error(`Cannot find package '${pkg}'`)
+  ;(err as any).code = 'MODULE_NOT_FOUND'
+  return err
+}
+
 mock.module('@chat-adapter/state-memory', () => ({
   createMemoryState: () => ({ _mock: 'memory' }),
 }))
+
+mock.module('@chat-adapter/state-redis', () => {
+  throw notFoundError('@chat-adapter/state-redis')
+})
+
+mock.module('@chat-adapter/state-ioredis', () => {
+  throw notFoundError('@chat-adapter/state-ioredis')
+})
+
+mock.module('@chat-adapter/state-pg', () => {
+  throw notFoundError('@chat-adapter/state-pg')
+})
 
 const { createStateFromConfig } = await import('./state')
 

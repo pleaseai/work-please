@@ -25,7 +25,7 @@ mock.module('@chat-adapter/state-redis', () => ({
 }))
 
 mock.module('@chat-adapter/state-ioredis', () => ({
-  createIORedisState: (opts: unknown) => ({ ...mockIORedisState, opts }),
+  createIoRedisState: (opts: unknown) => ({ ...mockIORedisState, opts }),
 }))
 
 mock.module('@chat-adapter/state-pg', () => ({
