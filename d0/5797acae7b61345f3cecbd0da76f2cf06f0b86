@@ -1,0 +1,27 @@
+apps/agent-please/vitest.config.ts
+  7379b2dab0c30bec 2
+apps/agent-please/src/cli.test.ts
+  7379b2dab0c30bec 183
+apps/agent-please/src/init.test.ts
+  7379b2dab0c30bec 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "d05797acae7b61345f3cecbd0da76f2cf06f0b86",
+  "prompts": {
+    "7379b2dab0c30bec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "79767fc8-0365-4e99-8fe9-b2be8d902914",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 5,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
