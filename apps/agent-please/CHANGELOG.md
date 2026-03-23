@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.21](https://github.com/pleaseai/agent-please/compare/agent-v0.1.20...agent-v0.1.21) (2026-03-23)
+
+
+### Bug Fixes
+
+* **chat:** eagerly connect state adapter before dispatch lock use ([#174](https://github.com/pleaseai/agent-please/issues/174)) ([04f4ff5](https://github.com/pleaseai/agent-please/commit/04f4ff521b6d1bede26bacf0b20aabe41fd7a8da))
+
 ## [0.1.20](https://github.com/pleaseai/agent-please/compare/agent-v0.1.19...agent-v0.1.20) (2026-03-23)
 
 
