@@ -127,7 +127,6 @@
       "Bash(gh run view:*)",
       "Bash(gh run list:*)",
       "Bash(gh auth status:*)",
-      "Bash(gh auth token:*)",
       "Bash(gh search:*)"
     ]
   },
