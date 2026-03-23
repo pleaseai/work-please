@@ -1,0 +1,35 @@
+apps/agent-please/nuxt.config.ts
+  7379b2dab0c30bec 4
+apps/agent-please/package.json
+  7379b2dab0c30bec 32-33,57,60,63-66
+apps/agent-please/test/nuxt/components.test.ts
+  7379b2dab0c30bec 1-12
+apps/agent-please/src/init.test.ts
+  7379b2dab0c30bec 1,3-5,181,197,212,236,248,260,274,288,302,316,336,354,368,382,396,410,431,442,472,490,504,512,529,537,560,590
+apps/agent-please/vitest.config.ts
+  7379b2dab0c30bec 1-28
+apps/agent-please/test/unit/format.test.ts
+  7379b2dab0c30bec 1-30
+apps/agent-please/src/cli.test.ts
+  7379b2dab0c30bec 1,4,185-198,204-217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "c3cfb44c209bc07b5405dae0c2c202ba9d4c7a49",
+  "prompts": {
+    "7379b2dab0c30bec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "79767fc8-0365-4e99-8fe9-b2be8d902914",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 140,
+      "total_deletions": 56,
+      "accepted_lines": 139,
+      "overriden_lines": 0
+    }
+  }
+}
