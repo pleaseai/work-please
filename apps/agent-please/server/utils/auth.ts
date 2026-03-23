@@ -27,7 +27,7 @@ export function resetAuth(): void {
   _authEnabled = false
 }
 
-export function initAuth(authConfig: AuthConfig, dbPath: string): Auth {
+export function initAuth(authConfig: AuthConfig, dbPath: string, baseURL?: string): Auth {
   const socialProviders: Record<string, { clientId: string, clientSecret: string }> = {}
   if (authConfig.github.client_id && authConfig.github.client_secret) {
     socialProviders.github = {
@@ -37,6 +37,7 @@ export function initAuth(authConfig: AuthConfig, dbPath: string): Auth {
   }
 
   _auth = betterAuth({
+    baseURL: baseURL || 'http://localhost:3000',
     database: new Database(dbPath),
     secret: authConfig.secret ?? undefined,
     emailAndPassword: {

@@ -1,10 +1,12 @@
 import type { Orchestrator } from '@pleaseai/agent-core'
 import { resolve } from 'node:path'
+import process from 'node:process'
 import { createLogger } from '@pleaseai/agent-core'
 import { getMigrations } from 'better-auth/db/migration'
 
 const log = createLogger('auth')
 const MIN_ADMIN_PASSWORD_LENGTH = 8
+const USER_ALREADY_EXISTS_ERROR_CODE = 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL'
 
 export default defineNitroPlugin(async (nitroApp) => {
   const orchestrator = (nitroApp as any).orchestrator as Orchestrator | undefined
@@ -20,7 +22,10 @@ export default defineNitroPlugin(async (nitroApp) => {
   }
 
   const dbPath = resolve(config.workspace.root, config.db.path)
-  const auth = initAuth(config.auth, dbPath)
+  const host = process.env.HOST || process.env.NITRO_HOST || 'localhost'
+  const port = config.server.port ?? Number(process.env.PORT || process.env.NITRO_PORT || 3000)
+  const baseURL = `http://${host}:${port}`
+  const auth = initAuth(config.auth, dbPath, baseURL)
 
   try {
     const { runMigrations } = await getMigrations(auth.options)
@@ -40,30 +45,24 @@ export default defineNitroPlugin(async (nitroApp) => {
     }
 
     try {
-      const existing = await auth.api.listUsers({
-        query: { limit: 1, offset: 0, filterField: 'role', filterValue: 'admin' },
-      }).catch((err) => {
-        log.warn('failed to list users during admin seeding:', err)
-        return null
+      const name = config.auth.admin.email.split('@')[0] || config.auth.admin.email
+      await auth.api.createUser({
+        body: {
+          email: config.auth.admin.email,
+          name,
+          password: config.auth.admin.password,
+          role: 'admin',
+        },
       })
-
-      const adminExists = (existing?.total ?? 0) > 0
-
-      if (!adminExists) {
-        const name = config.auth.admin.email.split('@')[0] || config.auth.admin.email
-        await auth.api.createUser({
-          body: {
-            email: config.auth.admin.email,
-            name,
-            password: config.auth.admin.password,
-            role: 'admin',
-          },
-        })
-        log.info(`admin user "${config.auth.admin.email}" seeded`)
-      }
+      log.info(`admin user "${config.auth.admin.email}" seeded`)
     }
-    catch (err) {
-      log.warn('admin seeding failed:', err)
+    catch (err: any) {
+      if (err?.body?.code === USER_ALREADY_EXISTS_ERROR_CODE) {
+        log.debug('admin user already exists — skipping seed')
+      }
+      else {
+        log.warn('admin seeding failed:', err)
+      }
     }
   }
 })
