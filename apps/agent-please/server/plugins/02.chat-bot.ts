@@ -1,4 +1,5 @@
 import type { Orchestrator } from '@pleaseai/agent-core'
+import type { StateAdapter } from 'chat'
 import process from 'node:process'
 import { createGitHubAdapter } from '@chat-adapter/github'
 import { createSlackAdapter } from '@chat-adapter/slack'
@@ -101,16 +102,14 @@ export default defineNitroPlugin(async (nitroApp) => {
   const onLockConflict = stateConfig.on_lock_conflict === 'force' ? 'force' as const : undefined
 
   try {
-    const stateAdapter = await createStateFromConfig(stateConfig)
+    const stateAdapter = await createStateFromConfig(stateConfig) as StateAdapter
     // Connect eagerly so the orchestrator's dispatch lock works
     // before Chat SDK's lazy initialization triggers.
-    if (stateAdapter && typeof (stateAdapter as any).connect === 'function') {
-      await (stateAdapter as any).connect()
-    }
+    await stateAdapter.connect()
     const bot = new Chat({
       userName: botUsername,
       adapters,
-      state: stateAdapter as any,
+      state: stateAdapter,
       ...(onLockConflict ? { onLockConflict } : {}),
     })
 
