@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineVitestProject } from '@nuxt/test-utils/config'
 import { defineConfig } from 'vitest/config'
 
@@ -7,7 +8,7 @@ export default defineConfig({
       {
         resolve: {
           alias: {
-            'bun:sqlite': new URL('test/__mocks__/bun-sqlite.ts', import.meta.url).pathname,
+            'bun:sqlite': fileURLToPath(new URL('test/__mocks__/bun-sqlite.ts', import.meta.url)),
           },
         },
         test: {
