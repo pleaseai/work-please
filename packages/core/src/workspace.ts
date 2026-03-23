@@ -73,6 +73,13 @@ export function resolveRepoDir(workspaceRoot: string, repoUrl: string): string {
   return join(workspaceRoot, `github-${owner}-${repo}`)
 }
 
+export function resolveWorktreePath(workspaceRoot: string, repoUrl: string, branchName: string): string {
+  const url = new URL(repoUrl)
+  const parts = url.pathname.replace(REPO_GIT_SUFFIX_RE, '').split('/').filter(Boolean)
+  const [owner, repo] = parts.slice(0, 2)
+  return join(workspaceRoot, `github-${owner}-${repo}`, 'worktrees', branchName)
+}
+
 export function ensureSharedClone(repoDir: string, repoUrl: string): Error | null {
   try {
     if (!existsSync(repoDir)) {
@@ -157,8 +164,17 @@ export function buildHookEnv(issue?: Issue): Record<string, string> {
   return env
 }
 
+const LEADING_HASH_RE = /^#+/
+
 export function sanitizeIdentifier(identifier: string): string {
-  return (identifier || 'issue').replace(IDENTIFIER_UNSAFE_RE, '_')
+  const stripped = (identifier || 'issue').replace(LEADING_HASH_RE, '')
+  return (stripped || 'issue').replace(IDENTIFIER_UNSAFE_RE, '_')
+}
+
+export function applyBranchPrefix(prefix: string | null, name: string): string {
+  if (!prefix)
+    return name
+  return `${prefix}${name}`
 }
 
 export function workspacePath(config: ServiceConfig, identifier: string): string {
@@ -223,8 +239,9 @@ export async function createWorkspace(
       const cloneErr = ensureSharedClone(repoDir, repoUrl)
       if (cloneErr)
         return cloneErr
-      const branchName = sanitizeIdentifier(issue.identifier)
-      const wtPath = join(repoDir, '.claude', 'worktrees', branchName)
+      const sanitized = sanitizeIdentifier(issue.identifier)
+      const branchName = applyBranchPrefix(config.workspace.branch_prefix, sanitized)
+      const wtPath = resolveWorktreePath(config.workspace.root, repoUrl, sanitized)
       if (!existsSync(wtPath)) {
         const wtErr = issue.branch_name
           ? checkoutExistingBranch(repoDir, wtPath, issue.branch_name)
@@ -298,7 +315,7 @@ export async function removeWorkspace(config: ServiceConfig, identifier: string,
     if (repoUrl) {
       const repoDir = resolveRepoDir(config.workspace.root, repoUrl)
       const branchName = sanitizeIdentifier(issue.identifier)
-      const wtPath = join(repoDir, '.claude', 'worktrees', branchName)
+      const wtPath = resolveWorktreePath(config.workspace.root, repoUrl, branchName)
 
       if (!existsSync(wtPath))
         return

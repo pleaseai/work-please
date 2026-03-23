@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { buildConfig } from './config'
 import {
   _git,
+  applyBranchPrefix,
   buildHookEnv,
   checkoutExistingBranch,
   createWorkspace,
@@ -15,6 +16,7 @@ import {
   generateClaudeSettings,
   removeWorkspace,
   resolveRepoDir,
+  resolveWorktreePath,
   runAfterRunHook,
   runBeforeRunHook,
   sanitizeIdentifier,
@@ -184,9 +186,13 @@ describe('createWorkspace creates attribution settings', () => {
 describe('sanitizeIdentifier', () => {
   it('replaces non-alphanumeric characters with underscore', () => {
     expect(sanitizeIdentifier('MT-649')).toBe('MT-649')
-    expect(sanitizeIdentifier('#123')).toBe('_123')
     expect(sanitizeIdentifier('foo bar')).toBe('foo_bar')
     expect(sanitizeIdentifier('issue/1')).toBe('issue_1')
+  })
+
+  it('strips leading # from identifier', () => {
+    expect(sanitizeIdentifier('#123')).toBe('123')
+    expect(sanitizeIdentifier('##42')).toBe('42')
   })
 
   it('preserves allowed chars: letters, digits, dot, hyphen, underscore', () => {
@@ -198,11 +204,25 @@ describe('sanitizeIdentifier', () => {
   })
 })
 
+describe('applyBranchPrefix', () => {
+  it('prepends prefix to branch name', () => {
+    expect(applyBranchPrefix('agent-please/', '42')).toBe('agent-please/42')
+  })
+
+  it('returns name unchanged when prefix is null', () => {
+    expect(applyBranchPrefix(null, '42')).toBe('42')
+  })
+
+  it('returns name unchanged when prefix is empty string treated as null', () => {
+    expect(applyBranchPrefix(null, 'MT-649')).toBe('MT-649')
+  })
+})
+
 describe('workspacePath', () => {
   it('builds path from root and sanitized identifier', () => {
     const config = makeConfig('/tmp/workspaces')
     expect(workspacePath(config, 'MT-649')).toBe('/tmp/workspaces/MT-649')
-    expect(workspacePath(config, '#123')).toBe('/tmp/workspaces/_123')
+    expect(workspacePath(config, '#123')).toBe('/tmp/workspaces/123')
   })
 })
 
@@ -656,6 +676,18 @@ describe('resolveRepoDir', () => {
   })
 })
 
+describe('resolveWorktreePath', () => {
+  it('places worktree under workspace root, not inside the repo clone', () => {
+    expect(resolveWorktreePath('/workspaces', 'https://github.com/org/repo', 'my-branch'))
+      .toBe('/workspaces/github-org-repo/worktrees/my-branch')
+  })
+
+  it('strips .git suffix from URL', () => {
+    expect(resolveWorktreePath('/workspaces', 'https://github.com/org/repo.git', 'feat-42'))
+      .toBe('/workspaces/github-org-repo/worktrees/feat-42')
+  })
+})
+
 describe('createWorkspace with GitHub issue URL', () => {
   let tmpRoot: string
 
@@ -699,7 +731,7 @@ describe('createWorkspace with GitHub issue URL', () => {
     expect(worktreeCall?.includes('MT-42')).toBe(true)
 
     if (!(result instanceof Error)) {
-      expect(result.path).toBe(join(repoDir, '.claude', 'worktrees', 'MT-42'))
+      expect(result.path).toBe(join(tmpRoot, 'github-org-repo', 'worktrees', 'MT-42'))
     }
   })
 
@@ -784,8 +816,7 @@ describe('createWorkspace with GitHub issue URL', () => {
   })
 
   it('skips worktree setup when worktree path already exists', async () => {
-    const repoDir = join(tmpRoot, 'github-org-repo')
-    const wtPath = join(repoDir, '.claude', 'worktrees', 'MT-ALREADY-GIT')
+    const wtPath = join(tmpRoot, 'github-org-repo', 'worktrees', 'MT-ALREADY-GIT')
     mkdirSync(wtPath, { recursive: true })
 
     const spy = spyOn(_git, 'spawnSync').mockReturnValue({
@@ -810,6 +841,41 @@ describe('createWorkspace with GitHub issue URL', () => {
   })
 })
 
+describe('createWorkspace with branch_prefix', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'agent-please-prefix-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('uses branch_prefix in the git branch name', async () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as import('./workspace').SpawnSyncResult)
+
+    const issue = makeIssue({ identifier: '#42', url: 'https://github.com/org/repo/issues/42' })
+    const config = makeConfig(tmpRoot, { workspace: { root: tmpRoot, branch_prefix: 'agent-please/' } })
+
+    await createWorkspace(config, '#42', issue)
+
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    const worktreeCall = calls.find(args => args.includes('worktree') && args.includes('add'))
+    expect(worktreeCall).toBeDefined()
+    // Branch name should include the prefix
+    expect(worktreeCall?.includes('agent-please/42')).toBe(true)
+  })
+})
+
 describe('removeWorkspace with GitHub issue URL', () => {
   let tmpRoot: string
 
@@ -822,8 +888,7 @@ describe('removeWorkspace with GitHub issue URL', () => {
   })
 
   it('calls git worktree remove before deleting worktree dir', async () => {
-    const repoDir = join(tmpRoot, 'github-org-repo')
-    const wtPath = join(repoDir, '.claude', 'worktrees', 'MT-REM')
+    const wtPath = join(tmpRoot, 'github-org-repo', 'worktrees', 'MT-REM')
     mkdirSync(wtPath, { recursive: true })
 
     const spy = spyOn(_git, 'spawnSync').mockReturnValue({

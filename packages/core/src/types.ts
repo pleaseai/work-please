@@ -201,6 +201,7 @@ export interface ServiceConfig {
   polling: { mode: PollingMode, interval_ms: number }
   workspace: {
     root: string
+    branch_prefix: string | null
   }
   hooks: {
     after_create: string | null

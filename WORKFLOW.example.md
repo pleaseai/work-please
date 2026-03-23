@@ -47,6 +47,7 @@ polling:
   interval_ms: 30000                 # default: 30s (in webhook mode, used as fallback safety-net interval)
 workspace:
   root: ~/workspaces
+  # branch_prefix: "agent-please/"   # optional: prefix for git branch names (e.g. agent-please/42)
 hooks:
   after_create: |
     git clone --depth 1 https://github.com/<owner>/<repo> .

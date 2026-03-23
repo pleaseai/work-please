@@ -15,7 +15,7 @@
     },
     "apps/agent-please": {
       "name": "@pleaseai/agent",
-      "version": "0.1.19",
+      "version": "0.1.21",
       "bin": {
         "agent": "./dist/index.js",
         "agent-please": "./dist/index.js",
@@ -52,7 +52,7 @@
     },
     "packages/core": {
       "name": "@pleaseai/agent-core",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "^0.2.72",
         "@chat-adapter/state-memory": ">=4.0.0",
