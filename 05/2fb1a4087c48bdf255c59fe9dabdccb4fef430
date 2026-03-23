@@ -1,0 +1,29 @@
+apps/agent-please/server/plugins/02.chat-bot.ts
+  358659d48b0d2833 72-76
+.please/docs/tracks/active/add-asana-support-20260321/spec.md
+  358659d48b0d2833 17
+packages/core/src/tracker/tracker.test.ts
+  358659d48b0d2833 1211
+packages/core/src/tracker/asana.ts
+  358659d48b0d2833 25,30,47-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "052fb1a4087c48bdf255c59fe9dabdccb4fef430",
+  "prompts": {
+    "358659d48b0d2833": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a3d90d89-401b-457a-b70c-2d0bae9cdecf",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 18,
+      "total_deletions": 32,
+      "accepted_lines": 17,
+      "overriden_lines": 0
+    }
+  }
+}
