@@ -1,3 +1,4 @@
+import type { Buffer } from 'node:buffer'
 import { execSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -190,8 +191,9 @@ describe('CLI startup - nonexistent workflow path (Section 17.7)', () => {
       })
       expect.unreachable('should have thrown')
     }
-    catch (err: any) {
-      const output = [err.stdout, err.stderr]
+    catch (err: unknown) {
+      const execError = err as { stdout: Buffer, stderr: Buffer }
+      const output = [execError.stdout, execError.stderr]
         .map((b: Buffer | null) => b?.toString() ?? '')
         .join('')
       expect(output).toContain('workflow file not found')
@@ -202,15 +204,16 @@ describe('CLI startup - nonexistent workflow path (Section 17.7)', () => {
     const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
     const indexPath = resolve(appDir, 'src/index.ts')
     try {
-      execSync(`bun run ${indexPath}`, {
+      execSync(`bun run "${indexPath}"`, {
         cwd: resolve(appDir, 'src'),
         timeout: 5000,
         stdio: 'pipe',
       })
       expect.unreachable('should have thrown')
     }
-    catch (err: any) {
-      const output = [err.stdout, err.stderr]
+    catch (err: unknown) {
+      const execError = err as { stdout: Buffer, stderr: Buffer }
+      const output = [execError.stdout, execError.stderr]
         .map((b: Buffer | null) => b?.toString() ?? '')
         .join('')
       expect(output).toContain('workflow file not found')

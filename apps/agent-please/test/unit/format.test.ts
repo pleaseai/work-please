@@ -3,7 +3,7 @@ import { formatSecondsRunning, formatTokens } from '../../app/utils/format'
 
 describe('formatTokens', () => {
   it('formats numbers with locale separators', () => {
-    expect(formatTokens(1000)).toMatch(/1.?000/)
+    expect(formatTokens(1000)).toMatch(/1[,.]000/)
   })
 
   it('returns "0" for zero', () => {
