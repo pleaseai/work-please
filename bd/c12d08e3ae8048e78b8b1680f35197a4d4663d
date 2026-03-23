@@ -1,0 +1,23 @@
+apps/agent-please/server/utils/auth.test.ts
+  73a437104a79e458 1-242
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "bdc12d08e3ae8048e78b8b1680f35197a4d4663d",
+  "prompts": {
+    "73a437104a79e458": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ad9e029b-2fe7-4711-ada2-6a2c2fb8955f",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 276,
+      "total_deletions": 1,
+      "accepted_lines": 275,
+      "overriden_lines": 0
+    }
+  }
+}
