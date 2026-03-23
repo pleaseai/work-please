@@ -1,0 +1,25 @@
+apps/agent-please/test/unit/format.test.ts
+  7379b2dab0c30bec 6
+apps/agent-please/src/cli.test.ts
+  7379b2dab0c30bec 1,194-196,207,214-216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "78dae863ebcd03b03856800e6479c0581c52aaab",
+  "prompts": {
+    "7379b2dab0c30bec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "79767fc8-0365-4e99-8fe9-b2be8d902914",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 12,
+      "total_deletions": 9,
+      "accepted_lines": 9,
+      "overriden_lines": 0
+    }
+  }
+}
