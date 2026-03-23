@@ -213,8 +213,8 @@ describe('applyBranchPrefix', () => {
     expect(applyBranchPrefix(null, '42')).toBe('42')
   })
 
-  it('returns name unchanged when prefix is empty string treated as null', () => {
-    expect(applyBranchPrefix(null, 'MT-649')).toBe('MT-649')
+  it('returns name unchanged when prefix is empty string', () => {
+    expect(applyBranchPrefix('', 'MT-649')).toBe('MT-649')
   })
 })
 
@@ -864,7 +864,7 @@ describe('createWorkspace with branch_prefix', () => {
     const issue = makeIssue({ identifier: '#42', url: 'https://github.com/org/repo/issues/42' })
     const config = makeConfig(tmpRoot, { workspace: { root: tmpRoot, branch_prefix: 'agent-please/' } })
 
-    await createWorkspace(config, '#42', issue)
+    const result = await createWorkspace(config, '#42', issue)
 
     const calls = spy.mock.calls.map(args => args[0] as string[])
     spy.mockRestore()
@@ -873,6 +873,10 @@ describe('createWorkspace with branch_prefix', () => {
     expect(worktreeCall).toBeDefined()
     // Branch name should include the prefix
     expect(worktreeCall?.includes('agent-please/42')).toBe(true)
+    // Worktree path should use sanitized identifier (no prefix)
+    if (!(result instanceof Error)) {
+      expect(result.path).toBe(join(tmpRoot, 'github-org-repo', 'worktrees', '42'))
+    }
   })
 })
 
