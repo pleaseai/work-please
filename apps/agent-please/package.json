@@ -1,7 +1,7 @@
 {
   "name": "@pleaseai/agent",
   "type": "module",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "Autonomous coding agent for GitHub, Linear, and Slack",
   "license": "FSL-1.1-MIT",
   "repository": {

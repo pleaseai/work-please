@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.20](https://github.com/pleaseai/agent-please/compare/agent-v0.1.19...agent-v0.1.20) (2026-03-23)
+
+
+### Bug Fixes
+
+* **auth:** add baseURL to betterAuth config and simplify admin seeding ([#171](https://github.com/pleaseai/agent-please/issues/171)) ([70ba6f2](https://github.com/pleaseai/agent-please/commit/70ba6f2f961e3fdb3de9ba1613efd3341f3932e7))
+
 ## [0.1.19](https://github.com/pleaseai/agent-please/compare/agent-v0.1.18...agent-v0.1.19) (2026-03-21)
 
 
