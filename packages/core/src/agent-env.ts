@@ -83,9 +83,13 @@ async function buildDefaults(
     }
   }
 
+  // Only inject git identity when GitHub credentials will be available
+  // (either via default token injection above, or via user-defined token env)
+  const hasTokenEnv = TOKEN_ENV_KEYS.some(k => k in userEnv || k in defaults)
+
   // Inject git identity defaults from botIdentity (skip if all keys are user-defined)
   const needsIdentity = GIT_IDENTITY_KEYS.some(k => !(k in userEnv))
-  if (needsIdentity && tokenProvider.botIdentity) {
+  if (hasTokenEnv && needsIdentity && tokenProvider.botIdentity) {
     const identity = await tokenProvider.botIdentity()
     if (identity) {
       for (const key of GIT_IDENTITY_KEYS) {

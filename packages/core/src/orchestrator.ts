@@ -1054,7 +1054,14 @@ async function fetchBotIdentity(
       log.warn(`failed to fetch bot user ${login}: ${res.status}`)
       return null
     }
-    const data = await res.json() as { id?: number, login?: string }
+    let data: { id?: number, login?: string }
+    try {
+      data = await res.json() as { id?: number, login?: string }
+    }
+    catch (parseErr) {
+      log.warn(`failed to parse bot user ${login} response body: ${parseErr}`)
+      return null
+    }
     if (!data.id) {
       log.warn(`bot user ${login} has no id`)
       return null
@@ -1066,7 +1073,7 @@ async function fetchBotIdentity(
     }
   }
   catch (err) {
-    log.warn(`failed to resolve bot identity: ${err}`)
+    log.warn(`failed to fetch bot user identity (network error): ${err}`)
     return null
   }
 }
