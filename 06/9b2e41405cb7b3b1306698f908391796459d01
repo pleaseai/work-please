@@ -1,0 +1,33 @@
+.claude/agent-memory/testing-test-writer/MEMORY.md
+  7379b2dab0c30bec 4
+apps/agent-please/vitest.config.ts
+  7379b2dab0c30bec 8-12,15
+apps/agent-please/test/unit/format.test.ts
+  7379b2dab0c30bec 6
+apps/agent-please/test/__mocks__/bun-sqlite.ts
+  7379b2dab0c30bec 1-5
+apps/agent-please/server/utils/auth.test.ts
+  7379b2dab0c30bec 1
+.claude/agent-memory/testing-test-writer/project_test_conventions.md
+  7379b2dab0c30bec 7-9,21,24,28-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "069b2e41405cb7b3b1306698f908391796459d01",
+  "prompts": {
+    "7379b2dab0c30bec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "79767fc8-0365-4e99-8fe9-b2be8d902914",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 21,
+      "total_deletions": 11,
+      "accepted_lines": 21,
+      "overriden_lines": 0
+    }
+  }
+}
