@@ -1,0 +1,25 @@
+packages/core/src/agent-env.test.ts
+  2a2b88a906770e6a 185-188
+packages/core/src/agent-env.ts
+  2a2b88a906770e6a 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "ae874f5eb4d5c7a61b5350aa70337a8fb215592f",
+  "prompts": {
+    "2a2b88a906770e6a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f89e7dd3-33d6-452c-93ea-dcd32abaee16",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 1,
+      "accepted_lines": 34,
+      "overriden_lines": 0
+    }
+  }
+}
