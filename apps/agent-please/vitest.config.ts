@@ -5,9 +5,14 @@ export default defineConfig({
   test: {
     projects: [
       {
+        resolve: {
+          alias: {
+            'bun:sqlite': new URL('test/__mocks__/bun-sqlite.ts', import.meta.url).pathname,
+          },
+        },
         test: {
           name: 'unit',
-          include: ['test/unit/**/*.{test,spec}.ts', 'src/**/*.{test,spec}.ts'],
+          include: ['test/unit/**/*.{test,spec}.ts', 'src/**/*.{test,spec}.ts', 'server/**/*.{test,spec}.ts'],
           environment: 'node',
         },
       },
