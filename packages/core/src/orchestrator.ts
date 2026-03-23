@@ -1,4 +1,5 @@
 import type { Client } from '@libsql/client'
+import type { BotIdentity } from './agent-env'
 import type { DispatchLockAdapter } from './dispatch-lock'
 import type { LabelService } from './label'
 import type { GitHubPlatformConfig, Issue, OrchestratorState, ProjectConfig, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
@@ -1008,7 +1009,7 @@ export function buildTokenProvider(project: ProjectConfig, platform: GitHubPlatf
   if (!app_id || !private_key || installation_id == null)
     return undefined
 
-  let cachedIdentity: import('./agent-env').BotIdentity | null | undefined
+  let cachedIdentity: BotIdentity | null | undefined
 
   return {
     installationAccessToken: async () => {
@@ -1039,7 +1040,7 @@ export function buildTokenProvider(project: ProjectConfig, platform: GitHubPlatf
 async function fetchBotIdentity(
   endpoint: string,
   botUsername: string | null,
-): Promise<import('./agent-env').BotIdentity | null> {
+): Promise<BotIdentity | null> {
   if (!botUsername)
     return null
 
@@ -1049,6 +1050,7 @@ async function fetchBotIdentity(
   try {
     const res = await fetch(`${endpoint}/users/${encodeURIComponent(login)}`, {
       headers: { Accept: 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(30_000),
     })
     if (!res.ok) {
       log.warn(`failed to fetch bot user ${login}: ${res.status}`)

@@ -95,7 +95,16 @@ async function buildDefaults(
     if (identity) {
       for (const key of GIT_IDENTITY_KEYS) {
         if (!(key in userEnv)) {
-          defaults[key] = key.includes('NAME') ? identity.name : identity.email
+          switch (key) {
+            case 'GIT_AUTHOR_NAME':
+            case 'GIT_COMMITTER_NAME':
+              defaults[key] = identity.name
+              break
+            case 'GIT_AUTHOR_EMAIL':
+            case 'GIT_COMMITTER_EMAIL':
+              defaults[key] = identity.email
+              break
+          }
         }
       }
     }
