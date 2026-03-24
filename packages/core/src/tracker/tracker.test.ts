@@ -234,7 +234,7 @@ describe('github_projects project_id path', () => {
               {
                 id: 'PVTI_1',
                 fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
-                content: { number: 5, title: 'Node ID Issue', body: null, url: null, labels: { nodes: [] } },
+                content: { number: 5, title: 'Node ID Issue', body: null, url: null, labels: { nodes: [] }, repository: { nameWithOwner: 'myorg/myrepo' } },
               },
             ],
             pageInfo: { hasNextPage: false, endCursor: null },
@@ -250,9 +250,45 @@ describe('github_projects project_id path', () => {
         return
       expect(result).toHaveLength(1)
       expect(result[0].id).toBe('PVTI_1')
-      expect(result[0].identifier).toBe('#5')
+      expect(result[0].identifier).toBe('myorg/myrepo#5')
       expect(result[0].title).toBe('Node ID Issue')
       expect(result[0].state).toBe('In Progress')
+    }
+    finally {
+      globalThis.fetch = origFetch
+    }
+  })
+
+  test('falls back to #number identifier when repository field is absent', async () => {
+    const project = makeGitHubProject({ project_id: 'PVT_kwABC123' })
+    const platform = makeGitHubPlatform()
+    const adapter = createGitHubAdapter(project, platform)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      data: {
+        node: {
+          items: {
+            nodes: [
+              {
+                id: 'PVTI_1',
+                fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
+                content: { number: 7, title: 'No Repo Field', body: null, url: null, labels: { nodes: [] } },
+              },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
+        },
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch
+
+    try {
+      const result = await adapter.fetchIssuesByStates(['In Progress'])
+      expect(Array.isArray(result)).toBe(true)
+      if (!Array.isArray(result))
+        return
+      expect(result).toHaveLength(1)
+      expect(result[0].identifier).toBe('#7')
     }
     finally {
       globalThis.fetch = origFetch
@@ -471,7 +507,7 @@ describe('github_projects fetchIssueStatesByIds', () => {
                 { name: 'In Progress', field: { name: 'Status' } },
               ],
             },
-            content: { number: 42, title: 'Test Issue' },
+            content: { number: 42, title: 'Test Issue', repository: { nameWithOwner: 'myorg/myrepo' } },
           },
         ],
       },
@@ -484,7 +520,7 @@ describe('github_projects fetchIssueStatesByIds', () => {
         return
       expect(result).toHaveLength(1)
       expect(result[0].id).toBe('PVTI_abc')
-      expect(result[0].identifier).toBe('#42')
+      expect(result[0].identifier).toBe('myorg/myrepo#42')
       expect(result[0].state).toBe('In Progress')
       expect(result[0].title).toBe('Test Issue')
     }
@@ -1011,7 +1047,7 @@ describe('github_projects pull_requests normalization', () => {
           {
             id: 'PVTI_abc',
             fieldValues: { nodes: [{ name: 'In Progress', field: { name: 'Status' } }] },
-            content: { number: 42, title: 'Test Issue' },
+            content: { number: 42, title: 'Test Issue', repository: { nameWithOwner: 'myorg/myrepo' } },
           },
         ],
       },

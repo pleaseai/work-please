@@ -57,6 +57,7 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
                 content {
                   ... on Issue {
                     number title body url
+                    repository { nameWithOwner }
                     labels(first: 20) { nodes { name } }
                     assignees(first: 10) { nodes { login } }
                     createdAt updatedAt
@@ -66,6 +67,7 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
                   }
                   ... on PullRequest {
                     number title body url
+                    repository { nameWithOwner }
                     labels(first: 20) { nodes { name } }
                     assignees(first: 10) { nodes { login } }
                     createdAt updatedAt
@@ -94,6 +96,7 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
                 content {
                   ... on Issue {
                     number title body url
+                    repository { nameWithOwner }
                     labels(first: 20) { nodes { name } }
                     assignees(first: 10) { nodes { login } }
                     createdAt updatedAt
@@ -103,6 +106,7 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
                   }
                   ... on PullRequest {
                     number title body url
+                    repository { nameWithOwner }
                     labels(first: 20) { nodes { name } }
                     assignees(first: 10) { nodes { login } }
                     createdAt updatedAt
@@ -137,6 +141,7 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
               content {
                 ... on Issue {
                   number title body url
+                  repository { nameWithOwner }
                   labels(first: 20) { nodes { name } }
                   assignees(first: 10) { nodes { login } }
                   createdAt updatedAt
@@ -146,6 +151,7 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
                 }
                 ... on PullRequest {
                   number title body url
+                  repository { nameWithOwner }
                   labels(first: 20) { nodes { name } }
                   assignees(first: 10) { nodes { login } }
                   createdAt updatedAt
@@ -174,9 +180,10 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
             }
           }
           content {
-            ... on Issue { number title }
+            ... on Issue { number title repository { nameWithOwner } }
             ... on PullRequest {
               number title headRefName reviewDecision
+              repository { nameWithOwner }
             }
           }
         }
@@ -386,7 +393,10 @@ function normalizeReviewDecision(raw: unknown): Issue['review_decision'] {
 function normalizeProjectItem(node: Record<string, unknown>, status: string, projectOwner?: string, projectNum?: number): Issue {
   const content = node.content as Record<string, unknown>
   const number = content?.number
-  const identifier = number ? `#${number}` : String(node.id ?? '')
+  const repo = (content?.repository as { nameWithOwner?: string })?.nameWithOwner
+  const identifier = number
+    ? (repo ? `${repo}#${number}` : `#${number}`)
+    : String(node.id ?? '')
   const labels = Array.isArray((content?.labels as { nodes?: Array<{ name?: string }> })?.nodes)
     ? ((content.labels as { nodes: Array<{ name?: string }> }).nodes).map(l => (l.name ?? '').toLowerCase()).filter(Boolean)
     : []
