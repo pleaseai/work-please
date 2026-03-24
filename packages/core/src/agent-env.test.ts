@@ -191,4 +191,41 @@ describe('resolveAgentEnv', () => {
       expect(result.GIT_AUTHOR_NAME).toBe('A')
     })
   })
+
+  describe('commit signing env injection', () => {
+    it('injects GIT_CONFIG_* env vars when mode is ssh and ssh_signing_key is set', async () => {
+      const config = makeConfig({
+        commit_signing: { mode: 'ssh', ssh_signing_key: '/path/to/key' },
+      })
+      const result = await resolveAgentEnv(config)
+      expect(result.GIT_CONFIG_COUNT).toBe('3')
+      expect(result.GIT_CONFIG_KEY_0).toBe('gpg.format')
+      expect(result.GIT_CONFIG_VALUE_0).toBe('ssh')
+      expect(result.GIT_CONFIG_KEY_1).toBe('user.signingkey')
+      expect(result.GIT_CONFIG_VALUE_1).toBe('/path/to/key')
+      expect(result.GIT_CONFIG_KEY_2).toBe('commit.gpgsign')
+      expect(result.GIT_CONFIG_VALUE_2).toBe('true')
+    })
+
+    it('does not inject GIT_CONFIG_* env vars when mode is none', async () => {
+      const config = makeConfig({ commit_signing: { mode: 'none' } })
+      const result = await resolveAgentEnv(config)
+      expect(result.GIT_CONFIG_COUNT).toBeUndefined()
+      expect(result.GIT_CONFIG_KEY_0).toBeUndefined()
+    })
+
+    it('does not inject GIT_CONFIG_* env vars when mode is api', async () => {
+      const config = makeConfig({ commit_signing: { mode: 'api' } })
+      const result = await resolveAgentEnv(config)
+      expect(result.GIT_CONFIG_COUNT).toBeUndefined()
+      expect(result.GIT_CONFIG_KEY_0).toBeUndefined()
+    })
+
+    it('does not inject GIT_CONFIG_* env vars when mode is ssh but ssh_signing_key is null', async () => {
+      const config = makeConfig({ commit_signing: { mode: 'ssh' } })
+      const result = await resolveAgentEnv(config)
+      expect(result.GIT_CONFIG_COUNT).toBeUndefined()
+      expect(result.GIT_CONFIG_KEY_0).toBeUndefined()
+    })
+  })
 })

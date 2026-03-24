@@ -27,7 +27,7 @@ export async function resolveAgentEnv(
   let cachedToken: string | null | undefined
 
   // Build defaults from tokenProvider (only when available)
-  const defaults = await buildDefaults(config.env, tokenProvider)
+  const defaults = await buildDefaults(config, tokenProvider)
 
   // Merge defaults first, then user-defined env on top
   const merged = { ...defaults, ...config.env }
@@ -68,46 +68,58 @@ export async function resolveAgentEnv(
 }
 
 async function buildDefaults(
-  userEnv: Record<string, string>,
+  config: ServiceConfig,
   tokenProvider?: TokenProvider,
 ): Promise<Record<string, string>> {
-  if (!tokenProvider)
-    return {}
-
+  const userEnv = config.env
   const defaults: Record<string, string> = {}
 
-  // Inject GH_TOKEN / GITHUB_TOKEN defaults
-  for (const key of TOKEN_ENV_KEYS) {
-    if (!(key in userEnv)) {
-      // eslint-disable-next-line no-template-curly-in-string
-      defaults[key] = '${INSTALLATION_ACCESS_TOKEN}'
+  if (tokenProvider) {
+    // Inject GH_TOKEN / GITHUB_TOKEN defaults
+    for (const key of TOKEN_ENV_KEYS) {
+      if (!(key in userEnv)) {
+        // eslint-disable-next-line no-template-curly-in-string
+        defaults[key] = '${INSTALLATION_ACCESS_TOKEN}'
+      }
     }
-  }
 
-  // Only inject git identity when GitHub credentials will be available
-  // (either via default token injection above, or via user-defined token env)
-  const hasTokenEnv = TOKEN_ENV_KEYS.some(k => k in userEnv || k in defaults)
+    // Only inject git identity when GitHub credentials will be available
+    // (either via default token injection above, or via user-defined token env)
+    const hasTokenEnv = TOKEN_ENV_KEYS.some(k => k in userEnv || k in defaults)
 
-  // Inject git identity defaults from botIdentity (skip if all keys are user-defined)
-  const needsIdentity = GIT_IDENTITY_KEYS.some(k => !(k in userEnv))
-  if (hasTokenEnv && needsIdentity && tokenProvider.botIdentity) {
-    const identity = await tokenProvider.botIdentity()
-    if (identity) {
-      for (const key of GIT_IDENTITY_KEYS) {
-        if (!(key in userEnv)) {
-          switch (key) {
-            case 'GIT_AUTHOR_NAME':
-            case 'GIT_COMMITTER_NAME':
-              defaults[key] = identity.name
-              break
-            case 'GIT_AUTHOR_EMAIL':
-            case 'GIT_COMMITTER_EMAIL':
-              defaults[key] = identity.email
-              break
+    // Inject git identity defaults from botIdentity (skip if all keys are user-defined)
+    const needsIdentity = GIT_IDENTITY_KEYS.some(k => !(k in userEnv))
+    if (hasTokenEnv && needsIdentity && tokenProvider.botIdentity) {
+      const identity = await tokenProvider.botIdentity()
+      if (identity) {
+        for (const key of GIT_IDENTITY_KEYS) {
+          if (!(key in userEnv)) {
+            switch (key) {
+              case 'GIT_AUTHOR_NAME':
+              case 'GIT_COMMITTER_NAME':
+                defaults[key] = identity.name
+                break
+              case 'GIT_AUTHOR_EMAIL':
+              case 'GIT_COMMITTER_EMAIL':
+                defaults[key] = identity.email
+                break
+            }
           }
         }
       }
     }
+  }
+
+  // Inject git commit signing config when SSH mode is active
+  if (config.commit_signing.mode === 'ssh' && config.commit_signing.ssh_signing_key) {
+    const signingKeyPath = config.commit_signing.ssh_signing_key
+    defaults.GIT_CONFIG_COUNT = '3'
+    defaults.GIT_CONFIG_KEY_0 = 'gpg.format'
+    defaults.GIT_CONFIG_VALUE_0 = 'ssh'
+    defaults.GIT_CONFIG_KEY_1 = 'user.signingkey'
+    defaults.GIT_CONFIG_VALUE_1 = signingKeyPath
+    defaults.GIT_CONFIG_KEY_2 = 'commit.gpgsign'
+    defaults.GIT_CONFIG_VALUE_2 = 'true'
   }
 
   return defaults
