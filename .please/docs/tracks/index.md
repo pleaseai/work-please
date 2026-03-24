@@ -14,7 +14,7 @@
 | [state-adapter-config-20260321](active/state-adapter-config-20260321/plan.md) | Configurable State Adapter | feature | #155 | 2026-03-21 | in_progress |
 | [add-auth-20260321](active/add-auth-20260321/plan.md) | Dashboard Authentication | feature | #157 | 2026-03-21 | in_progress |
 | [commit-signing-20260324](active/commit-signing-20260324/plan.md) | Commit Signing & Authenticated Remote | feature | TBD | 2026-03-24 | in_progress |
-| [kysely-db-layer-20260324](active/kysely-db-layer-20260324/plan.md) | Kysely DB Layer Integration | feature | TBD | 2026-03-24 | planned |
+| [kysely-db-layer-20260324](active/kysely-db-layer-20260324/plan.md) | Kysely DB Layer Integration | feature | TBD | 2026-03-24 | in_progress |
 
 ## Recently Completed
 
