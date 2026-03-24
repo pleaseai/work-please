@@ -99,8 +99,9 @@ export default defineNuxtConfig({
   },
 
   typescript: {
-    // Skip typecheck — upstream Docus bug: DocsAsideRight.vue imports
-    // DocsCollectionItem as named export but @nuxt/content only has default export
+    // Docus layer has multiple upstream type errors that cannot be excluded
+    // (DocsCollectionItem, ContentNavigationItem, PageAnchor, BreadcrumbItem).
+    // Nuxt layers compile alongside the project, so skipLibCheck doesn't help.
     typeCheck: false,
   },
 
