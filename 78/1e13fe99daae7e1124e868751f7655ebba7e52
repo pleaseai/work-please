@@ -1,0 +1,25 @@
+apps/docs/nuxt.config.ts
+  28c394d3dc5a104d 102-104
+apps/docs/package.json
+  28c394d3dc5a104d 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "781e13fe99daae7e1124e868751f7655ebba7e52",
+  "prompts": {
+    "28c394d3dc5a104d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4596a47d-a425-4600-b806-7b1f917dc1d0",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 40,
+      "total_deletions": 16,
+      "accepted_lines": 28,
+      "overriden_lines": 0
+    }
+  }
+}
