@@ -116,3 +116,10 @@ jobs:
           files: apps/agent-please/coverage/lcov.info
           flags: agent-please
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - uses: codecov/test-results-action@6ba3fdeec616fb91fd6a389b788a2366835a0fa2 # v1.2.1
+        if: ${{ !cancelled() }}
+        with:
+          files: apps/agent-please/coverage/test-report.junit.xml
+          flags: agent-please
+          token: ${{ secrets.CODECOV_TOKEN }}
