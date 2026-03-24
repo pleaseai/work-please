@@ -1,4 +1,4 @@
-import type { AuthConfig, AuthorAssociation, ChannelConfig, ClaudeEffort, DbConfig, IssueFilter, PlatformConfig, PollingMode, ProjectConfig, SandboxConfig, ServiceConfig, SettingSource, StateAdapterKind, StateConfig, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { AuthConfig, AuthorAssociation, ChannelConfig, ClaudeEffort, CommitSigningConfig, CommitSigningMode, DbConfig, IssueFilter, PlatformConfig, PollingMode, ProjectConfig, SandboxConfig, ServiceConfig, SettingSource, StateAdapterKind, StateConfig, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -48,6 +48,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
   const state = sectionMap(raw, 'state')
   const server = sectionMap(raw, 'server')
 
+  const commitSigning = sectionMap(raw, 'commit_signing')
   const platforms = buildPlatformsConfig(raw)
 
   return {
@@ -77,6 +78,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
     },
     claude: buildClaudeConfig(claude),
     auth: buildAuthConfig(sectionMap(raw, 'auth')),
+    commit_signing: buildCommitSigningConfig(commitSigning),
     env: buildEnvConfig(raw),
     db: buildDbConfig(db),
     state: buildStateConfig(state),
@@ -282,6 +284,22 @@ function buildStateConfig(sec: Record<string, unknown>): StateConfig {
     url: resolveEnvValue(stringValue(sec.url), envFallback),
     key_prefix: stringValue(sec.key_prefix) || 'chat-sdk',
     on_lock_conflict: stringValue(sec.on_lock_conflict) === 'force' ? 'force' : 'drop',
+  }
+}
+
+const VALID_COMMIT_SIGNING_MODES = new Set<CommitSigningMode>(['none', 'ssh', 'api'])
+
+function buildCommitSigningConfig(sec: Record<string, unknown>): CommitSigningConfig {
+  const raw = stringValue(sec.mode)
+  const mode: CommitSigningMode = raw && VALID_COMMIT_SIGNING_MODES.has(raw as CommitSigningMode)
+    ? raw as CommitSigningMode
+    : 'none'
+
+  return {
+    mode,
+    ssh_signing_key: mode === 'ssh'
+      ? resolveEnvValue(stringValue(sec.ssh_signing_key), process.env.SSH_SIGNING_KEY)
+      : null,
   }
 }
 

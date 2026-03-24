@@ -75,6 +75,8 @@ export type {
   AuthorAssociation,
   BlockerRef,
   ChannelConfig,
+  CommitSigningConfig,
+  CommitSigningMode,
   ClaudeEffort,
   GitHubPlatformConfig,
   Issue,

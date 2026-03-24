@@ -194,6 +194,13 @@ export type AuthorAssociation = 'OWNER' | 'MEMBER' | 'COLLABORATOR' | 'CONTRIBUT
 
 export const DEFAULT_ALLOWED_ASSOCIATIONS: AuthorAssociation[] = ['OWNER', 'MEMBER', 'COLLABORATOR']
 
+export type CommitSigningMode = 'none' | 'ssh' | 'api'
+
+export interface CommitSigningConfig {
+  mode: CommitSigningMode
+  ssh_signing_key: string | null
+}
+
 export interface ServiceConfig {
   platforms: Record<string, PlatformConfig>
   projects: ProjectConfig[]
@@ -237,6 +244,7 @@ export interface ServiceConfig {
     }
   }
   auth: AuthConfig
+  commit_signing: CommitSigningConfig
   env: Record<string, string>
   db: DbConfig
   state: StateConfig
