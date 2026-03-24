@@ -1,0 +1,27 @@
+.claude/agent-memory/please-please-code-explorer/project_agent_env_workspace_arch.md
+  38fbf0dc93917544 1-27
+.claude/agent-memory/please-please-code-explorer/MEMORY.md
+  38fbf0dc93917544 1-4
+.claude/agent-memory/review-review-silent-failure-hunter/MEMORY.md
+  38fbf0dc93917544 42-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "670f472577a1af888dcb5bdc2a49c631ef749fd8",
+  "prompts": {
+    "38fbf0dc93917544": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "97ac41c3-df0d-4194-add8-0ad11c54da07",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 39,
+      "overriden_lines": 0
+    }
+  }
+}
