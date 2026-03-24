@@ -1,0 +1,33 @@
+.claude/agent-memory/please-please-code-explorer/project_db_layer_integration.md
+  f77d96af89b1f6ec 1-105
+.claude/agent-memory/please-please-code-explorer/project_nitro_server_architecture.md
+  f77d96af89b1f6ec 1-36
+.please/docs/research/md/004-better-auth-overview.md
+  f77d96af89b1f6ec 1-168
+.please/docs/research/index.md
+  f77d96af89b1f6ec 7-10
+.please/docs/research/md/001-mikro-orm-evaluation.md
+  f77d96af89b1f6ec 1,4-15,17-44,46-47,49-52,55-58,60-62,64-67,70-75,77-78,80-82,84-87,89-93,95-105,107-112,114-121,123-138,140,142-144,146-149,151-154,156-157,160-167,169-172,174-183,185-193,195-200
+.claude/agent-memory/please-please-code-explorer/MEMORY.md
+  f77d96af89b1f6ec 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "8814e168369cfcd53bb242b6472043d48e7ae2dd",
+  "prompts": {
+    "f77d96af89b1f6ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b3548c20-f13c-46a6-bfdd-8af2bdf99ddc",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 485,
+      "overriden_lines": 0
+    }
+  }
+}
