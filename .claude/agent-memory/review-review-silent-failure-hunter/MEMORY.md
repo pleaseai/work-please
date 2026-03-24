@@ -39,6 +39,14 @@
 - **`isModuleNotFound` duck-typing GOOD pattern**: Correctly handles Bun's `ResolveMessage` (not `instanceof Error`) by checking `.message` text. Propagates all non-MODULE_NOT_FOUND errors. Good model for dynamic import error handling in Bun projects.
 - **`buildStateConfig()` validation before factory**: Config layer validates adapter kind and defaults to memory; factory therefore always receives a valid adapter. This two-layer validation is the right architecture but creates a dead code branch in the factory that should be an invariant throw, not a warn+fallback.
 
+## Patterns from amondnet/tall-nova (commit-signing feature)
+
+- **GIT_CONFIG_COUNT collision — signing config silently broken when user defines GIT_CONFIG_* env**: `buildDefaults()` in `agent-env.ts` sets `GIT_CONFIG_COUNT='3'` and signing key entries at indices 0-2 unconditionally. Merge order is `{ ...defaults, ...config.env }` so user's `GIT_CONFIG_COUNT` wins but the signing key entries at the same indices survive from defaults, creating index collisions. Confidence 82 — flagged.
+- **setupSshSigningKey() — no try/catch, errors propagate as untyped OS exceptions**: `mkdirSync` and `writeFileSync` throw synchronously on permission/disk errors. The caller in `start()` has no try/catch, so the error propagates as a raw OS exception. No user-facing message identifies that SSH key setup failed specifically. Confidence 75 — not flagged (propagation, not silent failure).
+- **configureRemoteAuth() warn-and-continue GOOD pattern**: Non-critical auth URL enrichment uses warn-and-return on git command failure. Appropriate for optional enhancement.
+- **stop() SSH cleanup try/catch GOOD pattern**: `rmSync` wrapped in try/catch with `log.warn`. Appropriate for cleanup code that must not block shutdown.
+- **buildDefaults() early return removal SAFE**: Old `if (!tokenProvider) return {}` replaced with `if (tokenProvider)` block. Behavior preserved; SSH signing config block runs independently of tokenProvider.
+
 ## Files of Interest
 
 - `apps/agent-please/src/orchestrator.ts` -- main dispatch/worker loop, many error handling paths
