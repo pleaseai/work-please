@@ -1227,7 +1227,7 @@ describe('ensureSharedClone with token', () => {
       signalCode: null,
     } as unknown as import('./workspace').SpawnSyncResult)
 
-    const repoDir = '/tmp/nonexistent-repo-dir'
+    const repoDir = join(tmpdir(), `shared-clone-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`)
     const err = ensureSharedClone(repoDir, 'https://github.com/org/repo', 'ghs_abc123')
 
     const calls = spy.mock.calls.map(args => args[0] as string[])
@@ -1283,7 +1283,7 @@ describe('ensureSharedClone with token', () => {
       signalCode: null,
     } as unknown as import('./workspace').SpawnSyncResult)
 
-    const repoDir = '/tmp/nonexistent-clone-fail'
+    const repoDir = join(tmpdir(), `nonexistent-clone-fail-${process.pid}-${Date.now()}`)
     const err = ensureSharedClone(repoDir, 'https://github.com/org/repo', 'ghs_secret_token')
     spy.mockRestore()
 

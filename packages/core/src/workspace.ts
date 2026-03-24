@@ -117,10 +117,19 @@ export function ensureSharedClone(repoDir: string, repoUrl: string, token?: stri
       }
       const result = _git.spawnSync(['git', '-C', repoDir, 'fetch', 'origin'])
       if (token) {
-        // Restore the plain URL to avoid persisting the token in .git/config
-        _git.spawnSync(['git', '-C', repoDir, 'remote', 'set-url', 'origin', repoUrl])
+        // Restore the plain URL to avoid persisting the token in .git/config.
+        // Always attempt restore regardless of fetch result to prevent token leakage.
+        const restoreResult = _git.spawnSync(['git', '-C', repoDir, 'remote', 'set-url', 'origin', repoUrl])
+        if (!result.success) {
+          const output = redactToken(((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
+          return new Error(`git fetch failed: ${output}`)
+        }
+        if (!restoreResult.success) {
+          const output = redactToken(((restoreResult.stdout?.toString() ?? '') + (restoreResult.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
+          return new Error(`git remote restore-url failed: ${output}`)
+        }
       }
-      if (!result.success) {
+      else if (!result.success) {
         const output = redactToken(((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
         return new Error(`git fetch failed: ${output}`)
       }
