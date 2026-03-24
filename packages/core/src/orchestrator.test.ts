@@ -1,7 +1,7 @@
 import type { DispatchLock, DispatchLockAdapter } from './dispatch-lock'
 import type { LabelService } from './label'
 import type { GitHubPlatformConfig, Issue, ProjectConfig, RunningEntry, WatchedSnapshot } from './types'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'bun:test'
@@ -1399,5 +1399,149 @@ describe('dispatch lock integration', () => {
     expect(stored).toBeNull()
     orch.stop()
     rmSync(tmpDir, { recursive: true, force: true })
+  })
+})
+
+describe('SSH signing key lifecycle', () => {
+  function makeWorkflowWithSshKey(workspaceRoot: string, sshKey: string | null): string {
+    const signingSection = sshKey != null
+      ? `commit_signing:\n  mode: ssh\n  ssh_signing_key: "${sshKey}"\n`
+      : `commit_signing:\n  mode: none\n`
+    return `---
+platforms:
+  github:
+    api_key: ghtoken
+    owner: myorg
+projects:
+  - platform: github
+    project_number: 1
+polling:
+  interval_ms: 30000
+workspace:
+  root: ${workspaceRoot}
+${signingSection}---
+Prompt for {{ issue.title }}.`
+  }
+
+  it('start() writes SSH key file when commit_signing.mode is ssh with a key', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'agent-please-ssh-test-'))
+    const wsRoot = join(tmpDir, 'workspaces')
+    mkdirSync(wsRoot)
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflowWithSshKey(wsRoot, 'ssh-test-key-content'))
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({
+      ok: true,
+      json: async () => ({ data: { repositoryOwner: { projectV2: { items: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } } } }),
+    })) as unknown as typeof fetch
+
+    const orch = new Orchestrator(wfPath)
+    try {
+      await orch.start()
+      const keyPath = join(wsRoot, '.ssh', 'agent_signing_key')
+      expect(existsSync(keyPath)).toBe(true)
+    }
+    finally {
+      await orch.stop()
+      globalThis.fetch = origFetch
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  it('stop() removes the SSH key file written during start()', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'agent-please-ssh-test-'))
+    const wsRoot = join(tmpDir, 'workspaces')
+    mkdirSync(wsRoot)
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflowWithSshKey(wsRoot, 'ssh-test-key-content'))
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({
+      ok: true,
+      json: async () => ({ data: { repositoryOwner: { projectV2: { items: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } } } }),
+    })) as unknown as typeof fetch
+
+    const orch = new Orchestrator(wfPath)
+    try {
+      await orch.start()
+      const keyPath = join(wsRoot, '.ssh', 'agent_signing_key')
+      expect(existsSync(keyPath)).toBe(true)
+      await orch.stop()
+      expect(existsSync(keyPath)).toBe(false)
+    }
+    finally {
+      globalThis.fetch = origFetch
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  it('start() does NOT write key file when commit_signing.mode is none', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'agent-please-ssh-test-'))
+    const wsRoot = join(tmpDir, 'workspaces')
+    mkdirSync(wsRoot)
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    writeFileSync(wfPath, makeWorkflowWithSshKey(wsRoot, null))
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({
+      ok: true,
+      json: async () => ({ data: { repositoryOwner: { projectV2: { items: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } } } }),
+    })) as unknown as typeof fetch
+
+    const orch = new Orchestrator(wfPath)
+    try {
+      await orch.start()
+      const keyPath = join(wsRoot, '.ssh', 'agent_signing_key')
+      expect(existsSync(keyPath)).toBe(false)
+    }
+    finally {
+      await orch.stop()
+      globalThis.fetch = origFetch
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  it('start() does NOT write key file when commit_signing.mode is ssh but ssh_signing_key is null', async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'agent-please-ssh-test-'))
+    const wsRoot = join(tmpDir, 'workspaces')
+    mkdirSync(wsRoot)
+    const wfPath = join(tmpDir, 'WORKFLOW.md')
+    // Mode is ssh but no key provided
+    const content = `---
+platforms:
+  github:
+    api_key: ghtoken
+    owner: myorg
+projects:
+  - platform: github
+    project_number: 1
+polling:
+  interval_ms: 30000
+workspace:
+  root: ${wsRoot}
+commit_signing:
+  mode: ssh
+---
+Prompt for {{ issue.title }}.`
+    writeFileSync(wfPath, content)
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({
+      ok: true,
+      json: async () => ({ data: { repositoryOwner: { projectV2: { items: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } } } }),
+    })) as unknown as typeof fetch
+
+    const orch = new Orchestrator(wfPath)
+    try {
+      await orch.start()
+      const keyPath = join(wsRoot, '.ssh', 'agent_signing_key')
+      expect(existsSync(keyPath)).toBe(false)
+    }
+    finally {
+      await orch.stop()
+      globalThis.fetch = origFetch
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
   })
 })

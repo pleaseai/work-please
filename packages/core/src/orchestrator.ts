@@ -3,7 +3,8 @@ import type { BotIdentity } from './agent-env'
 import type { DispatchLockAdapter } from './dispatch-lock'
 import type { LabelService } from './label'
 import type { GitHubPlatformConfig, Issue, OrchestratorState, ProjectConfig, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
-import { watch } from 'node:fs'
+import { mkdirSync, rmSync, watch, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { resolveAgentEnv } from './agent-env'
 import { AppServerClient } from './agent-runner'
 import { buildConfig, getActiveStates, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
@@ -14,7 +15,7 @@ import { createLogger } from './logger'
 import { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
 import { createTrackerAdapter, formatTrackerError, isTrackerError } from './tracker/index'
 import { isWorkflowError, loadWorkflow } from './workflow'
-import { createWorkspace, removeWorkspace, runAfterRunHook, runBeforeRunHook } from './workspace'
+import { configureRemoteAuth, createWorkspace, removeWorkspace, runAfterRunHook, runBeforeRunHook } from './workspace'
 
 const log = createLogger('orchestrator')
 
@@ -34,6 +35,7 @@ export class Orchestrator {
   private db: Client | null = null
   private pendingDbWrites: Promise<void>[] = []
   private dispatchLockAdapter: DispatchLockAdapter | null = null
+  private sshSigningKeyPath: string | null = null
 
   constructor(workflowPath: string, options?: { dispatchLockAdapter?: DispatchLockAdapter }) {
     this.workflowPath = workflowPath
@@ -78,6 +80,11 @@ export class Orchestrator {
       }
     }
 
+    // Setup SSH signing key if configured
+    if (this.config.commit_signing.mode === 'ssh' && this.config.commit_signing.ssh_signing_key) {
+      this.setupSshSigningKey(this.config.commit_signing.ssh_signing_key)
+    }
+
     // Startup terminal workspace cleanup
     await this.startupTerminalWorkspaceCleanup()
 
@@ -114,6 +121,17 @@ export class Orchestrator {
     if (this.pendingDbWrites.length > 0) {
       await Promise.allSettled(this.pendingDbWrites)
       this.pendingDbWrites = []
+    }
+    // Cleanup SSH signing key
+    if (this.sshSigningKeyPath) {
+      try {
+        rmSync(this.sshSigningKeyPath, { force: true })
+        log.info(`SSH signing key removed: ${this.sshSigningKeyPath}`)
+      }
+      catch (err) {
+        log.warn(`failed to remove SSH signing key: ${err}`)
+      }
+      this.sshSigningKeyPath = null
     }
     // Close database
     if (this.db) {
@@ -353,6 +371,17 @@ export class Orchestrator {
       throw wsResult
     }
     log.debug(`workspace ready issue_id=${issue.id} path=${wsResult.path} created_now=${wsResult.created_now}`)
+
+    // Configure authenticated remote URL if token is available
+    if (issue.url) {
+      const tokenProvider = this.buildTokenProvider()
+      if (tokenProvider) {
+        const token = await tokenProvider.installationAccessToken()
+        if (token) {
+          configureRemoteAuth(wsResult.path, token)
+        }
+      }
+    }
 
     // Before-run hook
     const beforeRunErr = await runBeforeRunHook(this.config, wsResult.path, issue)
@@ -878,6 +907,15 @@ export class Orchestrator {
     catch (err) {
       log.warn(`could not watch workflow file: ${err}`)
     }
+  }
+
+  private setupSshSigningKey(keyContent: string): void {
+    const sshDir = join(this.config.workspace.root, '.ssh')
+    mkdirSync(sshDir, { recursive: true })
+    const keyPath = join(sshDir, 'agent_signing_key')
+    writeFileSync(keyPath, keyContent, { mode: 0o600 })
+    this.sshSigningKeyPath = keyPath
+    log.info(`SSH signing key written to ${keyPath}`)
   }
 
   private buildTokenProvider(): import('./agent-env').TokenProvider | undefined {
