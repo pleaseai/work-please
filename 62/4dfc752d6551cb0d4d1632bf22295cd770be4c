@@ -1,0 +1,25 @@
+.please/docs/tracks/active/docs-site-docus-20260324/plan.md
+  28c394d3dc5a104d 37-45,111-146
+.please/docs/knowledge/tech-stack.md
+  28c394d3dc5a104d 41,78-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "624dfc752d6551cb0d4d1632bf22295cd770be4c",
+  "prompts": {
+    "28c394d3dc5a104d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4596a47d-a425-4600-b806-7b1f917dc1d0",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 49,
+      "total_deletions": 9,
+      "accepted_lines": 118,
+      "overriden_lines": 0
+    }
+  }
+}
