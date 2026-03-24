@@ -60,6 +60,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
     },
     workspace: {
       root: resolvePathValue(stringValue(workspace.root), DEFAULTS.WORKSPACE_ROOT),
+      branch_prefix: stringValue(workspace.branch_prefix),
     },
     hooks: {
       after_create: hookScriptValue(hooks.after_create),
