@@ -1,0 +1,27 @@
+.claude/agent-memory/review-review-documentation-analyzer/project_config_schema.md
+  28c394d3dc5a104d 1-16
+.claude/agent-memory/review-review-documentation-analyzer/MEMORY.md
+  28c394d3dc5a104d 1-5
+.claude/agent-memory/review-review-documentation-analyzer/project_cli_syntax.md
+  28c394d3dc5a104d 1-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "d18a8a051adc605bb093b5beed9fd463a0f0e020",
+  "prompts": {
+    "28c394d3dc5a104d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4596a47d-a425-4600-b806-7b1f917dc1d0",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0
+    }
+  }
+}
