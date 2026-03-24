@@ -1,5 +1,4 @@
 import type { Orchestrator } from '@pleaseai/agent-core'
-import { resolve } from 'node:path'
 import process from 'node:process'
 import { createLogger } from '@pleaseai/agent-core'
 import { getMigrations } from 'better-auth/db/migration'
@@ -21,13 +20,18 @@ export default defineNitroPlugin(async (nitroApp) => {
     return
   }
 
-  const dbPath = resolve(config.workspace.root, config.db.path)
+  const db = orchestrator.getDb()
+  if (!db) {
+    log.warn('db not available — auth not initialized')
+    return
+  }
+
   const baseURL = config.auth.base_url ?? (() => {
     const host = process.env.HOST || process.env.NITRO_HOST || 'localhost'
     const port = config.server.port ?? Number(process.env.PORT || process.env.NITRO_PORT || 3000)
     return `http://${host}:${port}`
   })()
-  const auth = initAuth(config.auth, dbPath, baseURL)
+  const auth = initAuth(config.auth, db, baseURL)
 
   try {
     const { runMigrations } = await getMigrations(auth.options)
