@@ -1,6 +1,7 @@
-import { mkdirSync, readFileSync, rmSync } from 'node:fs'
-import { join, resolve } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   configureStatusField,
   createProject,
@@ -176,7 +177,7 @@ describe('configureStatusField', () => {
   it('returns true on success', async () => {
     const origFetch = globalThis.fetch
     let callCount = 0
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       callCount++
       if (callCount === 1) {
         return mockResponse(true, { data: { node: { field: { id: 'FIELD_1' } } } })
@@ -192,7 +193,7 @@ describe('configureStatusField', () => {
 
   it('returns error when status field not found', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { data: { node: { field: null } } }),
     ) as unknown as typeof fetch
     try {
@@ -207,7 +208,7 @@ describe('configureStatusField', () => {
   it('returns error when update mutation fails with GraphQL errors', async () => {
     const origFetch = globalThis.fetch
     let callCount = 0
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       callCount++
       if (callCount === 1) {
         return mockResponse(true, { data: { node: { field: { id: 'FIELD_1' } } } })
@@ -231,7 +232,7 @@ describe('configureStatusField', () => {
 describe('resolveOwnerId', () => {
   it('returns the owner id for an organization login', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { data: { repositoryOwner: { id: 'O_org123' } } }),
     ) as unknown as typeof fetch
     try {
@@ -243,7 +244,7 @@ describe('resolveOwnerId', () => {
 
   it('returns the owner id for a user login', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { data: { repositoryOwner: { id: 'U_user456' } } }),
     ) as unknown as typeof fetch
     try {
@@ -255,7 +256,7 @@ describe('resolveOwnerId', () => {
 
   it('returns init_owner_not_found when repositoryOwner is null', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { data: { repositoryOwner: null } }),
     ) as unknown as typeof fetch
     try {
@@ -269,7 +270,7 @@ describe('resolveOwnerId', () => {
 
   it('returns init_owner_not_found when data has no repositoryOwner field', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { data: {} }),
     ) as unknown as typeof fetch
     try {
@@ -283,7 +284,7 @@ describe('resolveOwnerId', () => {
 
   it('returns init_create_failed on non-ok HTTP response', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(false, { message: 'Unauthorized' }, 401),
     ) as unknown as typeof fetch
     try {
@@ -297,7 +298,7 @@ describe('resolveOwnerId', () => {
 
   it('returns init_graphql_errors when response contains errors', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { errors: [{ message: 'Not found' }] }),
     ) as unknown as typeof fetch
     try {
@@ -311,7 +312,7 @@ describe('resolveOwnerId', () => {
 
   it('returns init_network_error on fetch exception', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       throw new Error('ECONNREFUSED')
     }) as unknown as typeof fetch
     try {
@@ -331,7 +332,7 @@ describe('resolveOwnerId', () => {
 describe('createProject', () => {
   it('returns projectId and projectNumber on success', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, {
         data: { createProjectV2: { projectV2: { id: 'PVT_proj789', number: 5 } } },
       }),
@@ -349,7 +350,7 @@ describe('createProject', () => {
 
   it('returns init_create_failed when projectV2 fields are missing', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { data: { createProjectV2: { projectV2: {} } } }),
     ) as unknown as typeof fetch
     try {
@@ -363,7 +364,7 @@ describe('createProject', () => {
 
   it('returns init_create_failed when createProjectV2 is null', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { data: { createProjectV2: null } }),
     ) as unknown as typeof fetch
     try {
@@ -377,7 +378,7 @@ describe('createProject', () => {
 
   it('returns init_create_failed on non-ok HTTP response', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(false, { message: 'Forbidden' }, 403),
     ) as unknown as typeof fetch
     try {
@@ -391,7 +392,7 @@ describe('createProject', () => {
 
   it('returns init_graphql_errors when response contains errors', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { errors: [{ message: 'Insufficient permissions' }] }),
     ) as unknown as typeof fetch
     try {
@@ -405,7 +406,7 @@ describe('createProject', () => {
 
   it('returns init_network_error on fetch exception', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       throw new Error('timeout')
     }) as unknown as typeof fetch
     try {
@@ -426,7 +427,7 @@ describe('initProject', () => {
   let tmpDir: string
 
   beforeEach(() => {
-    tmpDir = join(import.meta.dir, `../.tmp-init-test-${Date.now()}`)
+    tmpDir = join(dirname(fileURLToPath(import.meta.url)), `../.tmp-init-test-${Date.now()}`)
     mkdirSync(tmpDir, { recursive: true })
   })
 
@@ -437,7 +438,7 @@ describe('initProject', () => {
   it('writes WORKFLOW.md and returns result on success', async () => {
     const origFetch = globalThis.fetch
     let callCount = 0
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       callCount++
       if (callCount === 1) {
         return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
@@ -467,7 +468,7 @@ describe('initProject', () => {
 
   it('returns init_workflow_exists when WORKFLOW.md already exists', async () => {
     const path = join(tmpDir, 'WORKFLOW.md')
-    await Bun.write(path, 'existing content')
+    writeFileSync(path, 'existing content')
 
     const result = await initProject(
       { owner: 'myorg', title: 'My Board', token: 'tok' },
@@ -485,7 +486,7 @@ describe('initProject', () => {
 
   it('propagates resolveOwnerId error without writing file', async () => {
     const origFetch = globalThis.fetch
-    globalThis.fetch = mock(async () =>
+    globalThis.fetch = vi.fn(async () =>
       mockResponse(true, { data: { organization: null, user: null } }),
     ) as unknown as typeof fetch
     try {
@@ -499,8 +500,7 @@ describe('initProject', () => {
       if (isInitError(result))
         expect(result.code).toBe('init_owner_not_found')
 
-      const path = Bun.file(join(tmpDir, 'WORKFLOW.md'))
-      expect(await path.exists()).toBe(false)
+      expect(existsSync(join(tmpDir, 'WORKFLOW.md'))).toBe(false)
     }
     finally { globalThis.fetch = origFetch }
   })
@@ -508,7 +508,7 @@ describe('initProject', () => {
   it('propagates createProject error without writing file', async () => {
     const origFetch = globalThis.fetch
     let callCount = 0
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       callCount++
       if (callCount === 1)
         return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
@@ -525,8 +525,7 @@ describe('initProject', () => {
       if (isInitError(result))
         expect(result.code).toBe('init_create_failed')
 
-      const path = Bun.file(join(tmpDir, 'WORKFLOW.md'))
-      expect(await path.exists()).toBe(false)
+      expect(existsSync(join(tmpDir, 'WORKFLOW.md'))).toBe(false)
     }
     finally { globalThis.fetch = origFetch }
   })
@@ -534,7 +533,7 @@ describe('initProject', () => {
   it('returns correct workflowPath in result', async () => {
     const origFetch = globalThis.fetch
     let callCount = 0
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       callCount++
       if (callCount === 1)
         return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
@@ -557,7 +556,7 @@ describe('initProject', () => {
   it('returns statusConfigured: true when all 4 API calls succeed', async () => {
     const origFetch = globalThis.fetch
     let callCount = 0
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       callCount++
       if (callCount === 1)
         return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })
@@ -587,7 +586,7 @@ describe('initProject', () => {
   it('returns statusConfigured: false when status configuration fails (non-fatal)', async () => {
     const origFetch = globalThis.fetch
     let callCount = 0
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = vi.fn(async () => {
       callCount++
       if (callCount === 1)
         return mockResponse(true, { data: { repositoryOwner: { id: 'O_org1' } } })

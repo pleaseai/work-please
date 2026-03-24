@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from 'bun:test'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 // ---------------------------------------------------------------------------
 // Polyfill: createError is a Nitro auto-import, not available in test context

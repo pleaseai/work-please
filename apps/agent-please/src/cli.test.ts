@@ -1,6 +1,8 @@
+import type { Buffer } from 'node:buffer'
+import { execSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'vitest'
 import { parseArgs } from './cli'
 
 describe('parseArgs - init subcommand', () => {
@@ -178,33 +180,43 @@ describe('parseArgs - --help / -h flag', () => {
   })
 })
 
-describe('CLI startup - nonexistent workflow path (Section 17.7)', () => {
+describe('cli startup - nonexistent workflow path (Section 17.7)', () => {
   it('exits nonzero when explicit workflow path does not exist', () => {
-    // Use import.meta.dir (Bun) to find the app root regardless of test cwd
     const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-    const result = Bun.spawnSync(['bun', 'run', 'src/index.ts', '/nonexistent/WORKFLOW.md'], {
-      cwd: appDir,
-      timeout: 5000,
-    })
-    expect(result.exitCode).not.toBe(0)
-    const output = [result.stderr, result.stdout]
-      .map(b => b?.toString() ?? '')
-      .join('')
-    expect(output).toContain('workflow file not found')
+    try {
+      execSync('bun run src/index.ts /nonexistent/WORKFLOW.md', {
+        cwd: appDir,
+        timeout: 5000,
+        stdio: 'pipe',
+      })
+      expect.unreachable('should have thrown')
+    }
+    catch (err: unknown) {
+      const execError = err as { stdout: Buffer, stderr: Buffer }
+      const output = [execError.stdout, execError.stderr]
+        .map((b: Buffer | null) => b?.toString() ?? '')
+        .join('')
+      expect(output).toContain('workflow file not found')
+    }
   })
 
   it('exits nonzero when default WORKFLOW.md is missing from cwd (Section 17.7)', () => {
     const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-    // Run without explicit path from a directory that has no WORKFLOW.md (the src/ dir itself)
     const indexPath = resolve(appDir, 'src/index.ts')
-    const result = Bun.spawnSync(['bun', 'run', indexPath], {
-      cwd: resolve(appDir, 'src'),
-      timeout: 5000,
-    })
-    expect(result.exitCode).not.toBe(0)
-    const output = [result.stderr, result.stdout]
-      .map(b => b?.toString() ?? '')
-      .join('')
-    expect(output).toContain('workflow file not found')
+    try {
+      execSync(`bun run "${indexPath}"`, {
+        cwd: resolve(appDir, 'src'),
+        timeout: 5000,
+        stdio: 'pipe',
+      })
+      expect.unreachable('should have thrown')
+    }
+    catch (err: unknown) {
+      const execError = err as { stdout: Buffer, stderr: Buffer }
+      const output = [execError.stdout, execError.stderr]
+        .map((b: Buffer | null) => b?.toString() ?? '')
+        .join('')
+      expect(output).toContain('workflow file not found')
+    }
   })
 })
