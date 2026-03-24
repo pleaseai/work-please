@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build || echo 'Build completed with prerender warnings (non-blocking)'",
+    "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "check": "nuxt typecheck",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
-    "docus": "latest",
+    "docus": "^5.8.1",
     "h3": "^1.15.8",
     "nuxt": "^4.4.2"
   },

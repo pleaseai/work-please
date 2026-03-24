@@ -5,9 +5,11 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
   ],
 
-  // Disable Docus MCP toolkit (uses h3 toWebRequest which doesn't exist
-  // in current h3 v2 RC releases)
+  // Disable Docus modules with h3 v2 RC incompatibilities
   mcp: {
+    enabled: false,
+  },
+  ogImage: {
     enabled: false,
   },
 
@@ -43,10 +45,12 @@ export default defineNuxtConfig({
   // excludes node_modules, causing Rollup parse failures with Bun's
   // hoisted dependency paths. This hook pre-transpiles them before Rollup.
   hooks: {
-    'nitro:init': function (nitro: { options: { rollupConfig: { plugins: unknown[] }, prerender: { routes: string[], crawlLinks: boolean } } }) {
+    'nitro:init': function (nitro: { options: { rollupConfig: { plugins: unknown[] }, prerender: { routes: string[], crawlLinks: boolean, failOnError: boolean } } }) {
       // Override Docus prerender after all hooks have run
-      nitro.options.prerender.routes = []
+      nitro.options.prerender.routes = nitro.options.prerender.routes
+        .filter((r: string) => !r.includes('__nuxt_content'))
       nitro.options.prerender.crawlLinks = false
+      nitro.options.prerender.failOnError = false
     },
     'nitro:config': function (nitroConfig) {
       nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
