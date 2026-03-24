@@ -74,10 +74,8 @@ export function resolveRepoDir(workspaceRoot: string, repoUrl: string): string {
 }
 
 export function resolveWorktreePath(workspaceRoot: string, repoUrl: string, branchName: string): string {
-  const url = new URL(repoUrl)
-  const parts = url.pathname.replace(REPO_GIT_SUFFIX_RE, '').split('/').filter(Boolean)
-  const [owner, repo] = parts.slice(0, 2)
-  return join(workspaceRoot, `github-${owner}-${repo}`, 'worktrees', branchName)
+  const repoDir = resolveRepoDir(workspaceRoot, repoUrl)
+  return join(repoDir, 'worktrees', branchName)
 }
 
 export function ensureSharedClone(repoDir: string, repoUrl: string): Error | null {

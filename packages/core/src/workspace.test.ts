@@ -874,9 +874,10 @@ describe('createWorkspace with branch_prefix', () => {
     // Branch name should include the prefix
     expect(worktreeCall?.includes('agent-please/42')).toBe(true)
     // Worktree path should use sanitized identifier (no prefix)
-    if (!(result instanceof Error)) {
-      expect(result.path).toBe(join(tmpRoot, 'github-org-repo', 'worktrees', '42'))
-    }
+    expect(result instanceof Error).toBe(false)
+    if (result instanceof Error)
+      return
+    expect(result.path).toBe(join(tmpRoot, 'github-org-repo', 'worktrees', '42'))
   })
 })
 
