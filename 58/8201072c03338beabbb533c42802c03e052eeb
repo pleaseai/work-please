@@ -1,0 +1,23 @@
+packages/core/src/db.ts
+  f77d96af89b1f6ec 1,5-7,22,38,44,65,67,75,77-91,118-119,122-137,153-154,161-170,172-173,183-190,192-197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "588201072c03338beabbb533c42802c03e052eeb",
+  "prompts": {
+    "f77d96af89b1f6ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b3548c20-f13c-46a6-bfdd-8af2bdf99ddc",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 72,
+      "total_deletions": 88,
+      "accepted_lines": 559,
+      "overriden_lines": 0
+    }
+  }
+}
