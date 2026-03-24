@@ -1,32 +1,13 @@
-import type { Client } from '@libsql/client'
+import type { AppDatabase } from './db-types'
 import type { AgentRunRecord, AgentRunStatus, DbConfig } from './types'
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { createClient } from '@libsql/client'
+import { LibsqlDialect } from '@libsql/kysely-libsql'
+import { Kysely, Migrator } from 'kysely'
 import { createLogger } from './logger'
+import * as migration001 from './migrations/001_create_agent_runs'
 
 const log = createLogger('db')
-
-const CREATE_AGENT_RUNS_TABLE = `
-CREATE TABLE IF NOT EXISTS agent_runs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  issue_id TEXT NOT NULL,
-  identifier TEXT NOT NULL,
-  issue_state TEXT NOT NULL,
-  session_id TEXT,
-  started_at TEXT NOT NULL,
-  finished_at TEXT NOT NULL,
-  duration_ms INTEGER NOT NULL,
-  status TEXT NOT NULL,
-  error TEXT,
-  turn_count INTEGER NOT NULL DEFAULT 0,
-  retry_attempt INTEGER,
-  input_tokens INTEGER NOT NULL DEFAULT 0,
-  output_tokens INTEGER NOT NULL DEFAULT 0,
-  total_tokens INTEGER NOT NULL DEFAULT 0
-)`
-
-const CREATE_AGENT_RUNS_IDX = `CREATE INDEX IF NOT EXISTS idx_agent_runs_identifier ON agent_runs(identifier)`
 
 export function resolveDbPath(dbPath: string, workspaceRoot: string): string | null {
   const resolved = resolve(workspaceRoot, dbPath)
@@ -38,7 +19,7 @@ export function resolveDbPath(dbPath: string, workspaceRoot: string): string | n
   return resolved
 }
 
-export function createDbClient(config: DbConfig, workspaceRoot: string): Client | null {
+export function createKyselyDb(config: DbConfig, workspaceRoot: string): Kysely<AppDatabase> | null {
   if (config.turso_url) {
     const allowedSchemes = ['libsql:', 'libsqls:', 'https:']
     let scheme: string
@@ -54,13 +35,13 @@ export function createDbClient(config: DbConfig, workspaceRoot: string): Client 
       return null
     }
     try {
-      const client = createClient({
+      const dialect = new LibsqlDialect({
         url: config.turso_url,
         authToken: config.turso_auth_token ?? undefined,
       })
       const hostname = new URL(config.turso_url).hostname
       log.info(`db connected to turso: ${hostname}`)
-      return client
+      return new Kysely<AppDatabase>({ dialect })
     }
     catch (err) {
       log.error(`db connection failed: ${err}`)
@@ -81,9 +62,9 @@ export function createDbClient(config: DbConfig, workspaceRoot: string): Client 
   }
 
   try {
-    const client = createClient({ url: `file:${dbFilePath}` })
+    const dialect = new LibsqlDialect({ url: `file:${dbFilePath}` })
     log.info(`db opened: ${dbFilePath}`)
-    return client
+    return new Kysely<AppDatabase>({ dialect })
   }
   catch (err) {
     log.error(`db connection failed: ${err}`)
@@ -91,9 +72,23 @@ export function createDbClient(config: DbConfig, workspaceRoot: string): Client 
   }
 }
 
-export async function runMigrations(client: Client): Promise<boolean> {
+export async function runMigrations(db: Kysely<AppDatabase>): Promise<boolean> {
   try {
-    await client.migrate([CREATE_AGENT_RUNS_TABLE, CREATE_AGENT_RUNS_IDX])
+    const migrator = new Migrator({
+      db,
+      provider: {
+        getMigrations() {
+          return Promise.resolve({
+            '001_create_agent_runs': migration001,
+          })
+        },
+      },
+    })
+    const { error } = await migrator.migrateToLatest()
+    if (error) {
+      log.warn(`db migration failed: ${error}`)
+      return false
+    }
     log.info('db migrations complete')
     return true
   }
@@ -120,30 +115,26 @@ export interface InsertRunParams {
   total_tokens: number
 }
 
-export async function insertRun(client: Client | null, params: InsertRunParams): Promise<void> {
-  if (!client)
+export async function insertRun(db: Kysely<AppDatabase> | null, params: InsertRunParams): Promise<void> {
+  if (!db)
     return
   try {
-    await client.execute({
-      sql: `INSERT INTO agent_runs (issue_id, identifier, issue_state, session_id, started_at, finished_at, duration_ms, status, error, turn_count, retry_attempt, input_tokens, output_tokens, total_tokens)
-            VALUES (:issue_id, :identifier, :issue_state, :session_id, :started_at, :finished_at, :duration_ms, :status, :error, :turn_count, :retry_attempt, :input_tokens, :output_tokens, :total_tokens)`,
-      args: {
-        issue_id: params.issue_id,
-        identifier: params.identifier,
-        issue_state: params.issue_state,
-        session_id: params.session_id,
-        started_at: params.started_at.toISOString(),
-        finished_at: params.finished_at.toISOString(),
-        duration_ms: params.duration_ms,
-        status: params.status,
-        error: params.error,
-        turn_count: params.turn_count,
-        retry_attempt: params.retry_attempt,
-        input_tokens: params.input_tokens,
-        output_tokens: params.output_tokens,
-        total_tokens: params.total_tokens,
-      },
-    })
+    await db.insertInto('agent_runs').values({
+      issue_id: params.issue_id,
+      identifier: params.identifier,
+      issue_state: params.issue_state,
+      session_id: params.session_id,
+      started_at: params.started_at.toISOString(),
+      finished_at: params.finished_at.toISOString(),
+      duration_ms: params.duration_ms,
+      status: params.status,
+      error: params.error,
+      turn_count: params.turn_count,
+      retry_attempt: params.retry_attempt,
+      input_tokens: params.input_tokens,
+      output_tokens: params.output_tokens,
+      total_tokens: params.total_tokens,
+    }).execute()
   }
   catch (err) {
     log.error(`db insert failed: ${err}`, err)
@@ -159,34 +150,27 @@ export interface QueryRunsOptions {
 
 const VALID_STATUSES = new Set<string>(['success', 'failure', 'terminated'])
 
-export async function queryRuns(client: Client | null, options: QueryRunsOptions = {}): Promise<AgentRunRecord[]> {
-  if (!client)
+export async function queryRuns(db: Kysely<AppDatabase> | null, options: QueryRunsOptions = {}): Promise<AgentRunRecord[]> {
+  if (!db)
     return []
 
-  const conditions: string[] = []
-  const args: Record<string, unknown> = {}
-
-  if (options.identifier) {
-    conditions.push('identifier = :identifier')
-    args.identifier = options.identifier
-  }
-  if (options.status) {
-    conditions.push('status = :status')
-    args.status = options.status
-  }
-
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
   const limit = options.limit ?? 50
   const offset = options.offset ?? 0
 
   try {
-    const rs = await client.execute({
-      sql: `SELECT id, issue_id, identifier, issue_state, session_id, started_at, finished_at, duration_ms, status, error, turn_count, retry_attempt, input_tokens, output_tokens, total_tokens FROM agent_runs ${where} ORDER BY id DESC LIMIT :limit OFFSET :offset`,
-      args: { ...args, limit, offset },
-    })
+    let query = db.selectFrom('agent_runs').selectAll()
 
-    return rs.rows.map((row) => {
-      const rawStatus = row.status as string
+    if (options.identifier) {
+      query = query.where('identifier', '=', options.identifier)
+    }
+    if (options.status) {
+      query = query.where('status', '=', options.status)
+    }
+
+    const rows = await query.orderBy('id', 'desc').limit(limit).offset(offset).execute()
+
+    return rows.map((row) => {
+      const rawStatus = row.status
       let status: AgentRunStatus
       if (VALID_STATUSES.has(rawStatus)) {
         status = rawStatus as AgentRunStatus
@@ -196,21 +180,21 @@ export async function queryRuns(client: Client | null, options: QueryRunsOptions
         status = 'failure'
       }
       return {
-        id: row.id as number,
-        issue_id: row.issue_id as string,
-        identifier: row.identifier as string,
-        issue_state: row.issue_state as string,
-        session_id: row.session_id as string | null,
-        started_at: row.started_at as string,
-        finished_at: row.finished_at as string,
-        duration_ms: row.duration_ms as number,
+        id: row.id,
+        issue_id: row.issue_id,
+        identifier: row.identifier,
+        issue_state: row.issue_state,
+        session_id: row.session_id,
+        started_at: row.started_at,
+        finished_at: row.finished_at,
+        duration_ms: row.duration_ms,
         status,
-        error: row.error as string | null,
-        turn_count: row.turn_count as number,
-        retry_attempt: row.retry_attempt as number | null,
-        input_tokens: row.input_tokens as number,
-        output_tokens: row.output_tokens as number,
-        total_tokens: row.total_tokens as number,
+        error: row.error,
+        turn_count: row.turn_count,
+        retry_attempt: row.retry_attempt,
+        input_tokens: row.input_tokens,
+        output_tokens: row.output_tokens,
+        total_tokens: row.total_tokens,
       }
     })
   }

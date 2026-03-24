@@ -1,7 +1,7 @@
 import type { AuthConfig } from '@pleaseai/agent-core'
+import type { Kysely } from 'kysely'
 import { betterAuth } from 'better-auth'
 import { admin, username } from 'better-auth/plugins'
-import { Database } from 'bun:sqlite'
 
 type Auth = ReturnType<typeof betterAuth>
 
@@ -27,7 +27,7 @@ export function resetAuth(): void {
   _authEnabled = false
 }
 
-export function initAuth(authConfig: AuthConfig, dbPath: string, baseURL?: string): Auth {
+export function initAuth(authConfig: AuthConfig, db: Kysely<any>, baseURL?: string): Auth {
   const socialProviders: Record<string, { clientId: string, clientSecret: string }> = {}
   if (authConfig.github.client_id && authConfig.github.client_secret) {
     socialProviders.github = {
@@ -42,7 +42,7 @@ export function initAuth(authConfig: AuthConfig, dbPath: string, baseURL?: strin
 
   _auth = betterAuth({
     baseURL: baseURL || 'http://localhost:3000',
-    database: new Database(dbPath),
+    database: { db, type: 'sqlite' as const },
     secret: authConfig.secret ?? undefined,
     trustedOrigins,
     emailAndPassword: {

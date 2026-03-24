@@ -47,12 +47,13 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.72",
     "@chat-adapter/state-memory": ">=4.0.0",
-    "@libsql/client": "^0.17.0",
+    "@libsql/kysely-libsql": "^0.4.1",
     "@octokit/auth-app": "^8.2.0",
     "@octokit/graphql": "^9.0.3",
     "@octokit/webhooks": "^14.2.0",
     "consola": "^3.4.2",
     "js-yaml": "^4.1.1",
+    "kysely": "^0.28.14",
     "liquidjs": "^10.25.0",
     "zod": "^4.3.6"
   },

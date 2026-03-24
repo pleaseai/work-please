@@ -1,10 +1,10 @@
 // Agent Environment
 export { resolveAgentEnv } from './agent-env'
-
 export type { BotIdentity, ResolveAgentEnvOptions, TokenProvider } from './agent-env'
 
 // Agent Runner
 export { AppServerClient, extractRateLimits, extractUsage, isInputRequired } from './agent-runner'
+
 export type { AgentSession, SessionResult } from './agent-runner'
 
 // Config
@@ -17,8 +17,12 @@ export {
   normalizeState,
   validateConfig,
 } from './config'
-
 export type { ValidationError } from './config'
+
+// DB
+export { createKyselyDb, insertRun, queryRuns, resolveDbPath, runMigrations } from './db'
+
+export type { AgentRunsTable, AppDatabase } from './db-types'
 
 // Dispatch Lock
 export { createNoopDispatchLock, toDispatchLockKey } from './dispatch-lock'
