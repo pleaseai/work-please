@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.6...agent-core-v0.1.7) (2026-03-24)
+
+
+### Features
+
+* **auth:** add base_url and trusted_origins config for reverse proxy support ([#190](https://github.com/pleaseai/agent-please/issues/190)) ([880e268](https://github.com/pleaseai/agent-please/commit/880e2689f93bab0012ccf1ddd1cea63d2e502533))
+* **config:** add commit signing and authenticated remote support ([#187](https://github.com/pleaseai/agent-please/issues/187)) ([33c09d0](https://github.com/pleaseai/agent-please/commit/33c09d0ae8767ae487eb156fbd80389fa9d33ef1))
+
 ## [0.1.6](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.5...agent-core-v0.1.6) (2026-03-24)
 
 

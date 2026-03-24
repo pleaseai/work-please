@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.23](https://github.com/pleaseai/agent-please/compare/agent-v0.1.22...agent-v0.1.23) (2026-03-24)
+
+
+### Features
+
+* **auth:** add base_url and trusted_origins config for reverse proxy support ([#190](https://github.com/pleaseai/agent-please/issues/190)) ([880e268](https://github.com/pleaseai/agent-please/commit/880e2689f93bab0012ccf1ddd1cea63d2e502533))
+
 ## [0.1.22](https://github.com/pleaseai/agent-please/compare/agent-v0.1.21...agent-v0.1.22) (2026-03-24)
 
 
