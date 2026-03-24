@@ -45,12 +45,12 @@ export default defineNuxtConfig({
   // excludes node_modules, causing Rollup parse failures with Bun's
   // hoisted dependency paths. This hook pre-transpiles them before Rollup.
   hooks: {
-    'nitro:init': function (nitro: { options: { rollupConfig: { plugins: unknown[] }, prerender: { routes: string[], crawlLinks: boolean, failOnError: boolean } } }) {
+    'nitro:init': function (nitro) {
       // Override Docus prerender after all hooks have run
-      nitro.options.prerender.routes = nitro.options.prerender.routes
-        .filter((r: string) => !r.includes('__nuxt_content'))
-      nitro.options.prerender.crawlLinks = false
-      nitro.options.prerender.failOnError = false
+      const prerender = nitro.options.prerender as { routes: string[], crawlLinks: boolean, failOnError: boolean }
+      prerender.routes = prerender.routes.filter(r => !r.includes('__nuxt_content'))
+      prerender.crawlLinks = false
+      prerender.failOnError = false
     },
     'nitro:config': function (nitroConfig) {
       nitroConfig.rollupConfig = nitroConfig.rollupConfig || {}
@@ -95,6 +95,13 @@ export default defineNuxtConfig({
   eslint: {
     config: {
       standalone: false,
+    },
+  },
+
+  typescript: {
+    tsConfig: {
+      // Suppress upstream Docus type errors (DocsCollectionItem export)
+      exclude: ['../**/node_modules/.bun/docus*/**'],
     },
   },
 
