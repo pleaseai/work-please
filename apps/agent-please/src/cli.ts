@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
-import { setVerbose } from '@pleaseai/agent-core'
+import { isWorkflowError, loadWorkflow, setVerbose } from '@pleaseai/agent-core'
 import { Command, CommanderError } from 'commander'
 import pkg from '../package.json' with { type: 'json' }
 import { runInit } from './init'
@@ -44,6 +44,19 @@ export async function runCli(argv: string[]): Promise<void> {
   process.env.NUXT_WORKFLOW_PATH = resolvedPath
   if (parsed.portOverride !== null) {
     process.env.PORT = String(parsed.portOverride)
+  }
+  else if (!process.env.PORT) {
+    // Read server.port from WORKFLOW.md so Nitro binds to the configured port
+    const wf = loadWorkflow(resolvedPath)
+    if (!isWorkflowError(wf)) {
+      const server = wf.config.server
+      const serverPort = (server && typeof server === 'object' && !Array.isArray(server))
+        ? (server as Record<string, unknown>).port
+        : undefined
+      if (typeof serverPort === 'number' && Number.isInteger(serverPort) && serverPort >= 0) {
+        process.env.PORT = String(serverPort)
+      }
+    }
   }
 
   // Start the Nuxt server
