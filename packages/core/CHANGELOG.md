@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.6](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.5...agent-core-v0.1.6) (2026-03-24)
+
+
+### Features
+
+* **agent-env:** add default GH_TOKEN, GITHUB_TOKEN, and git identity overrides ([#179](https://github.com/pleaseai/agent-please/issues/179)) ([5b20556](https://github.com/pleaseai/agent-please/commit/5b20556908118a40f818b527c92cc95c9c9ffd90))
+* **tracker:** include repository name in GitHub issue identifier ([#181](https://github.com/pleaseai/agent-please/issues/181)) ([765be7b](https://github.com/pleaseai/agent-please/commit/765be7bb1efadedde8443dffdd50db8e73f562f9))
+
+
+### Bug Fixes
+
+* **workspace:** move worktree path outside repo dir and add branch prefix option ([#178](https://github.com/pleaseai/agent-please/issues/178)) ([9620eca](https://github.com/pleaseai/agent-please/commit/9620eca7722f5f14c58902b87328aec79605c6e5))
+
 ## [0.1.5](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.4...agent-core-v0.1.5) (2026-03-23)
 
 
