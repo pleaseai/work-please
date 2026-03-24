@@ -16,7 +16,7 @@ Nuxt 4 app with Nitro preset `bun`. Server layer is entirely in `apps/agent-plea
 
 **Server utils:**
 - `server/utils/orchestrator.ts` — `useOrchestrator(event)` retrieves `nitroApp.orchestrator` via `useNitroApp()`, throws HTTP 503 if not initialized.
-- `server/utils/auth.ts` — module-level singletons `_auth` and `_authEnabled`. Exports `initAuth()`, `useAuth()`, `isAuthEnabled()`, `resetAuth()`. Uses `better-auth` with `bun:sqlite`, supports GitHub OAuth + email/password + `admin` + `username` plugins.
+- `server/utils/auth.ts` — module-level singletons `_auth` and `_authEnabled`. Exports `initAuth()`, `useAuth()`, `isAuthEnabled()`, `resetAuth()`. Uses `better-auth` with shared Kysely DB instance (`{ db, type: 'sqlite' }`), supports GitHub OAuth + email/password + `admin` + `username` plugins.
 
 **API route structure:**
 - `server/api/auth/[...all].ts` — catch-all for better-auth; calls `auth.handler(toWebRequest(event))`

@@ -1,6 +1,6 @@
 ---
 name: db-layer-integration
-description: Database layer architecture — DbConfig, createDbClient, insertRun, queryRuns integration points from config through orchestrator to HTTP API
+description: Database layer architecture — Kysely typed query builder with LibsqlDialect, createKyselyDb, insertRun, queryRuns integration points from config through orchestrator to HTTP API
 type: project
 ---
 
@@ -17,6 +17,11 @@ type: project
 
 `AgentRunRecord` (line 177): all fields of the `agent_runs` table as TypeScript, with `id: number` (AUTOINCREMENT), dates stored as ISO strings, and nullable `session_id`, `error`, `retry_attempt`.
 
+### DB types (`packages/core/src/db-types.ts`)
+
+`AppDatabase` interface defines the typed schema for Kysely:
+- `agent_runs` table type with all columns typed
+
 ### Config layer (`packages/core/src/config.ts:265-271`)
 
 `buildDbConfig(db: Record<string,unknown>)` at line 265:
@@ -28,60 +33,55 @@ Called from `buildConfig()` at line 83: `db: buildDbConfig(db)` where `db = sect
 
 ### DB implementation (`packages/core/src/db.ts`)
 
-`resolveDbPath(dbPath, workspaceRoot)` (line 31): path traversal guard — returns null if resolved path escapes workspace root.
+Uses **Kysely** typed query builder with `@libsql/kysely-libsql` (`LibsqlDialect`).
 
-`createDbClient(config, workspaceRoot)` (line 41):
-- Branch 1: `config.turso_url` present → validate URL scheme → `createClient({ url, authToken })` from `@libsql/client`
-- Branch 2: embedded file → `resolveDbPath()` → `mkdirSync(dirname(...), { recursive: true })` → `createClient({ url: 'file:...' })`
-- Returns `Client | null`; null means DB is disabled (all subsequent DB calls are no-ops)
+`resolveDbPath(dbPath, workspaceRoot)` (line 12): path traversal guard — returns null if resolved path escapes workspace root.
 
-`runMigrations(client)` (line 94): calls `client.migrate([CREATE_AGENT_RUNS_TABLE, CREATE_AGENT_RUNS_IDX])` — idempotent (`CREATE TABLE IF NOT EXISTS`).
+`createKyselyDb(config, workspaceRoot)` (line 22):
+- Branch 1: `config.turso_url` present → validate URL scheme → `new LibsqlDialect({ url, authToken })` → `new Kysely<AppDatabase>({ dialect })`
+- Branch 2: embedded file → `resolveDbPath()` → `mkdirSync(dirname(...), { recursive: true })` → `new LibsqlDialect({ url: 'file:...' })` → `new Kysely<AppDatabase>({ dialect })`
+- Returns `Kysely<AppDatabase> | null`; null means DB is disabled (all subsequent DB calls are no-ops)
 
-`insertRun(client, params)` (line 123): parameterized INSERT via `client.execute({sql, args})`; silently no-ops if `client` is null.
+`runMigrations(db)` (line 75): uses Kysely `Migrator` with inline migration provider. Migrations are in `src/migrations/001_create_agent_runs.ts` (typed `up`/`down` functions using Kysely schema builder). Idempotent via `ifNotExists`/`ifExists`.
 
-`queryRuns(client, options)` (line 162): SELECT with optional `WHERE identifier = ?` and/or `WHERE status = ?`; ORDER BY id DESC; default limit 50 / offset 0. Maps raw rows → `AgentRunRecord[]`.
+`insertRun(db, params)` (line 118): typed INSERT via `db.insertInto('agent_runs').values({...}).execute()`; silently no-ops if `db` is null.
+
+`queryRuns(db, options)` (line 153): typed SELECT with optional `.where('identifier', '=', ...)` and/or `.where('status', '=', ...)`; `.orderBy('id', 'desc')`; default limit 50 / offset 0. Maps rows → `AgentRunRecord[]`.
+
+### Migrations (`packages/core/src/migrations/`)
+
+`001_create_agent_runs.ts`:
+- `up(db)`: creates `agent_runs` table + `idx_agent_runs_identifier` index
+- `down(db)`: drops index first, then table (correct order for dialect portability)
 
 ### Orchestrator integration (`packages/core/src/orchestrator.ts`)
 
-`private db: Client | null = null` (line 35) and `private pendingDbWrites: Promise<void>[] = []` (line 36).
+`private db: Kysely<AppDatabase> | null = null` and `private pendingDbWrites: Promise<void>[] = []`.
 
-**Initialization** in `start()` (line 73):
+**Initialization** in `start()`:
 ```
-this.db = createDbClient(this.config.db, this.config.workspace.root)
+this.db = createKyselyDb(this.config.db, this.config.workspace.root)
 if (this.db) { await runMigrations(this.db) }
 ```
 Migration failure → `this.db = null` (run history disabled, no crash).
 
-**`insertRun` call site 1**: `onWorkerExit()` (line 578) — called when a worker completes normally or fails. Status is `'success'` if `reason === 'normal'`, else `'failure'`.
+**`insertRun` call site 1**: `onWorkerExit()` — called when a worker completes normally or fails.
 
-**`insertRun` call site 2**: `terminateRunningIssue()` (line 792) — called when reconciliation stops an agent (terminal state or staleness). Status is `'terminated'`.
+**`insertRun` call site 2**: `terminateRunningIssue()` — called when reconciliation stops an agent.
 
-Both sites push the resulting promise into `pendingDbWrites[]` and remove it on settle (self-cleaning array, no unbounded growth).
+Both sites push the resulting promise into `pendingDbWrites[]` and remove it on settle.
 
-**Shutdown** in `stop()` (line 120):
+**Shutdown** in `stop()`:
 ```
 await Promise.allSettled(this.pendingDbWrites)
-this.db.close()
+await this.db.destroy()
 ```
-Ensures all in-flight writes complete before DB handle is closed.
 
-**Accessor** `getDb(): Client | null` (line 155) — exposes the client to server routes.
+**Accessor** `getDb(): Kysely<AppDatabase> | null` — exposes the typed DB instance to server routes and auth.
 
-### HTTP API (`packages/core/src/server.ts`)
+### Auth integration
 
-`GET /api/v1/runs` (line 116) → `runsResponse(orchestrator, url.searchParams)` (line 350):
-- Gets `db` via `orchestrator.getDb()`
-- Parses query params: `identifier` (≤256 chars), `status` (enum-validated), `limit` (1–200, default 50), `offset` (0–100000, default 0)
-- Calls `queryRuns(db, { identifier, status, limit, offset })`
-- Returns JSON array of `AgentRunRecord`
-
-No `/api/v1/runs` route exists in the Nitro (`apps/agent-please/server/`) layer — the Nitro app has separate equivalent routes but `queryRuns` is only used by the Bun-native `HttpServer` in `packages/core/src/server.ts`.
-
-### Nitro server layer (`apps/agent-please/server/`)
-
-The Nitro routes (`server/api/v1/state.get.ts`, `server/api/v1/[identifier].get.ts`) read only from in-memory `OrchestratorState` via `useOrchestrator(event)`. They do NOT query the DB directly. The runs history endpoint is not present in the Nitro layer — it exists only in the core `HttpServer`.
-
-`useOrchestrator()` (`server/utils/orchestrator.ts:4`) reads `nitroApp.orchestrator` injected by plugin `server/plugins/01.orchestrator.ts`.
+`initAuth(authConfig, db)` in `apps/agent-please/server/utils/auth.ts` receives the shared `Kysely<any>` instance and passes it to better-auth as `{ db, type: 'sqlite' }`. Auth no longer creates its own SQLite connection.
 
 ### Data flow summary
 
@@ -89,17 +89,17 @@ The Nitro routes (`server/api/v1/state.get.ts`, `server/api/v1/[identifier].get.
 WORKFLOW.md (YAML)
   → buildConfig() → buildDbConfig()
   → DbConfig { path, turso_url, turso_auth_token }
-  → createDbClient()  [on orchestrator.start()]
-  → Client | null (stored in Orchestrator.db)
-  → runMigrations()   [creates agent_runs table + index]
+  → createKyselyDb()  [on orchestrator.start()]
+  → Kysely<AppDatabase> | null (stored in Orchestrator.db)
+  → runMigrations()   [Kysely Migrator with typed up/down]
   → (agent run completes/terminates)
-  → insertRun(db, params)  [in onWorkerExit or terminateRunningIssue]
+  → insertRun(db, params)  [typed Kysely insert]
   → agent_runs row written
   → GET /api/v1/runs
   → orchestrator.getDb() → queryRuns(db, filters)
   → AgentRunRecord[] JSON response
 ```
 
-**Why:** Understanding this is needed to add Kysely typed query builder (active track: `kysely-db-layer-20260324`) or add new DB-backed endpoints.
+**Why:** Understanding this is needed to add new DB-backed features, new migrations, or new endpoints.
 
-**How to apply:** DB is always nullable — guard with `if (!client) return []` / `if (!client) return` pattern throughout. Path traversal guard is mandatory for embedded mode. Turso remote mode requires URL scheme validation.
+**How to apply:** DB is always nullable — guard with `if (!db) return []` / `if (!db) return` pattern throughout. Path traversal guard is mandatory for embedded mode. Turso remote mode requires URL scheme validation. All queries use Kysely typed builder — no raw SQL needed for CRUD.
