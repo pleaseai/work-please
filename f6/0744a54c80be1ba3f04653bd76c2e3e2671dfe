@@ -1,0 +1,23 @@
+.please/docs/tracks/active/commit-signing-20260324/plan.md
+  38fbf0dc93917544 40-49,118-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "f60744a54c80be1ba3f04653bd76c2e3e2671dfe",
+  "prompts": {
+    "38fbf0dc93917544": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "97ac41c3-df0d-4194-add8-0ad11c54da07",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 32,
+      "total_deletions": 10,
+      "accepted_lines": 63,
+      "overriden_lines": 0
+    }
+  }
+}
