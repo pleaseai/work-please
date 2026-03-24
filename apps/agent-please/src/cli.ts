@@ -49,12 +49,12 @@ export async function runCli(argv: string[]): Promise<void> {
     // Read server.port from WORKFLOW.md so Nitro binds to the configured port
     const wf = loadWorkflow(resolvedPath)
     if (!isWorkflowError(wf)) {
-      const server = wf.config.server
-      const serverPort = (server && typeof server === 'object' && !Array.isArray(server))
-        ? (server as Record<string, unknown>).port
-        : undefined
-      if (typeof serverPort === 'number' && Number.isInteger(serverPort) && serverPort >= 0) {
-        process.env.PORT = String(serverPort)
+      const serverConfig = wf.config.server
+      if (serverConfig && typeof serverConfig === 'object' && !Array.isArray(serverConfig)) {
+        const port = (serverConfig as Record<string, unknown>).port
+        if (typeof port === 'number' && Number.isInteger(port) && port >= 0) {
+          process.env.PORT = String(port)
+        }
       }
     }
   }
