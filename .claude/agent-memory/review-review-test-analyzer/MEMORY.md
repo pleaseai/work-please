@@ -30,3 +30,14 @@ Decision tree in `runTurn`:
 
 ## Known Coverage Gaps to Watch
 - No test for calling `runTurn` after `stopSession()` clears state (null assignedSessionId + null sessionId)
+
+## DB Layer (packages/core/src/db.ts) — as of PR #193 Kysely migration
+- `createKyselyDb` returns `Kysely<AppDatabase> | null`; test file is `packages/core/src/db.test.ts`
+- `runMigrations` uses Kysely `Migrator`; failure path (error in result OR throw) returns `false` — untested (rating 7)
+- `queryRuns` normalizes unknown status values to `'failure'` — that else-branch is untested (rating 7)
+- `auth.test.ts` `makeInMemoryDb()` instances are never destroyed in afterEach — resource leak pattern to flag in future PRs
+
+## DB Test Patterns (PR #193)
+- Typed Kysely assertions preferred over raw SQL: `db.selectFrom('agent_runs').selectAll().execute()`
+- `mkdtempSync`/`rmSync` pattern used for tmp file isolation (same as SDK tests)
+- `sql\`...\`.execute(db)` used for schema introspection in migration tests (sqlite_master)
