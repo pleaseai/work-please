@@ -394,9 +394,16 @@ function normalizeProjectItem(node: Record<string, unknown>, status: string, pro
   const content = node.content as Record<string, unknown>
   const number = content?.number
   const repo = (content?.repository as { nameWithOwner?: string })?.nameWithOwner
-  const identifier = number
-    ? (repo ? `${repo}#${number}` : `#${number}`)
-    : String(node.id ?? '')
+  let identifier: string
+  if (number && repo) {
+    identifier = `${repo}#${number}`
+  }
+  else if (number) {
+    identifier = `#${number}`
+  }
+  else {
+    identifier = String(node.id ?? '')
+  }
   const labels = Array.isArray((content?.labels as { nodes?: Array<{ name?: string }> })?.nodes)
     ? ((content.labels as { nodes: Array<{ name?: string }> }).nodes).map(l => (l.name ?? '').toLowerCase()).filter(Boolean)
     : []
