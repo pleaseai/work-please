@@ -37,16 +37,16 @@ Alternative considered: writing `.gitconfig` files per workspace. Rejected becau
 
 ## Tasks
 
-- [ ] T001 Add CommitSigningConfig type and extend ServiceConfig (file: packages/core/src/types.ts)
-- [ ] T002 Add buildCommitSigningConfig parser with $ENV_VAR resolution (file: packages/core/src/config.ts) (depends on T001)
-- [ ] T003 [P] Add commit signing config parsing tests (file: packages/core/src/config.test.ts) (depends on T001)
-- [ ] T004 Inject GIT_CONFIG_* env vars for SSH signing mode in buildDefaults (file: packages/core/src/agent-env.ts) (depends on T001)
-- [ ] T005 [P] Add agent-env signing injection tests (file: packages/core/src/agent-env.test.ts) (depends on T004)
-- [ ] T006 Add configureRemoteAuth helper for authenticated git remote URL (file: packages/core/src/workspace.ts) (depends on T001)
-- [ ] T007 [P] Add workspace remote auth tests (file: packages/core/src/workspace.test.ts) (depends on T006)
-- [ ] T008 Add SSH key setup at startup and cleanup at shutdown in orchestrator (file: packages/core/src/orchestrator.ts) (depends on T002, T004, T006)
-- [ ] T009 Add orchestrator commit signing lifecycle tests (file: packages/core/src/orchestrator.test.ts) (depends on T008)
-- [ ] T010 Wire configureRemoteAuth into executeAgentRun after workspace creation (file: packages/core/src/orchestrator.ts) (depends on T006, T008)
+- [x] T001 Add CommitSigningConfig type and extend ServiceConfig (file: packages/core/src/types.ts)
+- [x] T002 Add buildCommitSigningConfig parser with $ENV_VAR resolution (file: packages/core/src/config.ts) (depends on T001)
+- [x] T003 [P] Add commit signing config parsing tests (file: packages/core/src/config.test.ts) (depends on T001)
+- [x] T004 Inject GIT_CONFIG_* env vars for SSH signing mode in buildDefaults (file: packages/core/src/agent-env.ts) (depends on T001)
+- [x] T005 [P] Add agent-env signing injection tests (file: packages/core/src/agent-env.test.ts) (depends on T004)
+- [x] T006 Add configureRemoteAuth helper for authenticated git remote URL (file: packages/core/src/workspace.ts) (depends on T001)
+- [x] T007 [P] Add workspace remote auth tests (file: packages/core/src/workspace.test.ts) (depends on T006)
+- [x] T008 Add SSH key setup at startup and cleanup at shutdown in orchestrator (file: packages/core/src/orchestrator.ts) (depends on T002, T004, T006)
+- [x] T009 Add orchestrator commit signing lifecycle tests (file: packages/core/src/orchestrator.test.ts) (depends on T008)
+- [x] T010 Wire configureRemoteAuth into executeAgentRun after workspace creation (file: packages/core/src/orchestrator.ts) (depends on T006, T008)
 
 ## Key Files
 
@@ -115,3 +115,25 @@ _(none — all changes modify existing files)_
 - Decision: Top-level `commit_signing` field in ServiceConfig (not nested under workspace)
   Rationale: Signing affects git operations broadly, not just workspace creation. Parallel to existing top-level sections.
   Date/Author: 2026-03-24 / Claude
+
+## Progress
+
+- [x] (2026-03-24 10:00 KST) T001 Add CommitSigningConfig type and extend ServiceConfig
+- [x] (2026-03-24 10:00 KST) T002 Add buildCommitSigningConfig parser with $ENV_VAR resolution
+- [x] (2026-03-24 10:10 KST) T003 Add commit signing config parsing tests
+  Evidence: `bun test packages/core/src/config.test.ts` → 8 new tests passed
+- [x] (2026-03-24 10:10 KST) T004 Inject GIT_CONFIG_* env vars for SSH signing mode
+- [x] (2026-03-24 10:10 KST) T005 Add agent-env signing injection tests
+  Evidence: `bun test packages/core/src/agent-env.test.ts` → 4 new tests passed
+- [x] (2026-03-24 10:10 KST) T006 Add configureRemoteAuth helper
+- [x] (2026-03-24 10:10 KST) T007 Add workspace remote auth tests
+  Evidence: `bun test packages/core/src/workspace.test.ts` → 4 new tests passed
+- [x] (2026-03-24 10:20 KST) T008 Add SSH key setup/cleanup in orchestrator
+- [x] (2026-03-24 10:20 KST) T009 Add orchestrator commit signing lifecycle tests
+  Evidence: `bun test packages/core/src/orchestrator.test.ts` → 4 new tests passed
+- [x] (2026-03-24 10:20 KST) T010 Wire configureRemoteAuth into executeAgentRun
+
+## Surprises & Discoveries
+
+- Observation: ESLint rule `e18e/prefer-static-regex` requires all regex literals to be at module scope
+  Evidence: `configureRemoteAuth` inline regex caused lint failure; moved to `GITHUB_HTTPS_URL_RE` constant
