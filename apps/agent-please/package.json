@@ -30,7 +30,7 @@
     "lint:fix": "eslint . --fix",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=test-report.junit.xml"
+    "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=coverage/test-report.junit.xml"
   },
   "dependencies": {
     "@chat-adapter/github": "^4.20.2",
