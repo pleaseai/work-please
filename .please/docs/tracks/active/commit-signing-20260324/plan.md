@@ -137,3 +137,23 @@ _(none — all changes modify existing files)_
 
 - Observation: ESLint rule `e18e/prefer-static-regex` requires all regex literals to be at module scope
   Evidence: `configureRemoteAuth` inline regex caused lint failure; moved to `GITHUB_HTTPS_URL_RE` constant
+
+## Outcomes & Retrospective
+
+### What Was Shipped
+- Two commit signing strategies (SSH key + GitHub API) configurable via WORKFLOW.md
+- Authenticated git remote URL rewriting with installation access tokens
+- SSH key lifecycle management (write at startup, cleanup on shutdown)
+- Full backward compatibility — default mode `none` preserves existing behavior
+
+### What Went Well
+- Layered integration followed existing codebase patterns exactly — no architectural surprises
+- Parallel agent execution for T003-T007 significantly reduced implementation time
+- Code review caught 3 real issues (content/path mismatch, re-run stale token, GIT_CONFIG collision) before merge
+
+### What Could Improve
+- The `ssh_signing_key` field semantics (content vs path) should have been clarified in the spec phase, not caught in review
+- More careful consideration of re-entrant operations (configureRemoteAuth called on re-runs)
+
+### Tech Debt Created
+- None identified
