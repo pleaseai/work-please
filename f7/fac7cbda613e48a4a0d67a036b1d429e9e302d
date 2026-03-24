@@ -1,0 +1,23 @@
+packages/core/src/workspace.ts
+  38fbf0dc93917544 63,442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "f7fac7cbda613e48a4a0d67a036b1d429e9e302d",
+  "prompts": {
+    "38fbf0dc93917544": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "97ac41c3-df0d-4194-add8-0ad11c54da07",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 33,
+      "overriden_lines": 0
+    }
+  }
+}
