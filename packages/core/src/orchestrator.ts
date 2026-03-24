@@ -1,5 +1,6 @@
-import type { Client } from '@libsql/client'
+import type { Kysely } from 'kysely'
 import type { BotIdentity } from './agent-env'
+import type { AppDatabase } from './db-types'
 import type { DispatchLockAdapter } from './dispatch-lock'
 import type { LabelService } from './label'
 import type { GitHubPlatformConfig, Issue, OrchestratorState, ProjectConfig, RetryEntry, RunningEntry, ServiceConfig, WorkflowDefinition } from './types'
@@ -8,7 +9,7 @@ import { join } from 'node:path'
 import { resolveAgentEnv } from './agent-env'
 import { AppServerClient } from './agent-runner'
 import { buildConfig, getActiveStates, getTerminalStates, getWatchedStates, maxConcurrentForState, normalizeState, validateConfig } from './config'
-import { createDbClient, insertRun, runMigrations } from './db'
+import { createKyselyDb, insertRun, runMigrations } from './db'
 import { toDispatchLockKey } from './dispatch-lock'
 import { createLabelService } from './label'
 import { createLogger } from './logger'
@@ -32,7 +33,7 @@ export class Orchestrator {
   private pollTimer: ReturnType<typeof setTimeout> | null = null
   private fileWatcher: ReturnType<typeof watch> | null = null
   private labelService: LabelService | null = null
-  private db: Client | null = null
+  private db: Kysely<AppDatabase> | null = null
   private pendingDbWrites: Promise<void>[] = []
   private dispatchLockAdapter: DispatchLockAdapter | null = null
   private sshSigningKeyPath: string | null = null
@@ -70,12 +71,12 @@ export class Orchestrator {
     }
 
     // Initialize database for run history
-    this.db = createDbClient(this.config.db, this.config.workspace.root)
+    this.db = createKyselyDb(this.config.db, this.config.workspace.root)
     if (this.db) {
       const migrated = await runMigrations(this.db)
       if (!migrated) {
         log.warn('db migration failed — disabling run history')
-        this.db.close()
+        await this.db.destroy()
         this.db = null
       }
     }
@@ -135,7 +136,7 @@ export class Orchestrator {
     }
     // Close database
     if (this.db) {
-      this.db.close()
+      await this.db.destroy()
       this.db = null
     }
   }
@@ -152,7 +153,7 @@ export class Orchestrator {
     return this.workflow
   }
 
-  getDb(): Client | null {
+  getDb(): Kysely<AppDatabase> | null {
     return this.db
   }
 
