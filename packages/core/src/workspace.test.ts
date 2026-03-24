@@ -1165,4 +1165,35 @@ describe('configureRemoteAuth', () => {
     const setUrlCall = calls.find(args => args.includes('set-url'))
     expect(setUrlCall).toBeUndefined()
   })
+
+  it('handles already-tokenized URLs on re-runs', () => {
+    const newToken = 'ghs_new_token'
+    const spy = spyOn(_git, 'spawnSync').mockImplementation((args: string[]) => {
+      if (args.includes('get-url')) {
+        return {
+          exitCode: 0,
+          success: true,
+          stdout: Buffer.from('https://x-access-token:ghs_old@github.com/owner/repo.git\n'),
+          stderr: Buffer.from(''),
+          signalCode: null,
+        } as unknown as import('./workspace').SpawnSyncResult
+      }
+      return {
+        exitCode: 0,
+        success: true,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+        signalCode: null,
+      } as unknown as import('./workspace').SpawnSyncResult
+    })
+
+    configureRemoteAuth(wsPath, newToken)
+
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    const setUrlCall = calls.find(args => args.includes('set-url'))
+    expect(setUrlCall).toBeDefined()
+    expect(setUrlCall).toContain(`https://x-access-token:${newToken}@github.com/owner/repo.git`)
+  })
 })

@@ -393,7 +393,10 @@ export class Orchestrator {
 
     // Resolve agent environment variables (including runtime tokens)
     const client = new AppServerClient(this.config, wsResult.path)
-    const agentEnv = await resolveAgentEnv(this.config, this.buildTokenProvider())
+    const agentEnv = await resolveAgentEnv(this.config, {
+      tokenProvider: this.buildTokenProvider(),
+      sshSigningKeyPath: this.sshSigningKeyPath,
+    })
     client.setAgentEnv(agentEnv)
 
     // Start agent session

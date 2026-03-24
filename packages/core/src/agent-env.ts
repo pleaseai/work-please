@@ -19,15 +19,26 @@ export interface TokenProvider {
 const TOKEN_ENV_KEYS = ['GH_TOKEN', 'GITHUB_TOKEN'] as const
 const GIT_IDENTITY_KEYS = ['GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL'] as const
 
+export interface ResolveAgentEnvOptions {
+  tokenProvider?: TokenProvider
+  sshSigningKeyPath?: string | null
+}
+
 export async function resolveAgentEnv(
   config: ServiceConfig,
-  tokenProvider?: TokenProvider,
+  tokenProviderOrOptions?: TokenProvider | ResolveAgentEnvOptions,
 ): Promise<Record<string, string>> {
+  // Support both old signature (tokenProvider) and new options object
+  const options: ResolveAgentEnvOptions = tokenProviderOrOptions && 'installationAccessToken' in tokenProviderOrOptions
+    ? { tokenProvider: tokenProviderOrOptions }
+    : (tokenProviderOrOptions as ResolveAgentEnvOptions | undefined) ?? {}
+  const { tokenProvider, sshSigningKeyPath } = options
+
   const resolved: Record<string, string> = {}
   let cachedToken: string | null | undefined
 
   // Build defaults from tokenProvider (only when available)
-  const defaults = await buildDefaults(config, tokenProvider)
+  const defaults = await buildDefaults(config, tokenProvider, sshSigningKeyPath ?? null)
 
   // Merge defaults first, then user-defined env on top
   const merged = { ...defaults, ...config.env }
@@ -70,6 +81,7 @@ export async function resolveAgentEnv(
 async function buildDefaults(
   config: ServiceConfig,
   tokenProvider?: TokenProvider,
+  sshSigningKeyPath?: string | null,
 ): Promise<Record<string, string>> {
   const userEnv = config.env
   const defaults: Record<string, string> = {}
@@ -111,13 +123,16 @@ async function buildDefaults(
   }
 
   // Inject git commit signing config when SSH mode is active
-  if (config.commit_signing.mode === 'ssh' && config.commit_signing.ssh_signing_key) {
-    const signingKeyPath = config.commit_signing.ssh_signing_key
+  // sshSigningKeyPath is the path to the key file on disk (written by orchestrator),
+  // NOT the raw key content from config.commit_signing.ssh_signing_key
+  const GIT_CONFIG_PREFIX = 'GIT_CONFIG_'
+  const hasUserGitConfig = Object.keys(userEnv).some(k => k.startsWith(GIT_CONFIG_PREFIX))
+  if (config.commit_signing.mode === 'ssh' && sshSigningKeyPath && !hasUserGitConfig) {
     defaults.GIT_CONFIG_COUNT = '3'
     defaults.GIT_CONFIG_KEY_0 = 'gpg.format'
     defaults.GIT_CONFIG_VALUE_0 = 'ssh'
     defaults.GIT_CONFIG_KEY_1 = 'user.signingkey'
-    defaults.GIT_CONFIG_VALUE_1 = signingKeyPath
+    defaults.GIT_CONFIG_VALUE_1 = sshSigningKeyPath
     defaults.GIT_CONFIG_KEY_2 = 'commit.gpgsign'
     defaults.GIT_CONFIG_VALUE_2 = 'true'
   }

@@ -1,7 +1,7 @@
 // Agent Environment
 export { resolveAgentEnv } from './agent-env'
 
-export type { BotIdentity, TokenProvider } from './agent-env'
+export type { BotIdentity, ResolveAgentEnvOptions, TokenProvider } from './agent-env'
 
 // Agent Runner
 export { AppServerClient, extractRateLimits, extractUsage, isInputRequired } from './agent-runner'
@@ -75,9 +75,9 @@ export type {
   AuthorAssociation,
   BlockerRef,
   ChannelConfig,
+  ClaudeEffort,
   CommitSigningConfig,
   CommitSigningMode,
-  ClaudeEffort,
   GitHubPlatformConfig,
   Issue,
   IssueFilter,

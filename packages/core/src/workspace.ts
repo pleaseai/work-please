@@ -60,7 +60,7 @@ const LEADING_PATH_SEP_RE = /^[/\\]/
 const RELATIVE_PARTS_RE = /[/\\]/
 const REPO_URL_STRIP_RE = /\/(?:issues|pull)\/\d+/
 const REPO_GIT_SUFFIX_RE = /\.git$/
-const GITHUB_HTTPS_URL_RE = /^https:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/
+const GITHUB_HTTPS_URL_RE = /^https:\/\/(?:[^@]+@)?github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/
 
 export function extractRepoUrl(url: string): string | null {
   const match = REPO_URL_STRIP_RE.exec(url)
