@@ -1,0 +1,23 @@
+.please/docs/tracks/active/kysely-db-layer-20260324/plan.md
+  f77d96af89b1f6ec 78,95,108,117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "75e31240123abe3613bb0d422ee6debaacb33f43",
+  "prompts": {
+    "f77d96af89b1f6ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b3548c20-f13c-46a6-bfdd-8af2bdf99ddc",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 6,
+      "accepted_lines": 521,
+      "overriden_lines": 0
+    }
+  }
+}
