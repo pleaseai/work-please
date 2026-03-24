@@ -60,6 +60,7 @@ const LEADING_PATH_SEP_RE = /^[/\\]/
 const RELATIVE_PARTS_RE = /[/\\]/
 const REPO_URL_STRIP_RE = /\/(?:issues|pull)\/\d+/
 const REPO_GIT_SUFFIX_RE = /\.git$/
+const GITHUB_HTTPS_URL_RE = /^https:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/
 
 export function extractRepoUrl(url: string): string | null {
   const match = REPO_URL_STRIP_RE.exec(url)
@@ -434,10 +435,11 @@ export function configureRemoteAuth(wsPath: string, token: string): void {
     return
   }
   const currentUrl = result.stdout.toString().trim()
-  if (!currentUrl) return
+  if (!currentUrl)
+    return
 
   // Extract owner/repo from HTTPS URL (e.g., https://github.com/owner/repo.git)
-  const match = currentUrl.match(/^https:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/)
+  const match = currentUrl.match(GITHUB_HTTPS_URL_RE)
   if (!match) {
     log.warn(`configureRemoteAuth: unsupported remote URL format: ${currentUrl}`)
     return
