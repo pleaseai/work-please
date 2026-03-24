@@ -1,0 +1,29 @@
+apps/docs/content/1.getting-started/3.configuration.md
+  28c394d3dc5a104d 9
+apps/docs/content/1.getting-started/2.installation.md
+  28c394d3dc5a104d 15
+apps/docs/content/2.guides/3.workspace-hooks.md
+  28c394d3dc5a104d 9
+apps/docs/package.json
+  28c394d3dc5a104d 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "381ac82bbd9e81e3d8b7816da502b0ae9cb48490",
+  "prompts": {
+    "28c394d3dc5a104d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4596a47d-a425-4600-b806-7b1f917dc1d0",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 4,
+      "accepted_lines": 4,
+      "overriden_lines": 0
+    }
+  }
+}
