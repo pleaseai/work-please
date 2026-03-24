@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.22](https://github.com/pleaseai/agent-please/compare/agent-v0.1.21...agent-v0.1.22) (2026-03-24)
+
+
+### Bug Fixes
+
+* **cli:** apply server.port from WORKFLOW.md to Nitro listen port ([#182](https://github.com/pleaseai/agent-please/issues/182)) ([af66b42](https://github.com/pleaseai/agent-please/commit/af66b42e3a2e327fb546e10c9bc1dad5cccf79dd))
+
 ## [0.1.21](https://github.com/pleaseai/agent-please/compare/agent-v0.1.20...agent-v0.1.21) (2026-03-23)
 
 
