@@ -1,0 +1,31 @@
+.please/docs/tracks/active/cloud-relay-20260325/spec.md
+  9dfa70205c37d904 74
+.please/docs/tracks/active/cloud-relay-20260325/plan.md
+  9dfa70205c37d904 37,48-51,61-65,99
+apps/relay-worker/src/relay-party.ts
+  9dfa70205c37d904 5-6
+apps/relay-worker/src/index.ts
+  9dfa70205c37d904 30
+.please/docs/knowledge/tech-stack.md
+  9dfa70205c37d904 89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "5bd759f5f57fc28d5c2a6e846c4e655c1dd97842",
+  "prompts": {
+    "9dfa70205c37d904": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e6f7799-4db2-4c70-a083-45cc26eb31f8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 15,
+      "accepted_lines": 98,
+      "overriden_lines": 0
+    }
+  }
+}
