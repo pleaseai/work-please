@@ -31,6 +31,8 @@ export class RelayParty extends Server<Env> {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
+    const body = await request.text()
+
     const secret = this.env.WEBHOOK_SECRET
     if (secret) {
       const signature = request.headers.get('x-hub-signature-256')
@@ -41,7 +43,6 @@ export class RelayParty extends Server<Env> {
         )
       }
 
-      const body = await request.clone().text()
       const valid = await this.verifySignature(body, signature, secret)
       if (!valid) {
         return Response.json(
@@ -54,7 +55,7 @@ export class RelayParty extends Server<Env> {
     const event = request.headers.get('x-github-event') ?? 'unknown'
     let action: string | null = null
     try {
-      const parsed = await request.json() as Record<string, unknown>
+      const parsed = JSON.parse(body) as Record<string, unknown>
       if (typeof parsed?.action === 'string')
         action = parsed.action
     }

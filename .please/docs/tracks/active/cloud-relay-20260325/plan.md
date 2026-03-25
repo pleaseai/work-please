@@ -50,7 +50,7 @@ The worker and client are decoupled: the worker only needs `partyserver` (Cloudf
 - [x] T008 Add webhook ingress handler with signature verification (file: packages/relay-worker/src/relay-party.ts) (depends on T007)
 - [x] T009 Add WebSocket connection authentication (file: packages/relay-worker/src/relay-party.ts) (depends on T007)
 - [x] T010 Add relay config validation in validateConfig (file: packages/core/src/config.ts) (depends on T002)
-- [x] T011 Add Nitro plugin for relay transport lifecycle (file: apps/agent-please/server/plugins/04.relay.ts) (depends on T004)
+- [x] T011 ~~Add Nitro plugin for relay transport lifecycle~~ Removed — orchestrator handles relay lifecycle directly (depends on T004)
 
 ## Key Files
 
