@@ -3,7 +3,9 @@ import type { AgentRunRecord, AgentRunStatus, DbConfig } from './types'
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { LibsqlDialect } from '@libsql/kysely-libsql'
+import { Database } from 'bun:sqlite'
 import { Kysely, Migrator } from 'kysely'
+import { BunSqliteDialect } from 'kysely-bun-sqlite'
 import { createLogger } from './logger'
 import * as migration001 from './migrations/001_create_agent_runs'
 
@@ -62,9 +64,12 @@ export function createKyselyDb(config: DbConfig, workspaceRoot: string): Kysely<
   }
 
   try {
-    const dialect = new LibsqlDialect({ url: `file:${dbFilePath}` })
+    const dialect = new BunSqliteDialect({
+      database: new Database(dbFilePath, { create: true }),
+    })
+    const db = new Kysely<AppDatabase>({ dialect })
     log.info(`db opened: ${dbFilePath}`)
-    return new Kysely<AppDatabase>({ dialect })
+    return db
   }
   catch (err) {
     log.error(`db connection failed: ${err}`)

@@ -54,6 +54,7 @@
     "consola": "^3.4.2",
     "js-yaml": "^4.1.1",
     "kysely": "^0.28.14",
+    "kysely-bun-sqlite": "^0.4.0",
     "liquidjs": "^10.25.0",
     "zod": "^4.3.6"
   },
