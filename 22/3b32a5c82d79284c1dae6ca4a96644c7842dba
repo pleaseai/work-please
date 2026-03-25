@@ -1,0 +1,25 @@
+packages/core/package.json
+  6f82591a77cf565e 57
+packages/core/src/db.ts
+  6f82591a77cf565e 5,8,67-70,72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "223b32a5c82d79284c1dae6ca4a96644c7842dba",
+  "prompts": {
+    "6f82591a77cf565e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9fa74ef2-794a-4a97-803b-07e03b309925",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 8,
+      "total_deletions": 3,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    }
+  }
+}
