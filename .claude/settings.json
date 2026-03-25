@@ -40,7 +40,8 @@
     "nuxt-ui@pleaseai": true,
     "chat-sdk@pleaseai": true,
     "ai-sdk@pleaseai": true,
-    "mastra@pleaseai": true
+    "mastra@pleaseai": true,
+    "gardening@passionfactory": true
   },
   "extraKnownMarketplaces": {
     "passionfactory": {
