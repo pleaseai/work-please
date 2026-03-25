@@ -1,15 +1,16 @@
-import type { StateResponse } from '~/utils/types'
+import { useQuery } from '@tanstack/vue-query'
 
-export function useOrchestratorState(intervalMs = 3000) {
-  const { data: state, error: fetchError, status, refresh } = useFetch<StateResponse>('/api/v1/state', {
-    lazy: true,
-  })
+export function useOrchestratorState() {
+  const { $orpc } = useNuxtApp()
 
-  const error = computed(() => fetchError.value?.message ?? null)
-  const loading = computed(() => status.value === 'pending' && !state.value)
+  const { data: state, error: queryError, isPending, refetch } = useQuery(
+    $orpc.orchestrator.live.experimental_liveOptions({
+      retry: true,
+    }),
+  )
 
-  const { pause } = useIntervalFn(refresh, intervalMs)
-  onScopeDispose(pause)
+  const error = computed(() => queryError.value?.message ?? null)
+  const loading = computed(() => isPending.value && !state.value)
 
-  return { state, error, loading, refresh }
+  return { state, error, loading, refresh: refetch }
 }

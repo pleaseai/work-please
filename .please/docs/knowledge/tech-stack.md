@@ -56,13 +56,18 @@
 | `@chat-adapter/state-redis` | Optional Redis state adapter for production |
 | `@chat-adapter/state-ioredis` | Optional ioredis state adapter (Cluster/Sentinel) |
 | `@chat-adapter/state-pg` | Optional PostgreSQL state adapter |
+| `@orpc/server` | End-to-end type-safe RPC server (procedures, middleware, event iterators) |
+| `@orpc/client` | Type-safe RPC client with RPCLink |
+| `@orpc/tanstack-query` | oRPC integration with TanStack Query (queryOptions, liveOptions, streamedOptions) |
+| `@orpc/zod` | Zod schema converter for oRPC OpenAPI generation |
+| `@tanstack/vue-query` | Async state management with caching, refetching, and SSE support |
 | consola | Structured logging |
 
 ## Infrastructure
 
 | Technology | Purpose |
 |---|---|
-| Nitro server routes | REST API (`/api/v1/state`, `/api/v1/refresh`, `/api/v1/:id`) |
+| oRPC + Nitro | Type-safe API via RPCHandler at `/rpc/*` (replaces REST `/api/v1/*`) |
 | Nitro server plugins | Orchestrator and Chat SDK lifecycle management |
 | Nitro webhooks | GitHub and Asana webhook handling (`/api/webhooks/github`, `/api/webhooks/asana`) |
 | YAML front matter | Configuration parsing from WORKFLOW.md |

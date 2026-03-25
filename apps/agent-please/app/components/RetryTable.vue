@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { RetryEntryPayload } from '~/utils/types'
+import type { z } from 'zod'
+import type { retryEntrySchema } from '../../server/orpc/schemas'
 import { formatTime } from '~/utils/format'
 
 defineProps<{
-  entries: RetryEntryPayload[]
+  entries: z.infer<typeof retryEntrySchema>[]
 }>()
 
 const columns = [

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { RunningEntryPayload } from '~/utils/types'
+import type { z } from 'zod'
+import type { runningEntrySchema } from '../../server/orpc/schemas'
 import { formatTime, formatTokens } from '~/utils/format'
 
 defineProps<{
-  entries: RunningEntryPayload[]
+  entries: z.infer<typeof runningEntrySchema>[]
 }>()
 
 const columns = [

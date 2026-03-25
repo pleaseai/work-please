@@ -1,18 +1,18 @@
-import type { IssueDetailResponse } from '~/utils/types'
+import { useQuery } from '@tanstack/vue-query'
 
-export function useIssueDetail(identifier: Ref<string> | (() => string), intervalMs = 3000) {
+export function useIssueDetail(identifier: Ref<string> | (() => string)) {
+  const { $orpc } = useNuxtApp()
   const id = computed(() => typeof identifier === 'function' ? identifier() : identifier.value)
 
-  const { data: detail, error: fetchError, status, refresh } = useFetch<IssueDetailResponse>(
-    () => `/api/v1/${encodeURIComponent(id.value)}`,
-    { lazy: true, watch: [id] },
+  const { data: detail, error: queryError, isPending, refetch } = useQuery(
+    computed(() => $orpc.issues.detail.queryOptions({
+      input: { identifier: id.value },
+      refetchInterval: 3000,
+    })),
   )
 
-  const error = computed(() => fetchError.value?.message ?? null)
-  const loading = computed(() => status.value === 'pending' && !detail.value)
+  const error = computed(() => queryError.value?.message ?? null)
+  const loading = computed(() => isPending.value && !detail.value)
 
-  const { pause } = useIntervalFn(refresh, intervalMs)
-  onScopeDispose(pause)
-
-  return { detail, error, loading, refresh }
+  return { detail, error, loading, refresh: refetch }
 }

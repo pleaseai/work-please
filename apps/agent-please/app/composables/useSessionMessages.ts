@@ -1,18 +1,18 @@
-import type { SessionMessage } from '~/utils/types'
+import { useQuery } from '@tanstack/vue-query'
 
-export function useSessionMessages(sessionId: Ref<string> | (() => string), intervalMs = 5000) {
+export function useSessionMessages(sessionId: Ref<string> | (() => string)) {
+  const { $orpc } = useNuxtApp()
   const id = computed(() => typeof sessionId === 'function' ? sessionId() : sessionId.value)
 
-  const { data: messages, error: fetchError, status, refresh } = useFetch<SessionMessage[]>(
-    () => `/api/v1/sessions/${encodeURIComponent(id.value)}/messages`,
-    { watch: [id], default: () => [] },
+  const { data: messages, error: queryError, isPending, refetch } = useQuery(
+    computed(() => $orpc.sessions.messages.queryOptions({
+      input: { sessionId: id.value },
+      refetchInterval: 5000,
+    })),
   )
 
-  const error = computed(() => fetchError.value?.message ?? null)
-  const loading = computed(() => status.value === 'pending' && messages.value.length === 0)
+  const error = computed(() => queryError.value?.message ?? null)
+  const loading = computed(() => isPending.value && !(messages.value && messages.value.length > 0))
 
-  const { pause } = useIntervalFn(refresh, intervalMs)
-  onScopeDispose(pause)
-
-  return { messages, error, loading, refresh }
+  return { messages: messages as Ref<typeof messages.value>, error, loading, refresh: refetch }
 }
