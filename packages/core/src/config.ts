@@ -339,9 +339,9 @@ function buildClaudeConfig(claude: Record<string, unknown>): ServiceConfig['clau
 
 function buildRelayConfig(relay: Record<string, unknown>): RelayConfig {
   return {
-    url: stringValue(relay.url),
+    url: resolveEnvValue(stringValue(relay.url), undefined),
     token: resolveEnvValue(stringValue(relay.token), process.env.RELAY_TOKEN),
-    room: stringValue(relay.room),
+    room: resolveEnvValue(stringValue(relay.room), undefined),
     secret: resolveEnvValue(stringValue(relay.secret), process.env.RELAY_SECRET),
   }
 }

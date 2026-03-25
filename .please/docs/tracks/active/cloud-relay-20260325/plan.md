@@ -63,7 +63,6 @@ The worker and client are decoupled: the worker only needs `partyserver` (Cloudf
 - `apps/relay-worker/src/index.ts` — Worker entry point exporting the party and fetch handler
 - `apps/relay-worker/wrangler.json` — Cloudflare Worker + Durable Object binding config
 - `apps/relay-worker/tsconfig.json` — TypeScript config for Cloudflare Workers environment
-- `apps/agent-please/server/plugins/04.relay.ts` — Nitro plugin managing relay connection lifecycle
 
 ### Modify
 

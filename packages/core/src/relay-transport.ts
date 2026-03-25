@@ -82,9 +82,8 @@ export class RelayTransport {
     try {
       envelope = JSON.parse(typeof data === 'string' ? data : String(data))
     }
-    catch {
-      log.warn('failed to parse relay message — triggering refresh anyway')
-      this.triggerRefresh()
+    catch (e) {
+      log.warn('failed to parse relay message:', e)
       return
     }
 

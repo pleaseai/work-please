@@ -60,8 +60,8 @@ export class RelayParty extends Server<Env> {
       if (typeof parsed?.action === 'string')
         action = parsed.action
     }
-    catch {
-      // Body parse failure does not block the broadcast
+    catch (e) {
+      console.error('Failed to parse webhook body:', e)
     }
 
     const envelope = JSON.stringify({
