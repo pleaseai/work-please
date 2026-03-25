@@ -61,10 +61,23 @@ const RELATIVE_PARTS_RE = /[/\\]/
 const REPO_URL_STRIP_RE = /\/(?:issues|pull)\/\d+/
 const REPO_GIT_SUFFIX_RE = /\.git$/
 const GITHUB_HTTPS_URL_RE = /^https:\/\/(?:[^@]+@)?github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/
+const STRIP_CREDENTIALS_RE = /^(https?:\/\/)[^@]+@/
 
 export function extractRepoUrl(url: string): string | null {
   const match = REPO_URL_STRIP_RE.exec(url)
   return match ? url.slice(0, match.index) : null
+}
+
+const GITHUB_HTTPS_PLAIN_RE = /^https:\/\/github\.com\//
+const TRAILING_SLASH_RE = /\/$/
+
+export function buildAuthenticatedUrl(repoUrl: string, token?: string | null): string {
+  if (!token || !GITHUB_HTTPS_PLAIN_RE.test(repoUrl))
+    return repoUrl
+  const url = new URL(repoUrl)
+  url.username = 'x-access-token'
+  url.password = token
+  return url.toString().replace(TRAILING_SLASH_RE, '')
 }
 
 export function resolveRepoDir(workspaceRoot: string, repoUrl: string): string {
@@ -79,20 +92,48 @@ export function resolveWorktreePath(workspaceRoot: string, repoUrl: string, bran
   return join(repoDir, 'worktrees', branchName)
 }
 
-export function ensureSharedClone(repoDir: string, repoUrl: string): Error | null {
+function redactToken(text: string, token?: string | null): string {
+  if (!token)
+    return text
+  return text.replaceAll(token, '***')
+}
+
+export function ensureSharedClone(repoDir: string, repoUrl: string, token?: string | null): Error | null {
+  const authUrl = buildAuthenticatedUrl(repoUrl, token)
   try {
     if (!existsSync(repoDir)) {
       mkdirSync(resolve(repoDir, '..'), { recursive: true })
-      const result = _git.spawnSync(['git', 'clone', repoUrl, repoDir])
+      const result = _git.spawnSync(['git', 'clone', authUrl, repoDir])
       if (!result.success) {
-        const output = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048)
+        const output = redactToken(((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
         return new Error(`git clone failed: ${output}`)
       }
     }
     else {
+      // When token is provided, temporarily set the remote URL to authenticate,
+      // then fetch from 'origin'. This avoids writing the token to FETCH_HEAD
+      // (git records the raw URL when fetching by URL instead of remote name).
+      if (token) {
+        _git.spawnSync(['git', '-C', repoDir, 'remote', 'set-url', 'origin', authUrl])
+      }
       const result = _git.spawnSync(['git', '-C', repoDir, 'fetch', 'origin'])
-      if (!result.success) {
-        const output = ((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048)
+      if (token) {
+        // Restore the plain URL to avoid persisting the token in .git/config.
+        // Always attempt restore regardless of fetch result to prevent token leakage.
+        const restoreResult = _git.spawnSync(['git', '-C', repoDir, 'remote', 'set-url', 'origin', repoUrl])
+        if (!restoreResult.success) {
+          const output = redactToken(((restoreResult.stdout?.toString() ?? '') + (restoreResult.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
+          // Critical: token may remain persisted in .git/config — surface as error
+          log.error(`ensureSharedClone: token URL may remain in .git/config after failed restore for ${repoDir}`)
+          return new Error(`git remote restore-url failed: ${output}`)
+        }
+        if (!result.success) {
+          const output = redactToken(((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
+          return new Error(`git fetch failed: ${output}`)
+        }
+      }
+      else if (!result.success) {
+        const output = redactToken(((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
         return new Error(`git fetch failed: ${output}`)
       }
     }
@@ -227,6 +268,7 @@ export async function createWorkspace(
   config: ServiceConfig,
   identifier: string,
   issue?: Issue,
+  token?: string | null,
 ): Promise<Workspace | Error> {
   const key = sanitizeIdentifier(identifier)
   let createdNow = false
@@ -235,7 +277,7 @@ export async function createWorkspace(
     const repoUrl = extractRepoUrl(issue.url)
     if (repoUrl) {
       const repoDir = resolveRepoDir(config.workspace.root, repoUrl)
-      const cloneErr = ensureSharedClone(repoDir, repoUrl)
+      const cloneErr = ensureSharedClone(repoDir, repoUrl, token)
       if (cloneErr)
         return cloneErr
       const sanitized = sanitizeIdentifier(issue.identifier)
@@ -450,6 +492,40 @@ export function configureRemoteAuth(wsPath: string, token: string): void {
   const setResult = _git.spawnSync(['git', '-C', wsPath, 'remote', 'set-url', 'origin', authUrl])
   if (!setResult.success) {
     log.warn(`configureRemoteAuth: failed to set remote URL for ${wsPath}`)
+  }
+}
+
+/**
+ * Removes credentials from the git remote URL of a worktree, restoring it to
+ * a plain HTTPS URL. Should be called after agent run completes to prevent
+ * token leakage from persisted `.git/config` entries.
+ */
+export function removeRemoteAuth(wsPath: string): void {
+  const result = _git.spawnSync(['git', '-C', wsPath, 'remote', 'get-url', 'origin'])
+  if (!result.success) {
+    log.warn(`removeRemoteAuth: failed to read remote URL for ${wsPath}`)
+    return
+  }
+  const currentUrl = result.stdout.toString().trim()
+  if (!currentUrl)
+    return
+
+  // Strip credentials (user:token@) while preserving the rest of the URL as-is
+  const plainUrl = currentUrl.replace(STRIP_CREDENTIALS_RE, '$1')
+
+  // Only update if the URL actually contained credentials
+  if (currentUrl === plainUrl)
+    return
+
+  // Verify the stripped URL still matches an expected GitHub HTTPS format
+  if (!GITHUB_HTTPS_URL_RE.test(plainUrl)) {
+    log.warn(`removeRemoteAuth: unexpected URL format after credential strip for ${wsPath}`)
+    return
+  }
+
+  const setResult = _git.spawnSync(['git', '-C', wsPath, 'remote', 'set-url', 'origin', plainUrl])
+  if (!setResult.success) {
+    log.warn(`removeRemoteAuth: failed to restore plain remote URL for ${wsPath}`)
   }
 }
 

@@ -8,11 +8,13 @@ import { buildConfig } from './config'
 import {
   _git,
   applyBranchPrefix,
+  buildAuthenticatedUrl,
   buildHookEnv,
   checkoutExistingBranch,
   configureRemoteAuth,
   createWorkspace,
   ensureClaudeSettings,
+  ensureSharedClone,
   extractRepoUrl,
   generateClaudeSettings,
   removeWorkspace,
@@ -1195,5 +1197,167 @@ describe('configureRemoteAuth', () => {
     const setUrlCall = calls.find(args => args.includes('set-url'))
     expect(setUrlCall).toBeDefined()
     expect(setUrlCall).toContain(`https://x-access-token:${newToken}@github.com/owner/repo.git`)
+  })
+})
+
+describe('buildAuthenticatedUrl', () => {
+  it('injects token into HTTPS GitHub URL', () => {
+    const url = buildAuthenticatedUrl('https://github.com/org/repo', 'ghs_token123')
+    expect(url).toBe('https://x-access-token:ghs_token123@github.com/org/repo')
+  })
+
+  it('returns original URL when no token provided', () => {
+    const url = buildAuthenticatedUrl('https://github.com/org/repo')
+    expect(url).toBe('https://github.com/org/repo')
+  })
+
+  it('returns original URL for non-GitHub HTTPS URLs', () => {
+    const url = buildAuthenticatedUrl('git@github.com:org/repo.git', 'ghs_token123')
+    expect(url).toBe('git@github.com:org/repo.git')
+  })
+})
+
+describe('ensureSharedClone with token', () => {
+  it('uses authenticated URL for git clone when token is provided', () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as import('./workspace').SpawnSyncResult)
+
+    const repoDir = join(tmpdir(), `shared-clone-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    const err = ensureSharedClone(repoDir, 'https://github.com/org/repo', 'ghs_abc123')
+
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    expect(err).toBeNull()
+    const cloneCall = calls.find(args => args[0] === 'git' && args[1] === 'clone')
+    expect(cloneCall).toBeDefined()
+    expect(cloneCall?.[2]).toBe('https://x-access-token:ghs_abc123@github.com/org/repo')
+  })
+
+  it('sets remote URL, fetches from origin, then restores URL when token is provided', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'shared-clone-test-'))
+    try {
+      const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+        exitCode: 0,
+        success: true,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+        signalCode: null,
+      } as unknown as import('./workspace').SpawnSyncResult)
+
+      const err = ensureSharedClone(tmpDir, 'https://github.com/org/repo', 'ghs_abc123')
+
+      const calls = spy.mock.calls.map(args => args[0] as string[])
+      spy.mockRestore()
+
+      expect(err).toBeNull()
+
+      // Step 1: set-url with authenticated URL
+      const setAuthCall = calls.find(args => args.includes('set-url') && args.includes('https://x-access-token:ghs_abc123@github.com/org/repo'))
+      expect(setAuthCall).toBeDefined()
+
+      // Step 2: fetch from 'origin' (not from the authenticated URL directly)
+      const fetchCall = calls.find(args => args.includes('fetch') && args.includes('origin'))
+      expect(fetchCall).toBeDefined()
+
+      // Step 3: restore plain URL
+      const restoreCall = calls.find(args => args.includes('set-url') && args.includes('https://github.com/org/repo'))
+      expect(restoreCall).toBeDefined()
+    }
+    finally {
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
+
+  it('redacts token from error message when clone fails', () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 128,
+      success: false,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from('fatal: repository \'https://x-access-token:ghs_secret_token@github.com/org/repo\' not found'),
+      signalCode: null,
+    } as unknown as import('./workspace').SpawnSyncResult)
+
+    const repoDir = join(tmpdir(), `nonexistent-clone-fail-${process.pid}-${Date.now()}`)
+    const err = ensureSharedClone(repoDir, 'https://github.com/org/repo', 'ghs_secret_token')
+    spy.mockRestore()
+
+    expect(err).not.toBeNull()
+    expect(err!.message).toContain('git clone failed')
+    expect(err!.message).not.toContain('ghs_secret_token')
+    expect(err!.message).toContain('***')
+  })
+
+  it('redacts token from error message when fetch fails', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'shared-clone-fetch-fail-'))
+    try {
+      let callCount = 0
+      const spy = spyOn(_git, 'spawnSync').mockImplementation(() => {
+        callCount++
+        // First two calls: set-url (success), third call: fetch (fail)
+        if (callCount <= 1) {
+          return { exitCode: 0, success: true, stdout: Buffer.from(''), stderr: Buffer.from(''), signalCode: null } as unknown as import('./workspace').SpawnSyncResult
+        }
+        return {
+          exitCode: 1,
+          success: false,
+          stdout: Buffer.from(''),
+          stderr: Buffer.from('fatal: could not read from remote https://x-access-token:ghs_leak_me@github.com/org/repo'),
+          signalCode: null,
+        } as unknown as import('./workspace').SpawnSyncResult
+      })
+
+      const err = ensureSharedClone(tmpDir, 'https://github.com/org/repo', 'ghs_leak_me')
+      spy.mockRestore()
+
+      expect(err).not.toBeNull()
+      expect(err!.message).toContain('git fetch failed')
+      expect(err!.message).not.toContain('ghs_leak_me')
+      expect(err!.message).toContain('***')
+    }
+    finally {
+      rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('createWorkspace with token', () => {
+  let tmpRoot: string
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'agent-please-wt-token-test-'))
+  })
+
+  afterEach(() => {
+    rmSync(tmpRoot, { recursive: true, force: true })
+  })
+
+  it('passes token to ensureSharedClone for authenticated clone', async () => {
+    const spy = spyOn(_git, 'spawnSync').mockReturnValue({
+      exitCode: 0,
+      success: true,
+      stdout: Buffer.from(''),
+      stderr: Buffer.from(''),
+      signalCode: null,
+    } as unknown as import('./workspace').SpawnSyncResult)
+
+    const issue = makeIssue({ identifier: 'MT-42', url: 'https://github.com/org/repo/issues/42' })
+    const config = makeConfig(tmpRoot)
+
+    const result = await createWorkspace(config, 'MT-42', issue, 'ghs_token123')
+
+    const calls = spy.mock.calls.map(args => args[0] as string[])
+    spy.mockRestore()
+
+    expect(result instanceof Error).toBe(false)
+
+    const cloneCall = calls.find(args => args[0] === 'git' && args[1] === 'clone')
+    expect(cloneCall).toBeDefined()
+    expect(cloneCall?.[2]).toBe('https://x-access-token:ghs_token123@github.com/org/repo')
   })
 })
