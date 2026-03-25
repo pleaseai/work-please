@@ -1,0 +1,25 @@
+.please/docs/knowledge/product.md
+  9dfa70205c37d904 26
+.please/docs/knowledge/tech-stack.md
+  9dfa70205c37d904 65-66,89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "02942a10b25276ecdb89d3df9c588e883ef56ccc",
+  "prompts": {
+    "9dfa70205c37d904": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e6f7799-4db2-4c70-a083-45cc26eb31f8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 0,
+      "accepted_lines": 86,
+      "overriden_lines": 0
+    }
+  }
+}
