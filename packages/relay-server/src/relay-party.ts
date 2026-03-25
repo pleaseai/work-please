@@ -95,7 +95,7 @@ export class RelayParty extends Server<Env> {
     )
 
     const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload))
-    const expected = `sha256=${Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')}`
+    const expected = `sha256=${Array.from(new Uint8Array(sig), b => b.toString(16).padStart(2, '0')).join('')}`
 
     if (signature.length !== expected.length)
       return false
