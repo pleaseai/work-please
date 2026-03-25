@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.8...agent-core-v0.1.9) (2026-03-25)
+
+
+### Bug Fixes
+
+* **core:** use bun:sqlite for local file database instead of native libsql ([#207](https://github.com/pleaseai/agent-please/issues/207)) ([9b6aa4c](https://github.com/pleaseai/agent-please/commit/9b6aa4c0938f844f2002b86aed5b031f83a3edc5))
+
 ## [0.1.8](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.7...agent-core-v0.1.8) (2026-03-25)
 
 
