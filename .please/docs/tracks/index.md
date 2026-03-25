@@ -18,7 +18,7 @@
 | [docs-site-docus-20260324](active/docs-site-docus-20260324/plan.md) | Documentation Site with Docus | feature | #191 | 2026-03-24 | in_progress |
 | [orpc-tanstack-migration-20260325](active/orpc-tanstack-migration-20260325/plan.md) | Migrate Dashboard API to oRPC + TanStack Query | refactor | TBD | 2026-03-25 | in_progress |
 | [project-board-view-20260325](active/project-board-view-20260325/plan.md) | Add Tracker Project Board View | feature | #206 | 2026-03-25 | in_progress |
-| [cloud-relay-20260325](active/cloud-relay-20260325/plan.md) | Cloud Relay Transport (Cloudflare + PartyServer) | feature | TBD | 2026-03-25 | planned |
+| [cloud-relay-20260325](active/cloud-relay-20260325/plan.md) | Cloud Relay Transport (Cloudflare + PartyServer) | feature | TBD | 2026-03-25 | in_progress |
 
 ## Recently Completed
 
