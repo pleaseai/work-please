@@ -1,0 +1,33 @@
+packages/relay-worker/package.json
+  9dfa70205c37d904 1-20
+packages/relay-worker/src/index.ts
+  9dfa70205c37d904 1-39
+packages/relay-worker/tsconfig.json
+  9dfa70205c37d904 1-13
+packages/relay-worker/wrangler.json
+  9dfa70205c37d904 1-20
+.please/docs/tracks/active/cloud-relay-20260325/plan.md
+  9dfa70205c37d904 48-51
+packages/relay-worker/src/relay-party.ts
+  9dfa70205c37d904 1-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "bcb68a53451e275f9be24e338bd430ce355afffa",
+  "prompts": {
+    "9dfa70205c37d904": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e6f7799-4db2-4c70-a083-45cc26eb31f8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 207,
+      "total_deletions": 8,
+      "accepted_lines": 285,
+      "overriden_lines": 0
+    }
+  }
+}
