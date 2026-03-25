@@ -3,7 +3,9 @@ import type {
   ChannelConfig,
   GitHubPlatformConfig,
   PlatformConfig,
+  PollingMode,
   ProjectConfig,
+  RelayConfig,
   ServiceConfig,
   SlackPlatformConfig,
 } from './types'
@@ -88,6 +90,47 @@ describe('platform-centric config types', () => {
       webhook_secret: null,
     }
     expect(asanaPlatform).toBeDefined()
+  })
+
+  it('PollingMode includes relay', () => {
+    const modes: PollingMode[] = ['poll', 'webhook', 'relay']
+    expect(modes).toContain('relay')
+  })
+
+  it('RelayConfig has url, token, room, and secret fields', () => {
+    const relay: RelayConfig = {
+      url: 'https://my-relay.workers.dev',
+      token: 'bearer-token',
+      room: 'my-project',
+      secret: 'webhook-secret',
+    }
+    expect(relay.url).toBe('https://my-relay.workers.dev')
+    expect(relay.token).toBe('bearer-token')
+    expect(relay.room).toBe('my-project')
+    expect(relay.secret).toBe('webhook-secret')
+  })
+
+  it('RelayConfig allows null values', () => {
+    const relay: RelayConfig = {
+      url: null,
+      token: null,
+      room: null,
+      secret: null,
+    }
+    expect(relay.url).toBeNull()
+  })
+
+  it('ServiceConfig includes relay field', () => {
+    const config: Partial<ServiceConfig> = {
+      relay: {
+        url: 'https://relay.example.com',
+        token: null,
+        room: null,
+        secret: null,
+      },
+    }
+    expect(config.relay).toBeDefined()
+    expect(config.relay!.url).toBe('https://relay.example.com')
   })
 
   it('ChannelConfig allows no allowed_associations', () => {

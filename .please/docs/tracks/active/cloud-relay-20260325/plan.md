@@ -40,8 +40,8 @@ The worker and client are decoupled: the worker only needs `partyserver` (Cloudf
 
 ## Tasks
 
-- [ ] T001 Extend PollingMode type and add RelayConfig interface (file: packages/core/src/types.ts)
-- [ ] T002 Add relay config builder and extend pollingModeValue (file: packages/core/src/config.ts) (depends on T001)
+- [x] T001 Extend PollingMode type and add RelayConfig interface (file: packages/core/src/types.ts)
+- [x] T002 Add relay config builder and extend pollingModeValue (file: packages/core/src/config.ts) (depends on T001)
 - [ ] T003 Create RelayTransport client with partysocket (file: packages/core/src/relay-transport.ts) (depends on T001)
 - [ ] T004 Integrate relay transport into Orchestrator start/stop lifecycle (file: packages/core/src/orchestrator.ts) (depends on T002, T003)
 - [ ] T005 Export relay transport from core barrel (file: packages/core/src/index.ts) (depends on T003)

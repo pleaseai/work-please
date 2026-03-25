@@ -119,6 +119,42 @@ describe('buildConfig', () => {
     expect(config.polling.mode).toBe('webhook')
   })
 
+  it('parses polling.mode "relay"', () => {
+    const config = buildConfig(makeWorkflow({ polling: { mode: 'relay' } }))
+    expect(config.polling.mode).toBe('relay')
+  })
+
+  it('parses relay config from YAML', () => {
+    const config = buildConfig(makeWorkflow({
+      relay: {
+        url: 'https://my-relay.workers.dev',
+        token: '$TEST_RELAY_TOKEN_PARSE',
+        room: 'my-project',
+        secret: 'webhook-secret',
+      },
+    }))
+    expect(config.relay.url).toBe('https://my-relay.workers.dev')
+    expect(config.relay.room).toBe('my-project')
+    expect(config.relay.secret).toBe('webhook-secret')
+  })
+
+  it('defaults relay config to all nulls', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.relay.url).toBeNull()
+    expect(config.relay.token).toBeNull()
+    expect(config.relay.room).toBeNull()
+    expect(config.relay.secret).toBeNull()
+  })
+
+  it('resolves $ENV_VAR in relay.token', () => {
+    process.env.TEST_RELAY_TOKEN = 'resolved-token'
+    const config = buildConfig(makeWorkflow({
+      relay: { token: '$TEST_RELAY_TOKEN' },
+    }))
+    expect(config.relay.token).toBe('resolved-token')
+    delete process.env.TEST_RELAY_TOKEN
+  })
+
   it('parses string integer for polling interval', () => {
     const config = buildConfig(makeWorkflow({ polling: { interval_ms: '60000' } }))
     expect(config.polling.interval_ms).toBe(60_000)

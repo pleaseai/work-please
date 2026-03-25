@@ -111,7 +111,14 @@ export interface ChannelConfig {
 
 export type SettingSource = 'user' | 'project' | 'local'
 
-export type PollingMode = 'poll' | 'webhook'
+export type PollingMode = 'poll' | 'webhook' | 'relay'
+
+export interface RelayConfig {
+  url: string | null
+  token: string | null
+  room: string | null
+  secret: string | null
+}
 
 export interface SandboxConfig {
   /** SDK's SandboxSettings uses z.core.$loose, producing an index signature. Required for assignability. */
@@ -250,6 +257,7 @@ export interface ServiceConfig {
   env: Record<string, string>
   db: DbConfig
   state: StateConfig
+  relay: RelayConfig
   server: {
     port: number | null
     webhook: {
