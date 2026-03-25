@@ -10,6 +10,7 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
+    "@pleaseai/relay-server": "workspace:*",
     "partyserver": "^0.3.3"
   },
   "devDependencies": {

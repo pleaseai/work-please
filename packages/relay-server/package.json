@@ -1,0 +1,35 @@
+{
+  "name": "@pleaseai/relay-server",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "PartyServer relay for Agent Please webhook events",
+  "license": "FSL-1.1-MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pleaseai/agent-please.git",
+    "directory": "packages/relay-server"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "partyserver": "^0.3.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250313.0",
+    "typescript": "^5.7.0"
+  }
+}

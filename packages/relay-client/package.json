@@ -1,0 +1,38 @@
+{
+  "name": "@pleaseai/relay-client",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "WebSocket relay client for Agent Please webhook events",
+  "license": "FSL-1.1-MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pleaseai/agent-please.git",
+    "directory": "packages/relay-client"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "consola": "^3.4.2",
+    "partysocket": "^1.1.16"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.10",
+    "typescript": "^5.7.0"
+  }
+}

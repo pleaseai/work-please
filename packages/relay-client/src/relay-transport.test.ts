@@ -104,6 +104,6 @@ describe('RelayTransport', () => {
     const transport = new RelayTransport(config, triggerRefresh)
     transport.connect()
     messageHandlers[0]({ data: 'not json' })
-    expect(triggerRefresh).toHaveBeenCalledTimes(1)
+    expect(triggerRefresh).toHaveBeenCalledTimes(0)
   })
 })

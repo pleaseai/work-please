@@ -1,7 +1,7 @@
-import type { Env } from './relay-party'
+import type { Env } from '@pleaseai/relay-server'
 import { getServerByName, routePartykitRequest } from 'partyserver'
 
-export { RelayParty } from './relay-party'
+export { RelayParty } from '@pleaseai/relay-server'
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {

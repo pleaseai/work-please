@@ -55,8 +55,8 @@
     "js-yaml": "^4.1.1",
     "kysely": "^0.28.14",
     "kysely-bun-sqlite": "^0.4.0",
+    "@pleaseai/relay-client": "workspace:*",
     "liquidjs": "^10.25.0",
-    "partysocket": "^1.1.16",
     "zod": "^4.3.6"
   },
   "devDependencies": {

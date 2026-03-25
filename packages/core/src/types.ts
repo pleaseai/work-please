@@ -1,3 +1,4 @@
+import type { RelayConfig } from '@pleaseai/relay-client'
 import type { DispatchLock } from './dispatch-lock'
 
 export type ClaudeEffort = 'low' | 'medium' | 'high' | 'max'
@@ -113,12 +114,7 @@ export type SettingSource = 'user' | 'project' | 'local'
 
 export type PollingMode = 'poll' | 'webhook' | 'relay'
 
-export interface RelayConfig {
-  url: string | null
-  token: string | null
-  room: string | null
-  secret: string | null
-}
+export type { RelayConfig }
 
 export interface SandboxConfig {
   /** SDK's SandboxSettings uses z.core.$loose, producing an index signature. Required for assignability. */

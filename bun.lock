@@ -82,6 +82,7 @@
       "name": "@pleaseai/relay-worker",
       "version": "0.1.0",
       "dependencies": {
+        "@pleaseai/relay-server": "workspace:*",
         "partyserver": "^0.3.3",
       },
       "devDependencies": {
@@ -100,12 +101,12 @@
         "@octokit/auth-app": "^8.2.0",
         "@octokit/graphql": "^9.0.3",
         "@octokit/webhooks": "^14.2.0",
+        "@pleaseai/relay-client": "workspace:*",
         "consola": "^3.4.2",
         "js-yaml": "^4.1.1",
         "kysely": "^0.28.14",
         "kysely-bun-sqlite": "^0.4.0",
         "liquidjs": "^10.25.0",
-        "partysocket": "^1.1.16",
         "zod": "^4.3.6",
       },
       "devDependencies": {
@@ -125,6 +126,29 @@
         "@chat-adapter/state-pg",
         "@chat-adapter/state-redis",
       ],
+    },
+    "packages/relay-client": {
+      "name": "@pleaseai/relay-client",
+      "version": "0.1.0",
+      "dependencies": {
+        "consola": "^3.4.2",
+        "partysocket": "^1.1.16",
+      },
+      "devDependencies": {
+        "bun-types": "^1.3.10",
+        "typescript": "^5.7.0",
+      },
+    },
+    "packages/relay-server": {
+      "name": "@pleaseai/relay-server",
+      "version": "0.1.0",
+      "dependencies": {
+        "partyserver": "^0.3.3",
+      },
+      "devDependencies": {
+        "@cloudflare/workers-types": "^4.20250313.0",
+        "typescript": "^5.7.0",
+      },
     },
   },
   "packages": {
@@ -845,6 +869,10 @@
     "@pleaseai/agent-core": ["@pleaseai/agent-core@workspace:packages/core"],
 
     "@pleaseai/docs": ["@pleaseai/docs@workspace:apps/docs"],
+
+    "@pleaseai/relay-client": ["@pleaseai/relay-client@workspace:packages/relay-client"],
+
+    "@pleaseai/relay-server": ["@pleaseai/relay-server@workspace:packages/relay-server"],
 
     "@pleaseai/relay-worker": ["@pleaseai/relay-worker@workspace:apps/relay-worker"],
 
