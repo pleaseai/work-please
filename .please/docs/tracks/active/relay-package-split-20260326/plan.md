@@ -90,3 +90,22 @@ Extract into two sibling packages under `packages/`. Each package uses `consola`
 - Decision: Use `consola` directly in relay-client instead of re-creating the `createLogger` wrapper
   Rationale: `createLogger` is a 1-line wrapper (`consola.withTag(tag)`). Duplicating it adds no value; using `consola` directly keeps the package simpler.
   Date/Author: 2026-03-26 / Claude
+
+## Outcomes & Retrospective
+
+### What Was Shipped
+- `@pleaseai/relay-client` package with RelayTransport, RelayConfig, RelayEnvelope
+- `@pleaseai/relay-server` package with RelayParty, Env, signature verification
+- Backward-compatible re-exports from `@pleaseai/agent-core`
+- relay-worker updated to import from relay-server
+
+### What Went Well
+- Clean extraction with minimal coupling — both packages have only 1-2 runtime dependencies
+- All 10 relay transport tests passed immediately in the new package
+- Type re-export pattern (`import + export type`) worked cleanly for backward compat
+
+### What Could Improve
+- The unparseable message test in the original core package had an incorrect assertion (expected triggerRefresh to be called on parse failure) — caught and fixed during extraction
+
+### Tech Debt Created
+- relay-server has no test suite (Cloudflare Workers tests require vitest + miniflare setup)
