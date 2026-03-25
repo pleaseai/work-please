@@ -1,0 +1,25 @@
+.please/docs/tracks/index.md
+  36b0d6eda4dca5f6 19
+.please/docs/tracks/active/orpc-tanstack-migration-20260325/metadata.json
+  36b0d6eda4dca5f6 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "d7e5b4150cf154db814ec9c8a118dc3b44908d12",
+  "prompts": {
+    "36b0d6eda4dca5f6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74ae7c25-1134-4c3e-aff6-617704bd92e5",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
