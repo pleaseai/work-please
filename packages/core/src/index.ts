@@ -125,6 +125,7 @@ export {
   ensureSharedClone,
   extractRepoUrl,
   generateClaudeSettings,
+  removeRemoteAuth,
   resolveRepoDir,
   sanitizeIdentifier,
   workspacePath,

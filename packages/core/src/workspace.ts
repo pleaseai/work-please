@@ -61,6 +61,7 @@ const RELATIVE_PARTS_RE = /[/\\]/
 const REPO_URL_STRIP_RE = /\/(?:issues|pull)\/\d+/
 const REPO_GIT_SUFFIX_RE = /\.git$/
 const GITHUB_HTTPS_URL_RE = /^https:\/\/(?:[^@]+@)?github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/
+const STRIP_CREDENTIALS_RE = /^(https?:\/\/)[^@]+@/
 
 export function extractRepoUrl(url: string): string | null {
   const match = REPO_URL_STRIP_RE.exec(url)
@@ -120,13 +121,15 @@ export function ensureSharedClone(repoDir: string, repoUrl: string, token?: stri
         // Restore the plain URL to avoid persisting the token in .git/config.
         // Always attempt restore regardless of fetch result to prevent token leakage.
         const restoreResult = _git.spawnSync(['git', '-C', repoDir, 'remote', 'set-url', 'origin', repoUrl])
+        if (!restoreResult.success) {
+          const output = redactToken(((restoreResult.stdout?.toString() ?? '') + (restoreResult.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
+          // Critical: token may remain persisted in .git/config — surface as error
+          log.error(`ensureSharedClone: token URL may remain in .git/config after failed restore for ${repoDir}`)
+          return new Error(`git remote restore-url failed: ${output}`)
+        }
         if (!result.success) {
           const output = redactToken(((result.stdout?.toString() ?? '') + (result.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
           return new Error(`git fetch failed: ${output}`)
-        }
-        if (!restoreResult.success) {
-          const output = redactToken(((restoreResult.stdout?.toString() ?? '') + (restoreResult.stderr?.toString() ?? '')).trim().slice(0, 2048), token)
-          return new Error(`git remote restore-url failed: ${output}`)
         }
       }
       else if (!result.success) {
@@ -489,6 +492,40 @@ export function configureRemoteAuth(wsPath: string, token: string): void {
   const setResult = _git.spawnSync(['git', '-C', wsPath, 'remote', 'set-url', 'origin', authUrl])
   if (!setResult.success) {
     log.warn(`configureRemoteAuth: failed to set remote URL for ${wsPath}`)
+  }
+}
+
+/**
+ * Removes credentials from the git remote URL of a worktree, restoring it to
+ * a plain HTTPS URL. Should be called after agent run completes to prevent
+ * token leakage from persisted `.git/config` entries.
+ */
+export function removeRemoteAuth(wsPath: string): void {
+  const result = _git.spawnSync(['git', '-C', wsPath, 'remote', 'get-url', 'origin'])
+  if (!result.success) {
+    log.warn(`removeRemoteAuth: failed to read remote URL for ${wsPath}`)
+    return
+  }
+  const currentUrl = result.stdout.toString().trim()
+  if (!currentUrl)
+    return
+
+  // Strip credentials (user:token@) while preserving the rest of the URL as-is
+  const plainUrl = currentUrl.replace(STRIP_CREDENTIALS_RE, '$1')
+
+  // Only update if the URL actually contained credentials
+  if (currentUrl === plainUrl)
+    return
+
+  // Verify the stripped URL still matches an expected GitHub HTTPS format
+  if (!GITHUB_HTTPS_URL_RE.test(plainUrl)) {
+    log.warn(`removeRemoteAuth: unexpected URL format after credential strip for ${wsPath}`)
+    return
+  }
+
+  const setResult = _git.spawnSync(['git', '-C', wsPath, 'remote', 'set-url', 'origin', plainUrl])
+  if (!setResult.success) {
+    log.warn(`removeRemoteAuth: failed to restore plain remote URL for ${wsPath}`)
   }
 }
 

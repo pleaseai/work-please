@@ -7,7 +7,7 @@ import { toDispatchLockKey } from './dispatch-lock'
 import { createLogger } from './logger'
 import { buildPrompt, isPromptBuildError } from './prompt-builder'
 import { DEFAULT_ALLOWED_ASSOCIATIONS } from './types'
-import { configureRemoteAuth, createWorkspace, runAfterRunHook, runBeforeRunHook } from './workspace'
+import { configureRemoteAuth, createWorkspace, removeRemoteAuth, runAfterRunHook, runBeforeRunHook } from './workspace'
 
 const log = createLogger('issue-comment')
 
@@ -176,6 +176,9 @@ export async function handleIssueCommentMention(
     const beforeRunErr = await runBeforeRunHook(config, wsResult.path, issue)
     if (beforeRunErr) {
       log.warn(`before_run hook failed: ${beforeRunErr}`)
+      if (cloneToken) {
+        removeRemoteAuth(wsResult.path)
+      }
       await runAfterRunHook(config, wsResult.path, issue)
       throw beforeRunErr
     }
@@ -192,6 +195,9 @@ export async function handleIssueCommentMention(
 
     const session = await client.startSession()
     if (session instanceof Error) {
+      if (cloneToken) {
+        removeRemoteAuth(wsResult.path)
+      }
       await runAfterRunHook(config, wsResult.path, issue)
       throw session
     }
@@ -220,6 +226,10 @@ export async function handleIssueCommentMention(
     }
     finally {
       client.stopSession()
+      // Remove credentials from remote URL to prevent token leakage in .git/config
+      if (cloneToken) {
+        removeRemoteAuth(wsResult.path)
+      }
       await runAfterRunHook(config, wsResult.path, issue)
     }
 

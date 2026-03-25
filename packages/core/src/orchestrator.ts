@@ -16,7 +16,7 @@ import { createLogger } from './logger'
 import { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
 import { createTrackerAdapter, formatTrackerError, isTrackerError } from './tracker/index'
 import { isWorkflowError, loadWorkflow } from './workflow'
-import { configureRemoteAuth, createWorkspace, removeWorkspace, runAfterRunHook, runBeforeRunHook } from './workspace'
+import { configureRemoteAuth, createWorkspace, removeRemoteAuth, removeWorkspace, runAfterRunHook, runBeforeRunHook } from './workspace'
 
 const log = createLogger('orchestrator')
 
@@ -391,6 +391,9 @@ export class Orchestrator {
     const beforeRunErr = await runBeforeRunHook(this.config, wsResult.path, issue)
     if (beforeRunErr) {
       log.warn(`before_run hook failed issue_id=${issue.id}: ${beforeRunErr}`)
+      if (token) {
+        removeRemoteAuth(wsResult.path)
+      }
       await runAfterRunHook(this.config, wsResult.path, issue)
       throw beforeRunErr
     }
@@ -406,6 +409,9 @@ export class Orchestrator {
     // Start agent session
     const session = await client.startSession()
     if (session instanceof Error) {
+      if (token) {
+        removeRemoteAuth(wsResult.path)
+      }
       await runAfterRunHook(this.config, wsResult.path, issue)
       throw session
     }
@@ -417,6 +423,10 @@ export class Orchestrator {
     }
     finally {
       client.stopSession()
+      // Remove credentials from remote URL to prevent token leakage in .git/config
+      if (token) {
+        removeRemoteAuth(wsResult.path)
+      }
       await runAfterRunHook(this.config, wsResult.path, issue)
     }
   }
