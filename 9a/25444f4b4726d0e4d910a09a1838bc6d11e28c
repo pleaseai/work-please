@@ -1,0 +1,25 @@
+.please/docs/tracks/index.md
+  524f76086ce1a102 22
+.please/docs/tracks/active/relay-package-split-20260326/metadata.json
+  524f76086ce1a102 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "9a25444f4b4726d0e4d910a09a1838bc6d11e28c",
+  "prompts": {
+    "524f76086ce1a102": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f276d595-8e93-40fe-877f-58a419140911",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 131,
+      "overriden_lines": 0
+    }
+  }
+}
