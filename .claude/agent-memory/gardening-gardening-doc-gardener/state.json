@@ -1,4 +1,7 @@
 {
-  "last_scanned_commit": "42ffa7c6b3889fefa2ab3553709ef5311f6e3765",
-  "scanned_at": "2026-03-12T21:50:40+09:00"
+  "last_scan": {
+    "commit_hash": "bb55397",
+    "timestamp": "2026-03-26T00:00:00Z",
+    "scope": "."
+  }
 }

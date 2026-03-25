@@ -27,13 +27,12 @@ runtime environment.
 | `apps/agent-please/src/cli.ts` | CLI argument parsing (`run`, `init`, `--port`) and Nuxt server startup |
 | `packages/core/src/orchestrator.ts` | Core poll/dispatch/retry loop — start reading here for runtime behavior |
 | `apps/agent-please/server/plugins/01.orchestrator.ts` | Nitro plugin: creates & starts the Orchestrator on server boot |
-| `apps/agent-please/server/api/v1/state.get.ts` | GET `/api/v1/state` — orchestrator state snapshot |
-| `apps/agent-please/server/api/v1/refresh.post.ts` | POST `/api/v1/refresh` — trigger immediate poll |
-| `apps/agent-please/server/api/v1/[identifier].get.ts` | GET `/api/v1/:identifier` — per-issue detail |
+| `apps/agent-please/server/plugins/02.chat-bot.ts` | Nitro plugin: Chat SDK bot (GitHub + Slack adapters) |
+| `apps/agent-please/server/plugins/03.auth.ts` | Nitro plugin: Better Auth initialization and admin bootstrap |
+| `apps/agent-please/server/orpc/router.ts` | oRPC router — all typed API procedures (state, refresh, issues, sessions, projects) |
 | `apps/agent-please/server/api/webhooks/github.post.ts` | POST `/api/webhooks/github` — GitHub webhook handler |
 | `apps/agent-please/server/api/webhooks/slack.post.ts` | POST `/api/webhooks/slack` — Slack webhook handler |
-| `apps/agent-please/server/api/v1/sessions/[sessionId]/messages.get.ts` | GET `/api/v1/sessions/:sessionId/messages` — session message history |
-| `apps/agent-please/server/plugins/02.chat-bot.ts` | Nitro plugin: Chat SDK bot (GitHub + Slack adapters) |
+| `apps/agent-please/server/api/webhooks/asana.post.ts` | POST `/api/webhooks/asana` — Asana webhook handler |
 | `WORKFLOW.md` | User-authored config file in the **target repository** (not this repo) — defines tracker settings, hooks, agent limits, and the Liquid prompt template |
 
 ## Module Structure
@@ -50,21 +49,28 @@ agent-please/                      # Monorepo root (Bun + Turborepo)
 │   │   ├── layouts/dashboard.vue # Nuxt UI Dashboard layout (sidebar + panels)
 │   │   ├── pages/
 │   │   │   ├── index.vue         # Dashboard: metrics, running/retry tables
-│   │   │   └── issues/[identifier].vue  # Issue detail: session, retry, events
+│   │   │   ├── issues/[identifier].vue  # Issue detail: session, retry, events
+│   │   │   ├── projects/         # Tracker project board view
+│   │   │   ├── sessions/         # Session message viewer
+│   │   │   └── login.vue         # Auth login page
 │   │   ├── components/           # StateBadge, RunningTable, RetryTable
-│   │   ├── composables/          # useOrchestratorState, useIssueDetail (useFetch-based)
+│   │   ├── composables/          # useOrchestratorState, useIssueDetail, useProjectBoard, useProjects, useSessionMessages
 │   │   └── utils/                # format.ts, types.ts
 │   ├── server/                   # Nitro server-side
 │   │   ├── plugins/
 │   │   │   ├── 01.orchestrator.ts # Nitro plugin: creates & starts Orchestrator
-│   │   │   └── 02.chat-bot.ts    # Nitro plugin: Chat SDK (GitHub + Slack adapters)
+│   │   │   ├── 02.chat-bot.ts    # Nitro plugin: Chat SDK (GitHub + Slack adapters)
+│   │   │   └── 03.auth.ts        # Nitro plugin: Better Auth initialization
+│   │   ├── orpc/
+│   │   │   ├── router.ts         # oRPC typed procedures (state, refresh, issues, sessions, projects)
+│   │   │   ├── middleware.ts     # oRPC middleware (auth)
+│   │   │   └── schemas.ts        # Zod schemas for oRPC
+│   │   ├── routes/rpc/           # Nitro route handler — mounts oRPC at /rpc/*
 │   │   ├── api/
-│   │   │   ├── v1/state.get.ts   # GET /api/v1/state
-│   │   │   ├── v1/refresh.post.ts # POST /api/v1/refresh
-│   │   │   ├── v1/[identifier].get.ts # GET /api/v1/:identifier
-│   │   │   ├── v1/sessions/[sessionId]/messages.get.ts # GET /api/v1/sessions/:sessionId/messages
+│   │   │   ├── auth/[...all].ts  # Better Auth handler
 │   │   │   ├── webhooks/github.post.ts # POST /api/webhooks/github
-│   │   │   └── webhooks/slack.post.ts  # POST /api/webhooks/slack
+│   │   │   ├── webhooks/slack.post.ts  # POST /api/webhooks/slack
+│   │   │   └── webhooks/asana.post.ts  # POST /api/webhooks/asana
 │   │   └── utils/orchestrator.ts # useOrchestrator() helper
 │   └── nuxt.config.ts            # Nuxt config (Bun preset, Nuxt UI)
 ├── packages/core/                # @pleaseai/agent-core — orchestrator business logic
@@ -79,13 +85,23 @@ agent-please/                      # Monorepo root (Bun + Turborepo)
 │       ├── label.ts              # GitHub label management
 │       ├── filter.ts             # Assignee and label filter matching
 │       ├── webhook.ts            # GitHub webhook verification + event filtering
-│       ├── db.ts                 # Agent run history storage (libsql/Turso)
+│       ├── dispatch-lock.ts      # Distributed dispatch lock (prevents duplicate agent dispatch)
+│       ├── issue-comment-handler.ts # GitHub issue comment @mention dispatch handler
+│       ├── relay-transport.ts    # WebSocket relay transport (cloud relay mode)
+│       ├── db.ts                 # Agent run history storage (Kysely — bun:sqlite or Turso)
+│       ├── db-types.ts           # Kysely database schema types
+│       ├── server.ts             # Standalone HTTP server (used without Nuxt)
+│       ├── state.ts              # Orchestrator state helpers
 │       ├── logger.ts             # Structured logging (consola withTag)
 │       ├── agent-env.ts          # Runtime env-var resolution for agent sessions
 │       ├── session-renderer.ts   # Session message extraction (claude-agent-sdk)
 │       ├── types.ts              # Shared type definitions
 │       ├── tracker/              # Issue tracker adapters (GitHub, Asana)
 │       └── index.ts              # Barrel export
+├── packages/relay-client/        # @pleaseai/relay-client — WebSocket relay client
+├── packages/relay-server/        # @pleaseai/relay-server — PartyServer relay server
+├── apps/relay-worker/             # @pleaseai/relay-worker — Cloudflare Worker deployment
+├── apps/docs/                    # @pleaseai/docs — Documentation site (Docus)
 ├── vendor/symphony/              # Upstream Symphony reference spec (read-only)
 ├── turbo.json                    # Turborepo task pipeline
 ├── eslint.config.ts              # @antfu/eslint-config
@@ -115,7 +131,7 @@ agent-please/                      # Monorepo root (Bun + Turborepo)
              │        │        │
      ┌───────▼──┐ ┌───▼───┐ ┌─▼──────────┐
      │ Tracker  │ │Workspace│ │ Agent      │
-     │ Client   │ │Manager │ │ Runner     │───▶ DB (libsql/Turso)
+     │ Client   │ │Manager │ │ Runner     │───▶ DB (Kysely/Turso)
      │(GitHub/  │ │(create,│ │(claude-    │    run history
      │ Asana)   │ │ hooks, │ │ agent-sdk) │
      └──────────┘ │worktree│ └────────────┘
@@ -275,10 +291,10 @@ usage). The bot lifecycle is managed by the Nitro plugin (startup/shutdown).
 
 ### Agent Run History
 
-`db.ts` provides persistent storage for agent run records using `@libsql/client`:
+`db.ts` provides persistent storage for agent run records using Kysely:
 
-- **Embedded mode** — Local SQLite file (default: `.agent-please/agent_runs.db`)
-- **Cloud mode** — Turso remote database via `db.turso_url` + `db.turso_auth_token` config
+- **Embedded mode** — Local SQLite file via `bun:sqlite` + `kysely-bun-sqlite` (default: `.agent-please/agent_runs.db`)
+- **Cloud mode** — Turso remote database via `@libsql/kysely-libsql` using `db.turso_url` + `db.turso_auth_token` config
 
 Records include issue identifier, session ID, duration, token usage, turn count, and status.
 The session messages API (`/api/v1/sessions/:sessionId/messages`) uses `session-renderer.ts` to
