@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.9...agent-core-v0.1.10) (2026-03-25)
+
+
+### Features
+
+* **relay:** add cloud relay transport via Cloudflare + PartyServer ([#216](https://github.com/pleaseai/agent-please/issues/216)) ([b438b71](https://github.com/pleaseai/agent-please/commit/b438b71fa9c77531f2cb74a1868f55fbee7d8186))
+
 ## [0.1.9](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.8...agent-core-v0.1.9) (2026-03-25)
 
 
