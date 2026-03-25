@@ -1,0 +1,23 @@
+apps/relay-worker/README.md
+  0baf0eb4d5e3dcc4 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "9e7bd9c4474c74e00fea7f99279d3efb4feaa627",
+  "prompts": {
+    "0baf0eb4d5e3dcc4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "52e555f9-b5ad-479e-9229-42dea716cd54",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
