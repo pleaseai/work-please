@@ -1,5 +1,7 @@
 {
   "apps/agent-please": "0.1.26",
   "packages/core": "0.1.10",
+  "packages/relay-client": "0.1.0",
+  "packages/relay-server": "0.1.0",
   ".": "0.1.0"
 }

@@ -93,7 +93,7 @@
     },
     "packages/core": {
       "name": "@pleaseai/agent-core",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "^0.2.72",
         "@chat-adapter/state-memory": ">=4.0.0",

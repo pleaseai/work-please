@@ -15,6 +15,18 @@
       "package-name": "@pleaseai/agent-core",
       "changelog-path": "CHANGELOG.md",
       "initial-version": "0.1.0"
+    },
+    "packages/relay-client": {
+      "release-type": "node",
+      "package-name": "@pleaseai/relay-client",
+      "changelog-path": "CHANGELOG.md",
+      "initial-version": "0.1.0"
+    },
+    "packages/relay-server": {
+      "release-type": "node",
+      "package-name": "@pleaseai/relay-server",
+      "changelog-path": "CHANGELOG.md",
+      "initial-version": "0.1.0"
     }
   }
 }
