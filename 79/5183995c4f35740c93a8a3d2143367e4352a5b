@@ -1,0 +1,31 @@
+packages/core/src/config.test.ts
+  9dfa70205c37d904 122-157
+packages/core/src/config.ts
+  9dfa70205c37d904 1,51,86,340-348,688-692
+packages/core/src/types.test.ts
+  9dfa70205c37d904 6,8,95-135
+packages/core/src/types.ts
+  9dfa70205c37d904 114-121,260
+.please/docs/tracks/active/cloud-relay-20260325/plan.md
+  9dfa70205c37d904 43-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "795183995c4f35740c93a8a3d2143367e4352a5b",
+  "prompts": {
+    "9dfa70205c37d904": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e6f7799-4db2-4c70-a083-45cc26eb31f8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 109,
+      "total_deletions": 7,
+      "accepted_lines": 189,
+      "overriden_lines": 0
+    }
+  }
+}
