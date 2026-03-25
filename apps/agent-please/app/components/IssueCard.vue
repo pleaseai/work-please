@@ -1,15 +1,8 @@
 <script setup lang="ts">
+import type { BoardIssue } from '~/types/board'
+
 defineProps<{
-  issue: {
-    id: string
-    identifier: string
-    title: string
-    state: string
-    priority: number | null
-    url: string | null
-    assignees: string[]
-    labels: string[]
-  }
+  issue: BoardIssue
 }>()
 
 const priorityColor = computed(() => {

@@ -49,7 +49,7 @@ const { projects, loading, error } = useProjects()
                 <div class="flex flex-wrap gap-1">
                   <UBadge
                     v-for="status in project.active_statuses"
-                    :key="status"
+                    :key="`active-${status}`"
                     variant="outline"
                     size="xs"
                     color="success"
@@ -58,7 +58,7 @@ const { projects, loading, error } = useProjects()
                   </UBadge>
                   <UBadge
                     v-for="status in project.watched_statuses"
-                    :key="status"
+                    :key="`watched-${status}`"
                     variant="outline"
                     size="xs"
                     color="warning"

@@ -1,16 +1,9 @@
 <script setup lang="ts">
+import type { BoardIssue } from '~/types/board'
+
 defineProps<{
   status: string
-  issues: Array<{
-    id: string
-    identifier: string
-    title: string
-    state: string
-    priority: number | null
-    url: string | null
-    assignees: string[]
-    labels: string[]
-  }>
+  issues: BoardIssue[]
   count: number
 }>()
 </script>

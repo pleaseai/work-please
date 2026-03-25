@@ -11,7 +11,7 @@ Add a project board view to the Nuxt dashboard that displays tracker project iss
 
 ### Functional Requirements
 
-- [ ] FR-1: `GET /api/v1/projects` endpoint returning the list of configured tracker projects from WORKFLOW.md config
+- [ ] FR-1: `GET /api/v1/projects` endpoint returning the list of configured tracker projects from the global WORKFLOW.md service config (with optional per-repo WORKFLOW.md overrides when `repo_overrides.allow` is enabled); workspace configuration remains in `.please/config.yml`
 - [ ] FR-2: `GET /api/v1/projects/[id]/board` endpoint returning issues grouped by status column, using the existing `TrackerAdapter.fetchIssuesByStates`
 - [ ] FR-3: SSE endpoint `GET /api/v1/projects/[id]/board/stream` for real-time board updates when orchestrator state changes
 - [ ] FR-4: `/projects` page displaying a list of configured projects with name, tracker type, and link to board view
