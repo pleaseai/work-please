@@ -39,35 +39,35 @@ Rationale: oRPC's Nuxt playground demonstrates this exact pattern. No custom ada
 
 ### Phase 1: Foundation — oRPC Server Setup
 
-- [ ] T001 Install oRPC and TanStack Query dependencies (file: apps/agent-please/package.json)
-- [ ] T002 Define Zod schemas for all API response types (file: apps/agent-please/server/orpc/schemas.ts) (depends on T001)
-- [ ] T003 Create oRPC base builder with context type and auth middleware (file: apps/agent-please/server/orpc/middleware.ts) (depends on T001)
-- [ ] T004 Create oRPC router with query/mutation procedures (file: apps/agent-please/server/orpc/router.ts) (depends on T002, T003)
-- [ ] T005 Mount oRPC handler as Nitro catch-all route (file: apps/agent-please/server/routes/rpc/[...].ts) (depends on T004)
+- [x] T001 Install oRPC and TanStack Query dependencies (file: apps/agent-please/package.json)
+- [x] T002 Define Zod schemas for all API response types (file: apps/agent-please/server/orpc/schemas.ts) (depends on T001)
+- [x] T003 Create oRPC base builder with context type and auth middleware (file: apps/agent-please/server/orpc/middleware.ts) (depends on T001)
+- [x] T004 Create oRPC router with query/mutation procedures (file: apps/agent-please/server/orpc/router.ts) (depends on T002, T003)
+- [x] T005 Mount oRPC handler as Nitro catch-all route (file: apps/agent-please/server/routes/rpc/[...].ts) (depends on T004)
 
 ### Phase 2: SSE Event Iterators
 
-- [ ] T006 Add EventPublisher to orchestrator plugin for state change broadcasting (file: apps/agent-please/server/plugins/01.orchestrator.ts) (depends on T005)
-- [ ] T007 Implement orchestrator.live event iterator procedure (file: apps/agent-please/server/orpc/router.ts) (depends on T006)
-- [ ] T008 Implement sessions.events event iterator procedure (file: apps/agent-please/server/orpc/router.ts) (depends on T006)
+- [x] T006 Add EventPublisher to orchestrator plugin for state change broadcasting (file: apps/agent-please/server/plugins/01.orchestrator.ts) (depends on T005)
+- [x] T007 Implement orchestrator.live event iterator procedure (file: apps/agent-please/server/orpc/router.ts) (depends on T006)
+- [x] T008 Implement sessions.events event iterator procedure (file: apps/agent-please/server/orpc/router.ts) (depends on T006)
 
 ### Phase 3: Client Migration
 
-- [ ] T009 Create oRPC server-side Nuxt plugin with createRouterClient (file: apps/agent-please/app/plugins/orpc.server.ts) (depends on T004)
-- [ ] T010 Create oRPC client-side Nuxt plugin with RPCLink (file: apps/agent-please/app/plugins/orpc.client.ts) (depends on T004)
-- [ ] T011 Set up VueQueryPlugin in Nuxt plugin (file: apps/agent-please/app/plugins/vue-query.ts) (depends on T001)
-- [ ] T012 Rewrite useOrchestratorState composable with liveOptions (file: apps/agent-please/app/composables/useOrchestratorState.ts) (depends on T009, T010, T011, T007)
-- [ ] T013 Rewrite useIssueDetail composable with queryOptions (file: apps/agent-please/app/composables/useIssueDetail.ts) (depends on T009, T010, T011)
-- [ ] T014 Rewrite useSessionMessages composable with queryOptions (file: apps/agent-please/app/composables/useSessionMessages.ts) (depends on T009, T010, T011)
-- [ ] T015 Update dashboard page to use new composables and remove polling (file: apps/agent-please/app/pages/index.vue) (depends on T012)
-- [ ] T016 Update issue detail page (file: apps/agent-please/app/pages/issues/[identifier].vue) (depends on T013)
-- [ ] T017 Update session page (file: apps/agent-please/app/pages/sessions/[id].vue) (depends on T014)
+- [x] T009 Create oRPC server-side Nuxt plugin with createRouterClient (file: apps/agent-please/app/plugins/orpc.server.ts) (depends on T004)
+- [x] T010 Create oRPC client-side Nuxt plugin with RPCLink (file: apps/agent-please/app/plugins/orpc.client.ts) (depends on T004)
+- [x] T011 Set up VueQueryPlugin in Nuxt plugin (file: apps/agent-please/app/plugins/vue-query.ts) (depends on T001)
+- [x] T012 Rewrite useOrchestratorState composable with liveOptions (file: apps/agent-please/app/composables/useOrchestratorState.ts) (depends on T009, T010, T011, T007)
+- [x] T013 Rewrite useIssueDetail composable with queryOptions (file: apps/agent-please/app/composables/useIssueDetail.ts) (depends on T009, T010, T011)
+- [x] T014 Rewrite useSessionMessages composable with queryOptions (file: apps/agent-please/app/composables/useSessionMessages.ts) (depends on T009, T010, T011)
+- [x] T015 Update dashboard page to use new composables and remove polling (file: apps/agent-please/app/pages/index.vue) (depends on T012)
+- [x] T016 Update issue detail page (file: apps/agent-please/app/pages/issues/[identifier].vue) (depends on T013)
+- [x] T017 Update session page (file: apps/agent-please/app/pages/sessions/[id].vue) (depends on T014)
 
 ### Phase 4: Cleanup
 
-- [ ] T018 Remove old REST API routes and Nitro auth middleware (file: apps/agent-please/server/api/v1/) (depends on T015, T016, T017)
-- [ ] T019 Remove old response types from utils/types.ts (file: apps/agent-please/app/utils/types.ts) (depends on T018)
-- [ ] T020 Update tech-stack.md with new dependencies (file: .please/docs/knowledge/tech-stack.md) (depends on T018)
+- [x] T018 Remove old REST API routes and Nitro auth middleware (file: apps/agent-please/server/api/v1/) (depends on T015, T016, T017)
+- [x] T019 Remove old response types from utils/types.ts (file: apps/agent-please/app/utils/types.ts) (depends on T018)
+- [x] T020 Update tech-stack.md with new dependencies (file: .please/docs/knowledge/tech-stack.md) (depends on T018)
 
 ## Key Files
 
