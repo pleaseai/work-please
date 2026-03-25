@@ -86,6 +86,12 @@
 7. NOTE — esc() helper duplicated in server.ts and session-renderer.ts (code quality, not security issue)
 8. NOTE — SECURITY_HEADERS now includes X-Content-Type-Options, X-Frame-Options, Referrer-Policy (previously flagged as missing — partially resolved)
 
+### PR #198 — GitHub App token injection into git URLs (workspace.ts)
+1. CRITICAL — Token leaked in server-side logs: `ensureSharedClone` embeds `authUrl` (containing live token) in git clone/fetch error strings at `workspace.ts:101-102`, `workspace.ts:111-112`. Git echoes the URL on failure; error propagates to `log.error` in orchestrator.ts:360 and issue-comment-handler.ts:251. Fix: scrub token from stderr/stdout before constructing the Error message.
+2. IMPORTANT — Token persisted in `.git/config`: `configureRemoteAuth` calls `git remote set-url origin https://x-access-token:<token>@...` writing the live token into the worktree's `.git/config` file at `workspace.ts:465`. Token remains on-disk after the agent run completes. Fix: use a git credential helper or ephemeral .netrc; unset the credential URL in the cleanup/after-run path.
+3. POSITIVE — `buildAuthenticatedUrl` uses `new URL()` `.username`/`.password` setters — no injection risk from token characters (`@`, `/`).
+4. POSITIVE — Error posted to GitHub comment (`issue-comment-handler.ts:275`) is a static generic string; token never reaches public GitHub.
+
 Notes:
 - Agent threads always have their cwd reset between bash calls; only use absolute file paths.
 - In final responses, share absolute file paths; include code snippets only when load-bearing.
