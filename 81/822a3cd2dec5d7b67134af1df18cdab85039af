@@ -1,0 +1,25 @@
+.please/docs/tracks/active/project-board-view-20260325/metadata.json
+  27418102d8800b91 4,6
+.please/docs/tracks/index.md
+  27418102d8800b91 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "81822a3cd2dec5d7b67134af1df18cdab85039af",
+  "prompts": {
+    "27418102d8800b91": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "398f1848-d9b1-4660-ae44-5c1bc95071ce",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 3,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
