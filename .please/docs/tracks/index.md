@@ -16,6 +16,7 @@
 | [commit-signing-20260324](active/commit-signing-20260324/plan.md) | Commit Signing & Authenticated Remote | feature | TBD | 2026-03-24 | in_progress |
 | [kysely-db-layer-20260324](active/kysely-db-layer-20260324/plan.md) | Kysely DB Layer Integration | feature | TBD | 2026-03-24 | in_progress |
 | [docs-site-docus-20260324](active/docs-site-docus-20260324/plan.md) | Documentation Site with Docus | feature | #191 | 2026-03-24 | in_progress |
+| [orpc-tanstack-migration-20260325](active/orpc-tanstack-migration-20260325/plan.md) | Migrate Dashboard API to oRPC + TanStack Query | refactor | TBD | 2026-03-25 | planned |
 
 ## Recently Completed
 
