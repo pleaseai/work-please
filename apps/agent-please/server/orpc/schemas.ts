@@ -118,6 +118,51 @@ export const refreshResponseSchema = z.object({
   operations: z.array(z.string()),
 })
 
+// --- Projects ---
+
+export const projectPayloadSchema = z.object({
+  index: z.number(),
+  platform: z.string(),
+  project_number: z.number().nullable().optional(),
+  project_id: z.string().nullable().optional(),
+  active_statuses: z.array(z.string()),
+  terminal_statuses: z.array(z.string()),
+  watched_statuses: z.array(z.string()),
+})
+
+export const projectsResponseSchema = z.object({
+  projects: z.array(projectPayloadSchema),
+})
+
+export const projectBoardInputSchema = z.object({
+  id: z.number().nonnegative(),
+})
+
+export const boardIssueSchema = z.object({
+  id: z.string(),
+  identifier: z.string(),
+  title: z.string(),
+  state: z.string(),
+  priority: z.number().nullable(),
+  url: z.string().nullable(),
+  assignees: z.array(z.string()),
+  labels: z.array(z.string()),
+})
+
+export const boardColumnSchema = z.object({
+  status: z.string(),
+  issues: z.array(boardIssueSchema),
+  count: z.number(),
+})
+
+export const boardResponseSchema = z.object({
+  project: projectPayloadSchema,
+  columns: z.array(boardColumnSchema),
+  generated_at: z.string(),
+})
+
+export const boardLiveEventSchema = eventIterator(boardResponseSchema)
+
 // --- SSE Event Iterators ---
 
 export const liveStateEventSchema = eventIterator(stateResponseSchema)

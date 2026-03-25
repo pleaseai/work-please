@@ -2,11 +2,18 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { authClient } from '~/lib/auth-client'
 
-const items = computed<NavigationMenuItem[]>(() => [{
-  label: 'Dashboard',
-  icon: 'i-lucide-layout-dashboard',
-  to: '/',
-}])
+const items = computed<NavigationMenuItem[]>(() => [
+  {
+    label: 'Dashboard',
+    icon: 'i-lucide-layout-dashboard',
+    to: '/',
+  },
+  {
+    label: 'Projects',
+    icon: 'i-lucide-kanban',
+    to: '/projects',
+  },
+])
 
 const { data: session } = authClient.useSession(useFetch)
 

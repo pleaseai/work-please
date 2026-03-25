@@ -5,6 +5,7 @@ definePageMeta({ layout: 'dashboard' })
 useHead({ title: 'Agent Please — Dashboard' })
 
 const { state, loading, error, refresh } = useOrchestratorState()
+const { projects, loading: projectsLoading } = useProjects()
 const refreshError = ref<string | null>(null)
 const refreshing = ref(false)
 
@@ -97,6 +98,31 @@ async function handleRefresh() {
             </div>
           </UCard>
         </div>
+
+        <!-- Projects -->
+        <section v-if="projectsLoading || projects.length > 0">
+          <h2 class="text-lg font-semibold mb-3">
+            Projects
+          </h2>
+          <div v-if="projectsLoading" class="flex gap-3">
+            <USkeleton v-for="i in 2" :key="i" class="h-10 w-40" />
+          </div>
+          <div v-else class="flex flex-wrap gap-2">
+            <NuxtLink
+              v-for="project in projects"
+              :key="project.index"
+              :to="`/projects/${project.index}`"
+            >
+              <UButton
+                variant="outline"
+                size="sm"
+                icon="i-lucide-kanban"
+              >
+                {{ project.platform }}{{ project.project_number ? ` #${project.project_number}` : '' }}
+              </UButton>
+            </NuxtLink>
+          </div>
+        </section>
 
         <!-- Running table -->
         <section>

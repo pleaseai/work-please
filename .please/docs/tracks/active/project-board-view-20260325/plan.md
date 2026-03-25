@@ -38,39 +38,35 @@ Alternative considered: WebSocket for real-time updates. Rejected because SSE is
 
 ## Tasks
 
-### Phase 1: API Layer
+### Phase 1: API Layer (oRPC)
 
-- [ ] T001 Add API response types for projects and board (file: apps/agent-please/app/utils/types.ts)
-- [ ] T002 Create projects list endpoint (file: apps/agent-please/server/api/v1/projects/index.get.ts, depends on T001)
-- [ ] T003 Create project board endpoint (file: apps/agent-please/server/api/v1/projects/[id]/board.get.ts, depends on T001)
-- [ ] T004 Create project board SSE stream endpoint (file: apps/agent-please/server/api/v1/projects/[id]/board/stream.get.ts, depends on T003)
+- [ ] T001 Add Zod schemas for projects and board (file: apps/agent-please/server/orpc/schemas.ts)
+- [ ] T002 Add projects list and board procedures to oRPC router (file: apps/agent-please/server/orpc/router.ts, depends on T001)
+- [ ] T003 Add board live SSE procedure using eventIterator (file: apps/agent-please/server/orpc/router.ts, depends on T002)
 
 ### Phase 2: Composables
 
-- [ ] T005 [P] Create useProjects composable (file: apps/agent-please/app/composables/useProjects.ts, depends on T002)
-- [ ] T006 [P] Create useProjectBoard composable with SSE support (file: apps/agent-please/app/composables/useProjectBoard.ts, depends on T003, T004)
+- [ ] T004 [P] Create useProjects composable with TanStack Query (file: apps/agent-please/app/composables/useProjects.ts, depends on T002)
+- [ ] T005 [P] Create useProjectBoard composable with live SSE (file: apps/agent-please/app/composables/useProjectBoard.ts, depends on T003)
 
 ### Phase 3: UI Components
 
-- [ ] T007 Create IssueCard component for board view (file: apps/agent-please/app/components/IssueCard.vue, depends on T001)
-- [ ] T008 Create BoardColumn component for status columns (file: apps/agent-please/app/components/BoardColumn.vue, depends on T007)
+- [ ] T006 Create IssueCard component for board view (file: apps/agent-please/app/components/IssueCard.vue, depends on T001)
+- [ ] T007 Create BoardColumn component for status columns (file: apps/agent-please/app/components/BoardColumn.vue, depends on T006)
 
 ### Phase 4: Pages & Navigation
 
-- [ ] T009 Create projects list page (file: apps/agent-please/app/pages/projects/index.vue, depends on T005)
-- [ ] T010 Create project board page with kanban layout (file: apps/agent-please/app/pages/projects/[id].vue, depends on T006, T008)
-- [ ] T011 Add projects navigation item to dashboard sidebar (file: apps/agent-please/app/layouts/dashboard.vue, depends on T009)
-- [ ] T012 Add projects quick-links section to dashboard home (file: apps/agent-please/app/pages/index.vue, depends on T005)
+- [ ] T008 Create projects list page (file: apps/agent-please/app/pages/projects/index.vue, depends on T004)
+- [ ] T009 Create project board page with kanban layout (file: apps/agent-please/app/pages/projects/[id].vue, depends on T005, T007)
+- [ ] T010 Add projects navigation item to dashboard sidebar (file: apps/agent-please/app/layouts/dashboard.vue, depends on T008)
+- [ ] T011 Add projects quick-links section to dashboard home (file: apps/agent-please/app/pages/index.vue, depends on T004)
 
 ## Key Files
 
 ### Create
 
-- `apps/agent-please/server/api/v1/projects/index.get.ts` — Projects list endpoint
-- `apps/agent-please/server/api/v1/projects/[id]/board.get.ts` — Board data endpoint
-- `apps/agent-please/server/api/v1/projects/[id]/board/stream.get.ts` — SSE stream endpoint
-- `apps/agent-please/app/composables/useProjects.ts` — Projects list composable
-- `apps/agent-please/app/composables/useProjectBoard.ts` — Board data + SSE composable
+- `apps/agent-please/app/composables/useProjects.ts` — Projects list composable (TanStack Query)
+- `apps/agent-please/app/composables/useProjectBoard.ts` — Board data + live SSE composable
 - `apps/agent-please/app/components/IssueCard.vue` — Issue card component
 - `apps/agent-please/app/components/BoardColumn.vue` — Status column component
 - `apps/agent-please/app/pages/projects/index.vue` — Projects list page
@@ -78,12 +74,14 @@ Alternative considered: WebSocket for real-time updates. Rejected because SSE is
 
 ### Modify
 
-- `apps/agent-please/app/utils/types.ts` — Add `ProjectPayload`, `BoardColumnPayload`, `BoardResponse` types
+- `apps/agent-please/server/orpc/schemas.ts` — Add project/board Zod schemas
+- `apps/agent-please/server/orpc/router.ts` — Add projects procedures to router
 - `apps/agent-please/app/layouts/dashboard.vue` — Add "Projects" navigation item
 - `apps/agent-please/app/pages/index.vue` — Add projects quick-links section
 
 ### Reuse
 
+- `apps/agent-please/server/orpc/middleware.ts` — `authed` middleware for auth
 - `apps/agent-please/server/utils/orchestrator.ts` — `useOrchestrator()` for accessing config
 - `packages/core/src/tracker/index.ts` — `createTrackerAdapter()` factory
 - `packages/core/src/tracker/types.ts` — `TrackerAdapter`, `isTrackerError()`, `formatTrackerError()`
@@ -138,4 +136,8 @@ Alternative considered: WebSocket for real-time updates. Rejected because SSE is
 
 - Decision: Use project array index as project ID in routes
   Rationale: `ServiceConfig.projects` is an array without explicit IDs. Using the array index (0-based) as the route param `[id]` is the simplest approach. The project list endpoint returns the index alongside each project so the client can construct board URLs
+  Date/Author: 2026-03-25 / Claude
+
+- Decision: Use oRPC procedures instead of Nitro REST routes
+  Rationale: The codebase has already migrated to oRPC + TanStack Query (orpc-tanstack-migration track). New endpoints should follow the established oRPC pattern with Zod schemas, authed middleware, and eventIterator for SSE
   Date/Author: 2026-03-25 / Claude

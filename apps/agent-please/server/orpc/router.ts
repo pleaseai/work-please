@@ -1,10 +1,14 @@
-import type { OrchestratorState, RetryEntry, RunningEntry } from '@pleaseai/agent-core'
+import type { Issue, OrchestratorState, RetryEntry, RunningEntry } from '@pleaseai/agent-core'
 import { ORPCError } from '@orpc/server'
-import { fetchSessionMessages, isValidSessionId, workspacePath } from '@pleaseai/agent-core'
+import { createTrackerAdapter, fetchSessionMessages, isTrackerError, isValidSessionId, workspacePath } from '@pleaseai/agent-core'
 import { authed } from './middleware'
 import {
+  boardLiveEventSchema,
+  boardResponseSchema,
   issueDetailInputSchema,
   liveStateEventSchema,
+  projectBoardInputSchema,
+  projectsResponseSchema,
   refreshResponseSchema,
   sessionMessagesInputSchema,
   stateResponseSchema,
@@ -218,6 +222,125 @@ const getSessionMessages = authed
     }
   })
 
+// --- Project helpers ---
+
+function buildProjectPayload(project: import('@pleaseai/agent-core').ProjectConfig, index: number) {
+  return {
+    index,
+    platform: project.platform,
+    project_number: project.project_number ?? null,
+    project_id: project.project_id ?? null,
+    active_statuses: project.active_statuses,
+    terminal_statuses: project.terminal_statuses,
+    watched_statuses: project.watched_statuses,
+  }
+}
+
+function buildBoardIssue(issue: Issue) {
+  return {
+    id: issue.id,
+    identifier: issue.identifier,
+    title: issue.title,
+    state: issue.state,
+    priority: issue.priority,
+    url: issue.url,
+    assignees: issue.assignees,
+    labels: issue.labels,
+  }
+}
+
+async function fetchBoardData(context: { orchestrator: import('@pleaseai/agent-core').Orchestrator }, projectIndex: number) {
+  const config = context.orchestrator.getConfig()
+  const project = config.projects[projectIndex]
+  if (!project) {
+    throw new ORPCError('NOT_FOUND', { message: `Project not found at index ${projectIndex}` })
+  }
+
+  const platform = config.platforms[project.platform]
+  if (!platform) {
+    throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `Platform '${project.platform}' not configured` })
+  }
+
+  // Only GitHub is supported for board view
+  if (platform.kind !== 'github') {
+    throw new ORPCError('BAD_REQUEST', { message: `Board view is only supported for GitHub projects (got '${platform.kind}')` })
+  }
+
+  const adapter = createTrackerAdapter(project, platform)
+  if (isTrackerError(adapter)) {
+    throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `Failed to create tracker adapter: ${adapter.code}` })
+  }
+
+  const allStatuses = [...project.active_statuses, ...project.watched_statuses, ...project.terminal_statuses]
+  const issues = await adapter.fetchIssuesByStates(allStatuses)
+  if (isTrackerError(issues)) {
+    throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `Failed to fetch issues: ${issues.code}` })
+  }
+
+  // Group issues by status into columns
+  const columnMap = new Map<string, Issue[]>()
+  for (const status of allStatuses) {
+    columnMap.set(status, [])
+  }
+  for (const issue of issues) {
+    const bucket = columnMap.get(issue.state)
+    if (bucket) {
+      bucket.push(issue)
+    }
+    else {
+      // Issue has an unknown status — create a column for it
+      columnMap.set(issue.state, [issue])
+    }
+  }
+
+  const columns = Array.from(columnMap.entries(), ([status, statusIssues]) => ({
+    status,
+    issues: statusIssues.map(buildBoardIssue),
+    count: statusIssues.length,
+  }))
+
+  return {
+    project: buildProjectPayload(project, projectIndex),
+    columns,
+    generated_at: new Date().toISOString(),
+  }
+}
+
+// --- Project procedures ---
+
+const listProjects = authed
+  .route({ method: 'GET', path: '/projects' })
+  .output(projectsResponseSchema)
+  .handler(({ context }) => {
+    const config = context.orchestrator.getConfig()
+    const projects = config.projects.map((p, i) => buildProjectPayload(p, i))
+    return { projects }
+  })
+
+const getProjectBoard = authed
+  .route({ method: 'GET', path: '/projects/{id}/board' })
+  .input(projectBoardInputSchema)
+  .output(boardResponseSchema)
+  .handler(async ({ input, context }) => {
+    return fetchBoardData(context, input.id)
+  })
+
+const liveProjectBoard = authed
+  .input(projectBoardInputSchema)
+  .output(boardLiveEventSchema)
+  .handler(async function* ({ input, context, signal }) {
+    // Yield initial board state
+    yield await fetchBoardData(context, input.id)
+
+    // Poll and yield updates until client disconnects
+    while (!signal?.aborted) {
+      await new Promise(resolve => setTimeout(resolve, 10000))
+      if (signal?.aborted)
+        break
+      yield await fetchBoardData(context, input.id)
+    }
+  })
+
 // --- Router ---
 
 export const router = {
@@ -231,5 +354,10 @@ export const router = {
   },
   sessions: {
     messages: getSessionMessages,
+  },
+  projects: {
+    list: listProjects,
+    board: getProjectBoard,
+    live: liveProjectBoard,
   },
 }
