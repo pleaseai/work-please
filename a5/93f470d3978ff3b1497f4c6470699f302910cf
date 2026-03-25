@@ -1,0 +1,31 @@
+packages/relay-worker/src/relay-party.ts
+  9dfa70205c37d904 67
+packages/core/src/relay-transport.ts
+  9dfa70205c37d904 7,9-15,22,51-52,63-64,79-107
+packages/core/src/config.ts
+  9dfa70205c37d904 371-372
+packages/core/src/relay-transport.test.ts
+  9dfa70205c37d904 5-7,9-12,34,75-107
+packages/relay-worker/src/index.ts
+  9dfa70205c37d904 26,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "a593f470d3978ff3b1497f4c6470699f302910cf",
+  "prompts": {
+    "9dfa70205c37d904": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e6f7799-4db2-4c70-a083-45cc26eb31f8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 92,
+      "total_deletions": 10,
+      "accepted_lines": 174,
+      "overriden_lines": 0
+    }
+  }
+}
