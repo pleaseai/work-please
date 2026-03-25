@@ -1,0 +1,25 @@
+.claude/agent-memory/please-please-code-explorer/MEMORY.md
+  9dfa70205c37d904 4
+.claude/agent-memory/please-please-code-explorer/project_service_config_schema.md
+  9dfa70205c37d904 1-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "4de214888abba48e56daada907901ca30269fd54",
+  "prompts": {
+    "9dfa70205c37d904": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e6f7799-4db2-4c70-a083-45cc26eb31f8",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 82,
+      "overriden_lines": 0
+    }
+  }
+}
