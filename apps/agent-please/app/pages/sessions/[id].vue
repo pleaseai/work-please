@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { SessionMessageBlock } from '~/utils/types'
-
 definePageMeta({ layout: 'dashboard' })
 
 const route = useRoute()

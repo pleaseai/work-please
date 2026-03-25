@@ -14,11 +14,13 @@ const secondsRunning = computed(() => {
   return formatSecondsRunning(state.value.codex_totals.seconds_running)
 })
 
+const { $orpcClient } = useNuxtApp()
+
 async function handleRefresh() {
   refreshing.value = true
   refreshError.value = null
   try {
-    await $fetch('/api/v1/refresh', { method: 'POST' })
+    await $orpcClient.orchestrator.refresh()
     await refresh()
   }
   catch (e: any) {
