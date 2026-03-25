@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.24](https://github.com/pleaseai/agent-please/compare/agent-v0.1.23...agent-v0.1.24) (2026-03-25)
+
+
+### Features
+
+* **core:** replace @libsql/client with Kysely as unified DB layer ([#193](https://github.com/pleaseai/agent-please/issues/193)) ([4502d38](https://github.com/pleaseai/agent-please/commit/4502d38dcac79035788aeec2dda008d856726009))
+
 ## [0.1.23](https://github.com/pleaseai/agent-please/compare/agent-v0.1.22...agent-v0.1.23) (2026-03-24)
 
 

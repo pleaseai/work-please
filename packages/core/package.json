@@ -1,7 +1,7 @@
 {
   "name": "@pleaseai/agent-core",
   "type": "module",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Core orchestrator logic for Agent Please",
   "license": "FSL-1.1-MIT",
   "repository": {

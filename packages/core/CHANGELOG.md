@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.8](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.7...agent-core-v0.1.8) (2026-03-25)
+
+
+### Features
+
+* **core:** replace @libsql/client with Kysely as unified DB layer ([#193](https://github.com/pleaseai/agent-please/issues/193)) ([4502d38](https://github.com/pleaseai/agent-please/commit/4502d38dcac79035788aeec2dda008d856726009))
+
+
+### Bug Fixes
+
+* **core:** authenticate git clone and fetch with installation token ([#198](https://github.com/pleaseai/agent-please/issues/198)) ([b6ddb97](https://github.com/pleaseai/agent-please/commit/b6ddb9713a395f887532db17363b58eea60014e0))
+
 ## [0.1.7](https://github.com/pleaseai/agent-please/compare/agent-core-v0.1.6...agent-core-v0.1.7) (2026-03-24)
 
 

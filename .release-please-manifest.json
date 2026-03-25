@@ -1,5 +1,5 @@
 {
-  "apps/agent-please": "0.1.23",
-  "packages/core": "0.1.7",
+  "apps/agent-please": "0.1.24",
+  "packages/core": "0.1.8",
   ".": "0.1.0"
 }
