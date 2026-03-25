@@ -78,6 +78,18 @@
         "esbuild": "^0.27.4",
       },
     },
+    "apps/relay-worker": {
+      "name": "@pleaseai/relay-worker",
+      "version": "0.1.0",
+      "dependencies": {
+        "partyserver": "latest",
+      },
+      "devDependencies": {
+        "@cloudflare/workers-types": "^4.20250313.0",
+        "typescript": "^5.7.0",
+        "wrangler": "^4.14.0",
+      },
+    },
     "packages/core": {
       "name": "@pleaseai/agent-core",
       "version": "0.1.9",
@@ -113,18 +125,6 @@
         "@chat-adapter/state-pg",
         "@chat-adapter/state-redis",
       ],
-    },
-    "packages/relay-worker": {
-      "name": "@pleaseai/relay-worker",
-      "version": "0.1.0",
-      "dependencies": {
-        "partyserver": "^0.0.66",
-      },
-      "devDependencies": {
-        "@cloudflare/workers-types": "^4.20250313.0",
-        "typescript": "^5.7.0",
-        "wrangler": "^4.14.0",
-      },
     },
   },
   "packages": {
@@ -846,7 +846,7 @@
 
     "@pleaseai/docs": ["@pleaseai/docs@workspace:apps/docs"],
 
-    "@pleaseai/relay-worker": ["@pleaseai/relay-worker@workspace:packages/relay-worker"],
+    "@pleaseai/relay-worker": ["@pleaseai/relay-worker@workspace:apps/relay-worker"],
 
     "@polka/url": ["@polka/url@1.0.0-next.29", "", {}, "sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww=="],
 
@@ -2602,7 +2602,7 @@
 
     "parseurl": ["parseurl@1.3.3", "", {}, "sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ=="],
 
-    "partyserver": ["partyserver@0.0.66", "", { "dependencies": { "nanoid": "^5.1.2" }, "peerDependencies": { "@cloudflare/workers-types": "^4.20240729.0" } }, "sha512-GyC1uy4dvC4zPkwdzHqCkQ1J1CMiI0swIJQ0qqsJh16WNkEo5QHuU3l3ikLO8t+Yq0cRr0qO8++xbr11h+107w=="],
+    "partyserver": ["partyserver@0.3.3", "", { "dependencies": { "nanoid": "^5.1.6" }, "peerDependencies": { "@cloudflare/workers-types": "^4.20240729.0" } }, "sha512-jSGWNZ5lJj9czq+97y9N02HyZZtQH8wmgJRkTQahfGnzgL5+R12dMX3E+p7BscB2cVj6LZLv1uHpKL057rjJmw=="],
 
     "partysocket": ["partysocket@1.1.16", "", { "dependencies": { "event-target-polyfill": "^0.0.4" }, "peerDependencies": { "react": ">=17" }, "optionalPeers": ["react"] }, "sha512-d7xFv+ZC7x0p/DAHWJ5FhxQhimIx+ucyZY+kxL0cKddLBmK9c4p2tEA/L+dOOrWm6EYrRwrBjKQV0uSzOY9x1w=="],
 

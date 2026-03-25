@@ -86,7 +86,7 @@ agent-please/                      # Monorepo root
 │   ├── content/                  # Markdown documentation pages
 │   └── nuxt.config.ts            # Docus layer configuration
 ├── packages/core/                # @pleaseai/agent-core (orchestrator business logic)
-├── packages/relay-worker/        # @pleaseai/relay-worker (Cloudflare Worker cloud relay)
+├── apps/relay-worker/             # @pleaseai/relay-worker (Cloudflare Worker cloud relay)
 └── vendor/symphony/              # Upstream reference spec (read-only)
 ```
 

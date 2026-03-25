@@ -71,7 +71,7 @@ Issue Tracker (GitHub/Asana)
 
 ### Key Components
 
-1. **`packages/relay-worker/`** — Cloudflare Worker with PartyServer class handling webhook reception and WebSocket fan-out
+1. **`apps/relay-worker/`** — Cloudflare Worker with PartyServer class handling webhook reception and WebSocket fan-out
 2. **`packages/core/src/relay-transport.ts`** — WebSocket client using `partysocket` that connects to the relay and calls `triggerRefresh()` on events
 3. **Config extension** — New `relay` section in `WORKFLOW.md` YAML front matter (`relay.url`, `relay.token`, `relay.room`)
 4. **Orchestrator integration** — When `polling.mode: relay`, start relay transport alongside (or instead of) HTTP webhook listener

@@ -2,7 +2,8 @@ import type { Connection, ConnectionContext } from 'partyserver'
 import { Server } from 'partyserver'
 
 export interface Env {
-  RelayParty: DurableObjectNamespace
+  [key: string]: unknown
+  RelayParty: DurableObjectNamespace<RelayParty>
   WEBHOOK_SECRET?: string
   AUTH_TOKEN?: string
 }

@@ -34,7 +34,7 @@ The relay transport follows the same pattern as the existing webhook transport: 
 
 The implementation adds a third `PollingMode` value (`'relay'`) and a new config section (`relay: { url, token, room, secret }`). When relay mode is active, the orchestrator starts a `RelayTransport` that maintains a WebSocket connection to the Cloudflare relay via `partysocket`. The periodic poll timer still runs as a safety net, identical to webhook mode behavior.
 
-The relay worker is a separate `packages/relay-worker/` workspace — a Cloudflare Worker using `partyserver`. It receives HTTP webhook POSTs from issue trackers on a `/webhook/:room` endpoint, verifies the shared secret via HMAC signature, and broadcasts a lightweight event envelope to all connected WebSocket clients in that room. Each room corresponds to a project/deployment, allowing multi-tenant usage. Hibernation is enabled so idle rooms have zero compute cost.
+The relay worker is a separate `apps/relay-worker/` workspace — a Cloudflare Worker using `partyserver`. It receives HTTP webhook POSTs from issue trackers on a `/webhook/:room` endpoint, verifies the shared secret via HMAC signature, and broadcasts a lightweight event envelope to all connected WebSocket clients in that room. Each room corresponds to a project/deployment, allowing multi-tenant usage. Hibernation is enabled so idle rooms have zero compute cost.
 
 The worker and client are decoupled: the worker only needs `partyserver` (Cloudflare runtime), while the agent client only needs `partysocket` (Node/Bun runtime). Authentication uses bearer tokens on WebSocket upgrade and shared secrets on HTTP webhook ingress.
 
@@ -45,10 +45,10 @@ The worker and client are decoupled: the worker only needs `partyserver` (Cloudf
 - [x] T003 Create RelayTransport client with partysocket (file: packages/core/src/relay-transport.ts) (depends on T001)
 - [x] T004 Integrate relay transport into Orchestrator start/stop lifecycle (file: packages/core/src/orchestrator.ts) (depends on T002, T003)
 - [x] T005 Export relay transport from core barrel (file: packages/core/src/index.ts) (depends on T003)
-- [x] T006 [P] Scaffold relay-worker package with wrangler config (file: packages/relay-worker/package.json)
-- [x] T007 Implement RelayParty server class with broadcast (file: packages/relay-worker/src/relay-party.ts) (depends on T006)
-- [x] T008 Add webhook ingress handler with signature verification (file: packages/relay-worker/src/relay-party.ts) (depends on T007)
-- [x] T009 Add WebSocket connection authentication (file: packages/relay-worker/src/relay-party.ts) (depends on T007)
+- [x] T006 [P] Scaffold relay-worker package with wrangler config (file: apps/relay-worker/package.json)
+- [x] T007 Implement RelayParty server class with broadcast (file: apps/relay-worker/src/relay-party.ts) (depends on T006)
+- [x] T008 Add webhook ingress handler with signature verification (file: apps/relay-worker/src/relay-party.ts) (depends on T007)
+- [x] T009 Add WebSocket connection authentication (file: apps/relay-worker/src/relay-party.ts) (depends on T007)
 - [x] T010 Add relay config validation in validateConfig (file: packages/core/src/config.ts) (depends on T002)
 - [x] T011 ~~Add Nitro plugin for relay transport lifecycle~~ Removed — orchestrator handles relay lifecycle directly (depends on T004)
 
@@ -58,11 +58,11 @@ The worker and client are decoupled: the worker only needs `partyserver` (Cloudf
 
 - `packages/core/src/relay-transport.ts` — WebSocket client using partysocket, connects to relay and calls triggerRefresh()
 - `packages/core/src/relay-transport.test.ts` — Unit tests for relay transport
-- `packages/relay-worker/package.json` — New workspace package for Cloudflare Worker
-- `packages/relay-worker/src/relay-party.ts` — PartyServer class: onRequest (webhook ingress), onConnect (auth), broadcast
-- `packages/relay-worker/src/index.ts` — Worker entry point exporting the party and fetch handler
-- `packages/relay-worker/wrangler.json` — Cloudflare Worker + Durable Object binding config
-- `packages/relay-worker/tsconfig.json` — TypeScript config for Cloudflare Workers environment
+- `apps/relay-worker/package.json` — New workspace package for Cloudflare Worker
+- `apps/relay-worker/src/relay-party.ts` — PartyServer class: onRequest (webhook ingress), onConnect (auth), broadcast
+- `apps/relay-worker/src/index.ts` — Worker entry point exporting the party and fetch handler
+- `apps/relay-worker/wrangler.json` — Cloudflare Worker + Durable Object binding config
+- `apps/relay-worker/tsconfig.json` — TypeScript config for Cloudflare Workers environment
 - `apps/agent-please/server/plugins/04.relay.ts` — Nitro plugin managing relay connection lifecycle
 
 ### Modify
@@ -96,7 +96,7 @@ The worker and client are decoupled: the worker only needs `partyserver` (Cloudf
 ### Observable Outcomes
 
 - After setting `polling.mode: relay` with a valid relay URL, the orchestrator log shows `starting mode=relay` and a successful WebSocket connection
-- Running `wrangler deploy` in `packages/relay-worker/` deploys the relay worker to Cloudflare
+- Running `wrangler deploy` in `apps/relay-worker/` deploys the relay worker to Cloudflare
 - Sending a test webhook POST to the relay worker URL triggers an orchestrator refresh on the connected agent instance
 
 ### Manual Testing

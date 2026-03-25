@@ -10,7 +10,7 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "partyserver": "^0.0.66"
+    "partyserver": "^0.3.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250313.0",

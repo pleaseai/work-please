@@ -27,7 +27,7 @@ export default {
     }
 
     // WebSocket connections: /parties/relay-party/:room
-    const partyResponse = await routePartykitRequest(request, env as Record<string, unknown>)
+    const partyResponse = await routePartykitRequest(request, env)
     if (partyResponse)
       return partyResponse
 
