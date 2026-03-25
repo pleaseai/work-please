@@ -59,7 +59,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - run: bun run build
+      - run: bunx turbo run build --filter=@pleaseai/agent
 
       - name: Copy root files into package directory
         run: cp LICENSE README.md apps/agent-please/
@@ -100,7 +100,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - run: bun run build
+      - run: bunx turbo run build --filter=@pleaseai/agent-core
 
       - name: Copy root files into package directory
         run: cp LICENSE README.md packages/core/
