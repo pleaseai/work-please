@@ -1,0 +1,23 @@
+packages/core/package.json
+  524f76086ce1a102 54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "3147a208d7db29adce5755bfc3713d83ddc5c18b",
+  "prompts": {
+    "524f76086ce1a102": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f276d595-8e93-40fe-877f-58a419140911",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
