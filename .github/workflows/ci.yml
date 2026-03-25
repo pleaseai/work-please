@@ -110,7 +110,7 @@ jobs:
 
       - run: bun run test:coverage
 
-      - uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+      - uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5.5.3
         if: always()
         with:
           files: apps/agent-please/coverage/lcov.info
