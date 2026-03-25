@@ -23,7 +23,7 @@ GitHub ──POST /webhook/:room──▶ Cloudflare Worker (RelayParty)
 1. **Webhook ingress** — `POST /webhook/:room` forwards the request to a `RelayParty` Durable Object identified by `room`.
 2. **Signature verification** — If `WEBHOOK_SECRET` is set, the worker validates `X-Hub-Signature-256` using constant-time HMAC-SHA256 comparison.
 3. **Broadcast** — The Durable Object broadcasts a lightweight envelope (`event`, `action`, `event_id`, `received_at`) to all connected WebSocket clients. The full payload is **not** forwarded — clients fetch fresh state from the issue tracker on notification.
-4. **Client connection** — Agent Please connects via `partysocket` (`RelayTransport` in `@pleaseai/core`) to `wss://<worker>/parties/relay/:room`.
+4. **Client connection** — Agent Please connects via `partysocket` (`RelayTransport` in `@pleaseai/core`) to `wss://<worker>/parties/relay-party/:room`.
 
 ## Routes
 
