@@ -1,7 +1,7 @@
 import type { RouterClient } from '@orpc/server'
-import type { router } from '../../server/orpc'
 import { createRouterClient } from '@orpc/server'
 import { createTanstackQueryUtils } from '@orpc/tanstack-query'
+import { router } from '../../server/orpc'
 
 export default defineNuxtPlugin(() => {
   const client: RouterClient<typeof router> = createRouterClient(router, {
