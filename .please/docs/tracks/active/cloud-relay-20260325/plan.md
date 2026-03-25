@@ -130,3 +130,30 @@ The worker and client are decoupled: the worker only needs `partyserver` (Cloudf
 - Decision: Enable PartyServer hibernation for relay rooms
   Rationale: Hibernation allows idle Durable Objects (no connected clients) to have zero compute cost. The relay wakes automatically on new connections or HTTP requests.
   Date/Author: 2026-03-25 / Claude
+
+- Decision: Move relay-worker from packages/ to apps/
+  Rationale: It's an independently deployable application (wrangler deploy), not a shared library consumed by other packages. Follows monorepo convention: apps/ for deployables, packages/ for libraries.
+  Date/Author: 2026-03-25 / Claude
+
+## Outcomes & Retrospective
+
+### What Was Shipped
+- Cloud relay transport with 3 polling modes (poll, webhook, relay)
+- RelayTransport client with partysocket auto-reconnect and event ID deduplication
+- Cloudflare Worker relay (apps/relay-worker/) with PartyServer, HMAC webhook verification, and bearer token WebSocket auth
+- Config extension with $ENV_VAR resolution for relay credentials
+- 14 new tests covering config parsing, validation, and transport behavior
+
+### What Went Well
+- triggerRefresh() as the universal transport interface made integration trivial — no orchestrator logic changes needed
+- partysocket handled reconnection/backoff out of the box (FR-4 for free)
+- Spec compliance review caught the duplicate Nitro plugin issue and missing event dedup early
+
+### What Could Improve
+- Initial partyserver version (0.0.66) was outdated — should check latest before scaffolding
+- Relay worker has no automated tests (only type-checked) — consider miniflare/vitest for DO testing
+- Asana webhook signature verification not implemented in relay (only GitHub HMAC format)
+
+### Tech Debt Created
+- Relay worker lacks automated tests (tracked below)
+- config.ts and orchestrator.ts exceed 500 LOC limit (pre-existing, relay additions are small)
