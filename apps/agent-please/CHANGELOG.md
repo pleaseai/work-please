@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.26](https://github.com/pleaseai/agent-please/compare/agent-v0.1.25...agent-v0.1.26) (2026-03-25)
+
+
+### Bug Fixes
+
+* **orpc:** change type-only import to value import in server plugin ([#214](https://github.com/pleaseai/agent-please/issues/214)) ([25cc2c5](https://github.com/pleaseai/agent-please/commit/25cc2c5895f1c15b43b936e65a669655a157187a))
+
 ## [0.1.25](https://github.com/pleaseai/agent-please/compare/agent-v0.1.24...agent-v0.1.25) (2026-03-25)
 
 
