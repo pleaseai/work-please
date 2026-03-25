@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.25](https://github.com/pleaseai/agent-please/compare/agent-v0.1.24...agent-v0.1.25) (2026-03-25)
+
+
+### Features
+
+* **dashboard:** add tracker project board view ([#210](https://github.com/pleaseai/agent-please/issues/210)) ([e614643](https://github.com/pleaseai/agent-please/commit/e61464361ac0985cdc18e605876e358c58e52462))
+
 ## [0.1.24](https://github.com/pleaseai/agent-please/compare/agent-v0.1.23...agent-v0.1.24) (2026-03-25)
 
 
