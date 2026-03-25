@@ -4,8 +4,8 @@ export function useOrchestratorState() {
   const { $orpc } = useNuxtApp()
 
   const { data: state, error: queryError, isPending, refetch } = useQuery(
-    $orpc.orchestrator.state.queryOptions({
-      refetchInterval: 3000,
+    $orpc.orchestrator.live.experimental_liveOptions({
+      retry: true,
     }),
   )
 
