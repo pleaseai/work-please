@@ -1,0 +1,23 @@
+apps/agent-please/server/orpc/schemas.ts
+  27418102d8800b91 138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "c9c60536a366f532ac7998b5ad271c617fd4f089",
+  "prompts": {
+    "27418102d8800b91": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "398f1848-d9b1-4660-ae44-5c1bc95071ce",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
