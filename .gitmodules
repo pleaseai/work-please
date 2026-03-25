@@ -7,3 +7,6 @@
 [submodule "vendor/openreview"]
 	path = vendor/openreview
 	url = https://github.com/vercel-labs/openreview
+[submodule "vendor/better-hub"]
+	path = vendor/better-hub
+	url = https://github.com/better-auth/better-hub
