@@ -101,3 +101,22 @@ Direct replacement — remove local packages, install from npm, adapt call sites
   Evidence: Installed packages use `triggerRefresh: () => void` and `RelayParty` without `X-Relay-Provider` header — the enhanced API is only in the external repo's main branch, not yet released
 - Observation: 2 pre-existing test failures unrelated to relay changes
   Evidence: `runMigrations > returns false when migration fails on destroyed connection` and `ensureSharedClone with token > redacts token from error message when fetch fails` both fail on clean main branch
+
+## Outcomes & Retrospective
+
+### What Was Shipped
+- Removed local `packages/relay-client` and `packages/relay-server` directories
+- Replaced `workspace:*` references with npm `^0.1.0` in core and relay-worker
+- Cleaned up `release-please-config.json` and `.release-please-manifest.json`
+- Updated ARCHITECTURE.md and tech-stack.md to note packages are external
+
+### What Went Well
+- Clean migration — no source code changes needed beyond dependency swaps
+- npm 0.1.0 packages are API-compatible with the local copies
+- Code review caught the missed `.release-please-manifest.json` cleanup
+
+### What Could Improve
+- Spec assumed the npm packages had the enhanced provider-based API, but they were published from an earlier commit. Future specs should verify the published API before planning.
+
+### Tech Debt Created
+- When `@pleaseai/relay-server` releases the provider-based API, relay-worker should be updated to use `/webhook/:provider/:room` routing
