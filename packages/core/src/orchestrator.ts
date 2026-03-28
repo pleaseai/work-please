@@ -99,7 +99,7 @@ export class Orchestrator {
 
     // Start relay transport if in relay mode
     if (mode === 'relay') {
-      this.relayTransport = new RelayTransport(this.config.relay, () => this.triggerRefresh())
+      this.relayTransport = new RelayTransport(this.config.relay, _envelope => this.triggerRefresh())
       this.relayTransport.connect()
     }
 
