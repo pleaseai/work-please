@@ -1,0 +1,25 @@
+packages/core/package.json
+  3c8f2f6207c49198 54
+apps/relay-worker/package.json
+  3c8f2f6207c49198 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "4953d9583cbf9abe94ac879104ae64d7482e620c",
+  "prompts": {
+    "3c8f2f6207c49198": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "34424be2-2ea9-4fee-8e86-3b84e14ea7b0",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 2,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
