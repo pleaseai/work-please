@@ -20,7 +20,7 @@
 | [project-board-view-20260325](active/project-board-view-20260325/plan.md) | Add Tracker Project Board View | feature | #206 | 2026-03-25 | in_progress |
 | [cloud-relay-20260325](active/cloud-relay-20260325/plan.md) | Cloud Relay Transport (Cloudflare + PartyServer) | feature | TBD | 2026-03-25 | in_progress |
 | [relay-package-split-20260326](active/relay-package-split-20260326/plan.md) | Relay Package Split | refactor | TBD | 2026-03-26 | in_progress |
-| [use-relay-package-20260328](active/use-relay-package-20260328/plan.md) | Use External Relay Packages | refactor | TBD | 2026-03-28 | planned |
+| [use-relay-package-20260328](active/use-relay-package-20260328/plan.md) | Use External Relay Packages | refactor | TBD | 2026-03-28 | in_progress |
 
 ## Recently Completed
 
