@@ -1,0 +1,23 @@
+.please/docs/tracks/active/etag-polling-20260329/plan.md
+  1e30f4ac99bf2c60 119-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "5ff416e4e8211b7abcb0449e0f70ec5f63cc0258",
+  "prompts": {
+    "1e30f4ac99bf2c60": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d46b37ae-1bff-43f7-8529-0e67a656039b",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Minsu Lee <amond@amond.net>",
+      "messages": [],
+      "total_additions": 28,
+      "total_deletions": 0,
+      "accepted_lines": 194,
+      "overriden_lines": 0
+    }
+  }
+}
