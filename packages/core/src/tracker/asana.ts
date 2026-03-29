@@ -2,7 +2,10 @@ import type { AsanaPlatformConfig, Issue, ProjectConfig } from '../types'
 import type { CandidateAndWatchedResult, StatusFieldInfo, TrackerAdapter, TrackerError } from './types'
 import { normalizeState } from '../config'
 import { deduplicateByNormalized, matchesFilter, splitCandidatesAndWatched } from '../filter'
+import { createLogger } from '../logger'
 import { isTrackerError } from './types'
+
+const log = createLogger('asana')
 
 const PAGE_SIZE = 50
 const NETWORK_TIMEOUT_MS = 30_000
@@ -43,6 +46,13 @@ export function createAsanaAdapter(project: ProjectConfig, platform: AsanaPlatfo
       return { code: 'asana_api_request', cause }
     }
     clearTimeout(timeout)
+
+    // Log cache status when using cached fetch (make-fetch-happen adds x-local-cache headers)
+    const cacheStatus = response.headers?.get?.('x-local-cache-status')
+    if (cacheStatus) {
+      const cacheHit = cacheStatus === 'hit' || cacheStatus === 'revalidated'
+      log.info(`fetch url=${url} cache=${cacheHit ? 'hit' : 'miss'} x-local-cache-status=${cacheStatus}`)
+    }
 
     if (!response.ok) {
       const body = await response.json().catch(() => null)
