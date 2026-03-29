@@ -18,11 +18,7 @@ After this change, the monorepo will consume relay packages from npm (`@pleaseai
 
 The relay transport (WebSocket client) and relay server (PartyServer Durable Object) were originally extracted from the monorepo into `packages/relay-client` and `packages/relay-server` as part of the `relay-package-split-20260326` track. These packages have since been published to the external repository `pleaseai/relay` and released on npm as `@pleaseai/relay-client@0.1.0` and `@pleaseai/relay-server@0.1.0`.
 
-The external packages have an enhanced API compared to the local copies:
-- **relay-client**: `triggerRefresh` callback now receives `RelayEnvelope` as a parameter (was `() => void`, now `(envelope: RelayEnvelope) => void`). `RelayEnvelope` gained `provider` and `payload` optional fields.
-- **relay-server**: Refactored from inline GitHub-only signature verification to a provider-based architecture supporting GitHub and Asana. `RelayParty.onRequest` now requires an `X-Relay-Provider` header. New exports: `resolveProvider`, `WebhookProvider`. New env var: `FORWARD_PAYLOAD`.
-
-The relay-worker (`apps/relay-worker`) route changes from `/webhook/:room` to `/webhook/:provider/:room` to pass the provider name via header.
+The npm `0.1.0` releases of both packages have the same API as the local copies — no breaking changes. The external repo's `main` branch contains an enhanced provider-based API (new `RelayEnvelope` fields, provider-based routing, `X-Relay-Provider` header), but these changes have not yet been published to npm. When a future version is released with the enhanced API, relay-worker should be updated accordingly (see Tech Debt below).
 
 ## Architecture Decision
 
