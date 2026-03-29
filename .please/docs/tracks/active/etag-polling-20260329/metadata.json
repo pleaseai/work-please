@@ -1,9 +1,9 @@
 {
   "track_id": "etag-polling-20260329",
   "type": "feature",
-  "status": "planned",
+  "status": "in_progress",
   "created_at": "2026-03-29T16:14:14+09:00",
-  "updated_at": "2026-03-29T16:30:00+09:00",
+  "updated_at": "2026-03-29T16:35:00+09:00",
   "issue": "#223",
   "pr": "",
   "project": ""
