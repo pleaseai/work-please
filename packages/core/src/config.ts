@@ -1,4 +1,4 @@
-import type { AuthConfig, AuthorAssociation, ChannelConfig, ClaudeEffort, CommitSigningConfig, CommitSigningMode, DbConfig, IssueFilter, PlatformConfig, PollingMode, ProjectConfig, RelayConfig, SandboxConfig, ServiceConfig, SettingSource, StateAdapterKind, StateConfig, SystemPromptConfig, WorkflowDefinition } from './types'
+import type { AuthConfig, AuthorAssociation, CacheConfig, ChannelConfig, ClaudeEffort, CommitSigningConfig, CommitSigningMode, DbConfig, IssueFilter, PlatformConfig, PollingMode, ProjectConfig, RelayConfig, SandboxConfig, ServiceConfig, SettingSource, StateAdapterKind, StateConfig, SystemPromptConfig, WorkflowDefinition } from './types'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import process from 'node:process'
@@ -48,6 +48,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
   const state = sectionMap(raw, 'state')
   const server = sectionMap(raw, 'server')
 
+  const cache = sectionMap(raw, 'cache')
   const relay = sectionMap(raw, 'relay')
   const commitSigning = sectionMap(raw, 'commit_signing')
   const platforms = buildPlatformsConfig(raw)
@@ -83,6 +84,7 @@ export function buildConfig(workflow: WorkflowDefinition): ServiceConfig {
     env: buildEnvConfig(raw),
     db: buildDbConfig(db),
     state: buildStateConfig(state),
+    cache: buildCacheConfig(cache, resolvePathValue(stringValue(workspace.root), DEFAULTS.WORKSPACE_ROOT)),
     relay: buildRelayConfig(relay),
     server: {
       port: nonNegIntOrNull(server.port),
@@ -263,6 +265,13 @@ function buildAuthConfig(auth: Record<string, unknown>): AuthConfig {
 }
 
 const DEFAULT_DB_PATH = '.agent-please/agent_runs.db'
+
+function buildCacheConfig(cache: Record<string, unknown>, workspaceRoot: string): CacheConfig {
+  const defaultPath = join(workspaceRoot, '.cache', 'http')
+  return {
+    path: resolvePathValue(stringValue(cache.path), defaultPath),
+  }
+}
 
 function buildDbConfig(db: Record<string, unknown>): DbConfig {
   return {

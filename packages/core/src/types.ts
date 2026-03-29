@@ -160,6 +160,10 @@ export interface AuthConfig {
   trusted_origins: string[]
 }
 
+export interface CacheConfig {
+  path: string
+}
+
 export interface DbConfig {
   path: string
   turso_url: string | null
@@ -253,6 +257,7 @@ export interface ServiceConfig {
   env: Record<string, string>
   db: DbConfig
   state: StateConfig
+  cache: CacheConfig
   relay: RelayConfig
   server: {
     port: number | null

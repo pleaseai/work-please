@@ -10,8 +10,14 @@ import { createStatusUpdateContext } from './github-status-update'
 const log = createLogger('github')
 
 const PAGE_SIZE = 50
+const TRAILING_SLASH_RE = /\/$/
 
-export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlatformConfig): TrackerAdapter {
+export interface GitHubAdapterOptions {
+  /** Optional cached fetch for REST ETag checks */
+  cachedFetch?: typeof fetch
+}
+
+export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlatformConfig, options?: GitHubAdapterOptions): TrackerAdapter {
   const owner = platform.owner ?? ''
   const projectNumber = project.project_number ?? 0
   const projectId = project.project_id ?? null
@@ -19,6 +25,87 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
   const filter = project.filter
 
   const octokit = createAuthenticatedGraphql(project, platform)
+
+  // --- REST ETag guard ---
+  // Application-level cache for GraphQL results keyed by REST ETag.
+  // When cachedFetch is provided, a lightweight REST GET checks for changes.
+  // On 304 (unchanged) → return cached Issue[].
+  // On 200 (changed) → run full GraphQL, cache result.
+  let cachedIssues: Issue[] | null = null
+  const NETWORK_TIMEOUT_MS = 30_000
+
+  function getRestFetch(): typeof fetch {
+    return options?.cachedFetch ?? globalThis.fetch
+  }
+
+  function buildRestUrl(): string | null {
+    const endpoint = (project.endpoint ?? 'https://api.github.com').replace(TRAILING_SLASH_RE, '')
+    if (!owner || !projectNumber)
+      return null
+    return `${endpoint}/orgs/${encodeURIComponent(owner)}/projectsV2/${projectNumber}/items?per_page=1`
+  }
+
+  function getRestAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    }
+    if (platform.api_key)
+      headers.Authorization = `Bearer ${platform.api_key}`
+    return headers
+  }
+
+  /**
+   * Check if project items have changed using REST ETag.
+   * Returns true if data changed (or no cache), false if unchanged (304).
+   */
+  async function hasItemsChanged(): Promise<boolean> {
+    const restUrl = buildRestUrl()
+    if (!restUrl || !options?.cachedFetch)
+      return true
+
+    const ctrl = new AbortController()
+    const timeout = setTimeout(() => ctrl.abort(), NETWORK_TIMEOUT_MS)
+    try {
+      const response = await getRestFetch()(restUrl, {
+        headers: getRestAuthHeaders(),
+        signal: ctrl.signal,
+      })
+      clearTimeout(timeout)
+
+      if (response.status === 304) {
+        log.info('rest_etag_check status=304 cache=hit')
+        return false
+      }
+
+      log.info(`rest_etag_check status=${response.status} cache=miss`)
+      // Consume body to prevent resource leak
+      await response.text().catch(() => {})
+      return true
+    }
+    catch (err) {
+      clearTimeout(timeout)
+      log.warn(`rest_etag_check failed, falling back to GraphQL: ${err}`)
+      return true
+    }
+  }
+
+  /**
+   * Wraps fetchAllItems with REST ETag guard.
+   * On 304, returns cached result; on change, runs GraphQL and caches.
+   */
+  async function fetchAllItemsWithEtagGuard(statusFilter: string[], search = ''): Promise<Issue[] | TrackerError> {
+    const changed = await hasItemsChanged()
+    if (!changed && cachedIssues !== null) {
+      return cachedIssues
+    }
+
+    const result = await fetchAllItems(statusFilter, search)
+    if (!('code' in result)) {
+      cachedIssues = result
+    }
+    return result
+  }
 
   async function runGraphql(query: string, variables: Record<string, unknown> = {}): Promise<{ data: unknown } | TrackerError> {
     try {
@@ -250,15 +337,23 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
 
   return {
     async fetchCandidateIssues() {
-      return fetchAllItems(activeStatuses, buildQueryString(filter))
+      return fetchAllItemsWithEtagGuard(activeStatuses, buildQueryString(filter))
     },
 
     async fetchCandidateAndWatchedIssues(watchedStates: string[]): Promise<CandidateAndWatchedResult | TrackerError> {
+      // Perform a single ETag check for the project before any GraphQL calls
+      const changed = await hasItemsChanged()
+      if (!changed && cachedIssues !== null) {
+        // Data unchanged — split cached result into candidates/watched
+        return splitCandidatesAndWatched(cachedIssues, activeStatuses, watchedStates, filter)
+      }
+
       if (watchedStates.length === 0) {
         // No watched states — just fetch candidates with server-side filter
         const candidates = await fetchAllItems(activeStatuses, buildQueryString(filter))
         if ('code' in candidates)
           return candidates
+        cachedIssues = candidates
         return { candidates, watched: [] }
       }
 
@@ -280,6 +375,8 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
         // Only return error if both failed
         if ('code' in candidatesResult && 'code' in watchedResult)
           return candidatesResult
+        // Cache all fetched issues for next ETag check
+        cachedIssues = [...candidates, ...watched]
         return { candidates, watched }
       }
 
@@ -289,6 +386,7 @@ export function createGitHubAdapter(project: ProjectConfig, platform: GitHubPlat
       if ('code' in allIssues)
         return allIssues
 
+      cachedIssues = allIssues
       return splitCandidatesAndWatched(allIssues, activeStatuses, watchedStates, filter)
     },
 

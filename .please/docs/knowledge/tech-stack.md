@@ -62,6 +62,7 @@
 | `@orpc/zod` | Zod schema converter for oRPC OpenAPI generation |
 | `@tanstack/vue-query` | Async state management with caching, refetching, and SSE support |
 | consola | Structured logging |
+| `make-fetch-happen` | HTTP fetch with built-in ETag/Last-Modified caching for polling mode |
 | `partysocket` | Auto-reconnecting WebSocket client for cloud relay transport |
 | `partyserver` | Cloudflare Workers + Durable Objects server framework for relay worker |
 

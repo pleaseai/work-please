@@ -2190,3 +2190,104 @@ describe('github_projects updateItemStatus (T005)', () => {
     finally { globalThis.fetch = origFetch }
   })
 })
+
+// --- ETag guard behavioral tests ---
+
+describe('GitHub REST ETag guard', () => {
+  function makeGraphqlResponse(items: Array<Record<string, unknown>> = []) {
+    return new Response(JSON.stringify({
+      data: {
+        repositoryOwner: {
+          projectV2: {
+            items: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: items,
+            },
+          },
+        },
+      },
+    }), { headers: { 'content-type': 'application/json' } })
+  }
+
+  const sampleItem = {
+    id: 'PVTI_1',
+    fieldValues: { nodes: [{ name: 'Todo', field: { name: 'Status' } }] },
+    content: {
+      number: 1,
+      title: 'Test Issue',
+      body: 'desc',
+      url: 'https://github.com/org/repo/issues/1',
+      repository: { nameWithOwner: 'org/repo' },
+      labels: { nodes: [] },
+      assignees: { nodes: [] },
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      closedByPullRequestsReferences: { nodes: [] },
+    },
+  }
+
+  test('returns cached issues when REST ETag check returns 304', async () => {
+    const project = makeGitHubProject()
+    const platform = makeGitHubPlatform()
+    let restCallCount = 0
+    let graphqlCallCount = 0
+
+    const cachedFetch = mock(async (_url: string) => {
+      restCallCount++
+      if (restCallCount === 1) {
+        // First call: 200 (data changed)
+        return new Response('[]', { status: 200 })
+      }
+      // Second call: 304 (unchanged)
+      return new Response(null, { status: 304 })
+    }) as unknown as typeof fetch
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      graphqlCallCount++
+      return makeGraphqlResponse([sampleItem])
+    }) as unknown as typeof fetch
+
+    try {
+      const adapter = createGitHubAdapter(project, platform, { cachedFetch })
+
+      // First fetch: REST 200, should run GraphQL
+      const result1 = await adapter.fetchCandidateIssues()
+      expect(Array.isArray(result1)).toBe(true)
+      expect(graphqlCallCount).toBeGreaterThan(0)
+
+      const graphqlCountAfterFirst = graphqlCallCount
+
+      // Second fetch: REST 304, should return cached without GraphQL
+      const result2 = await adapter.fetchCandidateIssues()
+      expect(Array.isArray(result2)).toBe(true)
+      expect(graphqlCallCount).toBe(graphqlCountAfterFirst)
+      expect(restCallCount).toBe(2)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+
+  test('runs GraphQL when no cachedFetch provided (no ETag guard)', async () => {
+    const project = makeGitHubProject()
+    const platform = makeGitHubPlatform()
+    let graphqlCallCount = 0
+
+    const origFetch = globalThis.fetch
+    globalThis.fetch = mock(async () => {
+      graphqlCallCount++
+      return makeGraphqlResponse([sampleItem])
+    }) as unknown as typeof fetch
+
+    try {
+      // No cachedFetch = no ETag guard, always runs GraphQL
+      const adapter = createGitHubAdapter(project, platform)
+      await adapter.fetchCandidateIssues()
+      expect(graphqlCallCount).toBeGreaterThan(0)
+
+      const countAfterFirst = graphqlCallCount
+      await adapter.fetchCandidateIssues()
+      expect(graphqlCallCount).toBeGreaterThan(countAfterFirst)
+    }
+    finally { globalThis.fetch = origFetch }
+  })
+})

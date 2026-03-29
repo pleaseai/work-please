@@ -7,6 +7,10 @@ export { AppServerClient, extractRateLimits, extractUsage, isInputRequired } fro
 
 export type { AgentSession, SessionResult } from './agent-runner'
 
+// Cached Fetch
+export { createCachedFetch } from './cached-fetch'
+export type { CachedFetch, CachedFetchOptions } from './cached-fetch'
+
 // Config
 export {
   buildConfig,
@@ -17,6 +21,7 @@ export {
   normalizeState,
   validateConfig,
 } from './config'
+
 export type { ValidationError } from './config'
 
 // DB
@@ -31,7 +36,6 @@ export type { DispatchLock, DispatchLockAdapter } from './dispatch-lock'
 
 // Filter
 export { deduplicateByNormalized, hasFilter, matchesFilter, splitCandidatesAndWatched } from './filter'
-
 // Issue Comment Handler
 export { extractMentionPrompt, handleIssueCommentMention, shouldHandleComment } from './issue-comment-handler'
 
@@ -45,11 +49,11 @@ export { createLogger, isVerbose, setVerbose } from './logger'
 
 // Orchestrator
 export { buildTokenProvider, getLinkedPrUpdateMs, isWatchedUnchanged, Orchestrator } from './orchestrator'
+
 // Prompt Builder
 export { buildContinuationPrompt, buildPrompt, isPromptBuildError } from './prompt-builder'
 
 export type { PromptBuildError } from './prompt-builder'
-
 // Relay Transport
 export { RelayTransport } from './relay-transport'
 
@@ -65,6 +69,7 @@ export { createStateFromConfig } from './state'
 export { createToolsMcpServer, executeTool, getToolSpecs } from './tools'
 
 export type { ToolResult, ToolSpec } from './tools'
+
 // Tracker
 export { createTrackerAdapter, formatTrackerError, isTrackerError } from './tracker'
 
@@ -72,6 +77,7 @@ export type { TrackerAdapter, TrackerError } from './tracker'
 
 // Constants
 export { DEFAULT_ALLOWED_ASSOCIATIONS } from './types'
+
 // Types
 export type {
   AgentEvent,
@@ -81,6 +87,7 @@ export type {
   AuthConfig,
   AuthorAssociation,
   BlockerRef,
+  CacheConfig,
   ChannelConfig,
   ClaudeEffort,
   CommitSigningConfig,

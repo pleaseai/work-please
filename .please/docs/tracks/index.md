@@ -20,6 +20,7 @@
 | [project-board-view-20260325](active/project-board-view-20260325/plan.md) | Add Tracker Project Board View | feature | #206 | 2026-03-25 | in_progress |
 | [cloud-relay-20260325](active/cloud-relay-20260325/plan.md) | Cloud Relay Transport (Cloudflare + PartyServer) | feature | TBD | 2026-03-25 | in_progress |
 | [relay-package-split-20260326](active/relay-package-split-20260326/plan.md) | Relay Package Split | refactor | TBD | 2026-03-26 | in_progress |
+| [etag-polling-20260329](active/etag-polling-20260329/plan.md) | ETag/Last-Modified Conditional Request for Polling | feature | #223 | 2026-03-29 | in_progress |
 
 ## Recently Completed
 

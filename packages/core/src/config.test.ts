@@ -546,6 +546,23 @@ describe('buildConfig - github app auth fields', () => {
   })
 })
 
+describe('cache config', () => {
+  it('defaults cache.path to workspace.root/.cache/http', () => {
+    const config = buildConfig(makeWorkflow({}))
+    expect(config.cache.path).toContain('.cache/http')
+  })
+
+  it('parses explicit cache.path', () => {
+    const config = buildConfig(makeWorkflow({ cache: { path: '/custom/cache' } }))
+    expect(config.cache.path).toBe('/custom/cache')
+  })
+
+  it('uses workspace.root as base for default cache path', () => {
+    const config = buildConfig(makeWorkflow({ workspace: { root: '/my/workspace' } }))
+    expect(config.cache.path).toBe('/my/workspace/.cache/http')
+  })
+})
+
 describe('validateConfig', () => {
   it('returns null for valid asana config', () => {
     const config = buildConfig(makeWorkflow({

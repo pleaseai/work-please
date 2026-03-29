@@ -216,7 +216,7 @@ export class Orchestrator {
         continue
       }
 
-      const adapter = createTrackerAdapter(project, platform)
+      const adapter = createTrackerAdapter(project, platform, { cache: this.config.cache })
       if (isTrackerError(adapter)) {
         log.error(`tracker adapter error (project=${project.platform}): ${formatTrackerError(adapter)}`)
         continue
@@ -458,7 +458,7 @@ export class Orchestrator {
         log.warn(`platform "${project.platform}" not found — cannot populate project context for issue_id=${issue.id}`)
         return
       }
-      const adapter = createTrackerAdapter(project, platform)
+      const adapter = createTrackerAdapter(project, platform, { cache: this.config.cache })
       if (isTrackerError(adapter) || !adapter.resolveStatusField) {
         log.warn(`cannot resolve project context issue_id=${issue.id}: tracker does not support resolveStatusField`)
         return
@@ -518,7 +518,7 @@ export class Orchestrator {
         log.warn(`no project/platform configured — cannot refresh issue state after turn issue_id=${currentIssue.id}`)
         break
       }
-      const adapter = createTrackerAdapter(firstProject, firstPlatform)
+      const adapter = createTrackerAdapter(firstProject, firstPlatform, { cache: this.config.cache })
       if (isTrackerError(adapter))
         break
 
@@ -696,7 +696,7 @@ export class Orchestrator {
       this.state.claimed.delete(issueId)
       return
     }
-    const adapter = createTrackerAdapter(firstProject, firstPlatform)
+    const adapter = createTrackerAdapter(firstProject, firstPlatform, { cache: this.config.cache })
     if (isTrackerError(adapter)) {
       this.state.claimed.delete(issueId)
       return
@@ -761,7 +761,7 @@ export class Orchestrator {
       return
     }
 
-    const adapter = createTrackerAdapter(firstProject, firstPlatform)
+    const adapter = createTrackerAdapter(firstProject, firstPlatform, { cache: this.config.cache })
     if (isTrackerError(adapter))
       return
 
@@ -908,7 +908,7 @@ export class Orchestrator {
 
     const terminalStates = getTerminalStates(firstProject)
 
-    const adapter = createTrackerAdapter(firstProject, firstPlatform)
+    const adapter = createTrackerAdapter(firstProject, firstPlatform, { cache: this.config.cache })
     if (isTrackerError(adapter)) {
       log.warn(`startup cleanup: adapter error ${formatTrackerError(adapter)}`)
       return
